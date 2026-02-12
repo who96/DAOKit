@@ -52,6 +52,7 @@ class DispatchArtifactStore:
         parsed_output: Mapping[str, Any],
         raw_stderr: str,
         error: str | None,
+        correlation_id: str | None = None,
     ) -> DispatchCallArtifacts:
         call_id = f"call-{retry_index:03d}-{uuid4().hex[:8]}"
         call_dir = (
@@ -77,6 +78,7 @@ class DispatchArtifactStore:
             "run_id": run_id,
             "step_id": step_id,
             "thread_id": thread_id,
+            "correlation_id": correlation_id,
             "action": action,
             "retry_index": retry_index,
             "command": list(command),
@@ -87,6 +89,7 @@ class DispatchArtifactStore:
             "run_id": run_id,
             "step_id": step_id,
             "thread_id": thread_id,
+            "correlation_id": correlation_id,
             "action": action,
             "status": status,
             "raw_stdout": raw_stdout,
@@ -98,6 +101,7 @@ class DispatchArtifactStore:
             "run_id": run_id,
             "step_id": step_id,
             "thread_id": thread_id,
+            "correlation_id": correlation_id,
             "action": action,
             "error": error,
             "raw_stderr": raw_stderr,

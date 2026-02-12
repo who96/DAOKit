@@ -2,9 +2,10 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any, Callable, Mapping
+from typing import Any, Callable, Mapping, Protocol
 
 from contracts.runtime_adapters import RuntimeRelayPolicy, RuntimeRetriever, RuntimeStateStore
+from dispatch.shim_adapter import DispatchCallResult
 from rag.retrieval import (
     PolicyAwareRetriever,
     RetrievalPolicyConfig,
@@ -27,6 +28,47 @@ StateMutator = Callable[[dict[str, Any]], None]
 DEFAULT_CONTROLLER_LANE = "controller"
 ROLE_KEY_CONTROLLER_LANE = "controller_lane"
 ROLE_KEY_CONTROLLER_OWNERSHIP = "controller_ownership"
+DEFAULT_DISPATCH_MAX_RESUME_RETRIES = 1
+DEFAULT_DISPATCH_MAX_REWORK_ATTEMPTS = 1
+
+
+class RuntimeDispatchAdapter(Protocol):
+    def create(
+        self,
+        *,
+        task_id: str,
+        run_id: str,
+        step_id: str,
+        request: Mapping[str, Any] | None = None,
+        thread_id: str | None = None,
+        retry_index: int = 0,
+        dry_run: bool = False,
+    ) -> DispatchCallResult: ...
+
+    def resume(
+        self,
+        *,
+        task_id: str,
+        run_id: str,
+        step_id: str,
+        request: Mapping[str, Any] | None = None,
+        thread_id: str | None = None,
+        retry_index: int = 0,
+        dry_run: bool = False,
+    ) -> DispatchCallResult: ...
+
+    def rework(
+        self,
+        *,
+        task_id: str,
+        run_id: str,
+        step_id: str,
+        request: Mapping[str, Any] | None = None,
+        thread_id: str | None = None,
+        retry_index: int = 0,
+        dry_run: bool = False,
+        rework_context: Mapping[str, Any] | None = None,
+    ) -> DispatchCallResult: ...
 
 
 class OrchestratorRuntime:
@@ -44,6 +86,9 @@ class OrchestratorRuntime:
         retrieval_index_path: str | Path | None = None,
         default_retrieval_policies: Mapping[str, RetrievalPolicyConfig] | None = None,
         relay_policy: RuntimeRelayPolicy | None = None,
+        dispatch_adapter: RuntimeDispatchAdapter | None = None,
+        dispatch_max_resume_retries: int = DEFAULT_DISPATCH_MAX_RESUME_RETRIES,
+        dispatch_max_rework_attempts: int = DEFAULT_DISPATCH_MAX_REWORK_ATTEMPTS,
     ) -> None:
         self.task_id = task_id
         self.run_id = run_id
@@ -51,6 +96,15 @@ class OrchestratorRuntime:
         self.step_id = step_id
         self.state_store = state_store
         self.relay_policy = relay_policy or RelayModePolicy(relay_mode_enabled=False)
+        self.dispatch_adapter = dispatch_adapter
+        self.dispatch_max_resume_retries = self._normalize_non_negative_int(
+            dispatch_max_resume_retries,
+            name="dispatch_max_resume_retries",
+        )
+        self.dispatch_max_rework_attempts = self._normalize_non_negative_int(
+            dispatch_max_rework_attempts,
+            name="dispatch_max_rework_attempts",
+        )
         self.retriever = retriever or PolicyAwareRetriever(index_path=retrieval_index_path)
         self._retrieval_cache: dict[str, RetrievalResult] = {}
         self._default_retrieval_policies = {
@@ -306,6 +360,222 @@ class OrchestratorRuntime:
         role_lifecycle[ROLE_KEY_CONTROLLER_OWNERSHIP] = f"{controller_lane}:{active_step}"
         role_lifecycle[f"lane:{controller_lane}"] = f"active_step:{active_step}"
         role_lifecycle[f"step:{active_step}"] = f"owned_by_lane:{controller_lane}"
+        if self.dispatch_adapter is not None:
+            self._mutate_dispatch_with_adapter(
+                state=state,
+                active_step=active_step,
+                controller_lane=controller_lane,
+                role_lifecycle=role_lifecycle,
+            )
+
+    def _mutate_dispatch_with_adapter(
+        self,
+        *,
+        state: dict[str, Any],
+        active_step: str,
+        controller_lane: str,
+        role_lifecycle: dict[str, Any],
+    ) -> None:
+        dispatch_adapter = self.dispatch_adapter
+        if dispatch_adapter is None:
+            return
+
+        invocation_index = self._parse_invocation_counter(role_lifecycle.get("dispatch_invocation_count"))
+        step_contract = self._active_step(state)
+        correlation_id = self._resolve_dispatch_correlation_id(
+            active_step=active_step,
+        )
+        request_payload = self._build_dispatch_request(
+            state=state,
+            step_contract=step_contract,
+            active_step=active_step,
+            controller_lane=controller_lane,
+            correlation_id=correlation_id,
+            invocation_index=invocation_index,
+        )
+
+        call_results: list[DispatchCallResult] = []
+        next_retry_index = 0
+        thread_id = self._normalize_optional_string(role_lifecycle.get("dispatch_thread_id"))
+        current_result = dispatch_adapter.create(
+            task_id=self.task_id,
+            run_id=self.run_id,
+            step_id=active_step,
+            request=request_payload,
+            thread_id=thread_id,
+            retry_index=next_retry_index,
+        )
+        call_results.append(current_result)
+        next_retry_index = current_result.retry_index
+        thread_id = current_result.thread_id
+
+        for resume_attempt in range(self.dispatch_max_resume_retries):
+            if self._dispatch_call_succeeded(current_result):
+                break
+            next_retry_index += 1
+            resume_request = dict(request_payload)
+            resume_request["resume_attempt"] = resume_attempt + 1
+            current_result = dispatch_adapter.resume(
+                task_id=self.task_id,
+                run_id=self.run_id,
+                step_id=active_step,
+                request=resume_request,
+                thread_id=thread_id,
+                retry_index=next_retry_index,
+            )
+            call_results.append(current_result)
+            next_retry_index = current_result.retry_index
+            thread_id = current_result.thread_id
+
+        for rework_attempt in range(self.dispatch_max_rework_attempts):
+            if self._dispatch_call_succeeded(current_result):
+                break
+            next_retry_index += 1
+            rework_request = dict(request_payload)
+            rework_request["rework_attempt"] = rework_attempt + 1
+            current_result = dispatch_adapter.rework(
+                task_id=self.task_id,
+                run_id=self.run_id,
+                step_id=active_step,
+                request=rework_request,
+                thread_id=thread_id,
+                retry_index=next_retry_index,
+                rework_context=self._build_rework_context(call_results),
+            )
+            call_results.append(current_result)
+            next_retry_index = current_result.retry_index
+            thread_id = current_result.thread_id
+
+        call_entries = [self._dispatch_call_entry(result) for result in call_results]
+        call_sequence = ",".join(entry["action"] for entry in call_entries) or "create"
+
+        role_lifecycle["dispatch_invocation_count"] = str(invocation_index + 1)
+        role_lifecycle["dispatch_call_sequence"] = call_sequence
+        role_lifecycle["dispatch_artifact_count"] = str(len(call_entries))
+        role_lifecycle["dispatch_last_status"] = current_result.status or "unknown"
+        role_lifecycle["dispatch_last_action"] = current_result.action or "create"
+        role_lifecycle["dispatch_last_retry_index"] = str(current_result.retry_index)
+        role_lifecycle["dispatch_thread_id"] = current_result.thread_id
+        role_lifecycle["dispatch_correlation_id"] = current_result.correlation_id
+
+        self.state_store.append_event(
+            task_id=self.task_id,
+            run_id=self.run_id,
+            step_id=active_step,
+            event_type="SYSTEM",
+            severity="INFO",
+            payload={
+                "node": "dispatch",
+                "invocation_index": invocation_index,
+                "controller_lane": controller_lane,
+                "correlation_id": current_result.correlation_id,
+                "thread_id": current_result.thread_id,
+                "call_count": len(call_entries),
+                "max_resume_retries": self.dispatch_max_resume_retries,
+                "max_rework_attempts": self.dispatch_max_rework_attempts,
+                "calls": call_entries,
+            },
+            dedup_key=(
+                f"dispatch-invocation:{self.task_id}:{self.run_id}:{active_step}:{invocation_index}"
+            ),
+        )
+
+    def _build_dispatch_request(
+        self,
+        *,
+        state: Mapping[str, Any],
+        step_contract: Mapping[str, Any] | None,
+        active_step: str,
+        controller_lane: str,
+        correlation_id: str,
+        invocation_index: int,
+    ) -> dict[str, Any]:
+        request: dict[str, Any] = {
+            "task_kind": "step",
+            "task_id": self.task_id,
+            "run_id": self.run_id,
+            "step_id": active_step,
+            "goal": self._normalize_optional_string(state.get("goal")) or self.goal,
+            "controller_lane": controller_lane,
+            "correlation_id": correlation_id,
+            "invocation_index": invocation_index,
+        }
+        if step_contract is None:
+            return request
+
+        title = self._normalize_optional_string(step_contract.get("title"))
+        if title is not None:
+            request["step_title"] = title
+        raw_acceptance = step_contract.get("acceptance_criteria")
+        acceptance = [
+            item
+            for item in (raw_acceptance if isinstance(raw_acceptance, list) else [])
+            if isinstance(item, str) and item.strip()
+        ]
+        if acceptance:
+            request["acceptance_criteria"] = acceptance
+        raw_expected_outputs = step_contract.get("expected_outputs")
+        expected_outputs = [
+            item
+            for item in (raw_expected_outputs if isinstance(raw_expected_outputs, list) else [])
+            if isinstance(item, str) and item.strip()
+        ]
+        if expected_outputs:
+            request["expected_outputs"] = expected_outputs
+        return request
+
+    def _dispatch_call_entry(self, result: DispatchCallResult) -> dict[str, Any]:
+        return {
+            "action": result.action,
+            "status": result.status,
+            "retry_index": result.retry_index,
+            "thread_id": result.thread_id,
+            "correlation_id": result.correlation_id,
+            "artifacts": result.artifacts.normalized_paths(),
+        }
+
+    def _build_rework_context(self, call_results: list[DispatchCallResult]) -> dict[str, Any]:
+        failed_calls = [
+            {
+                "action": result.action,
+                "status": result.status,
+                "retry_index": result.retry_index,
+                "parsed_output": json.loads(json.dumps(result.parsed_output)),
+            }
+            for result in call_results
+            if not self._dispatch_call_succeeded(result)
+        ]
+        return {
+            "reason": "dispatch_retry_exhausted",
+            "max_resume_retries": self.dispatch_max_resume_retries,
+            "max_rework_attempts": self.dispatch_max_rework_attempts,
+            "failed_calls": failed_calls,
+        }
+
+    def _dispatch_call_succeeded(self, result: DispatchCallResult) -> bool:
+        status = result.status
+        return isinstance(status, str) and status.strip().lower() == "success"
+
+    def _resolve_dispatch_correlation_id(
+        self,
+        *,
+        active_step: str,
+    ) -> str:
+        return f"corr:{self.task_id}:{self.run_id}:{active_step}"
+
+    def _parse_invocation_counter(self, value: Any) -> int:
+        if isinstance(value, int):
+            return value if value >= 0 else 0
+        if not isinstance(value, str):
+            return 0
+        normalized = value.strip()
+        if not normalized:
+            return 0
+        try:
+            parsed = int(normalized)
+        except ValueError:
+            return 0
+        return parsed if parsed >= 0 else 0
 
     def _mutate_verify(self, state: dict[str, Any]) -> None:
         troubleshooting_context = self._retrieve_context_from_state(
@@ -410,3 +680,10 @@ class OrchestratorRuntime:
             return None
         normalized = value.strip()
         return normalized if normalized else None
+
+    def _normalize_non_negative_int(self, value: Any, *, name: str) -> int:
+        if not isinstance(value, int):
+            raise ValueError(f"{name} must be an integer")
+        if value < 0:
+            raise ValueError(f"{name} must be >= 0")
+        return value

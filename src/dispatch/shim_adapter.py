@@ -38,6 +38,12 @@ def _stable_thread_id(*, task_id: str, run_id: str, step_id: str) -> str:
     return f"thread-{digest}"
 
 
+def _stable_correlation_id(*, task_id: str, run_id: str, step_id: str) -> str:
+    canonical = f"{task_id}|{run_id}|{step_id}|dispatch"
+    digest = hashlib.sha256(canonical.encode("utf-8")).hexdigest()[:16]
+    return f"corr-{digest}"
+
+
 def _parse_output(raw_stdout: str) -> dict[str, Any]:
     text = raw_stdout.strip()
     if not text:
@@ -75,6 +81,7 @@ class DispatchCallResult:
     run_id: str
     step_id: str
     thread_id: str
+    correlation_id: str
     retry_index: int
     command: tuple[str, ...]
     parsed_output: dict[str, Any]
@@ -215,6 +222,15 @@ class ShimDispatchAdapter:
 
         normalized_request = _coerce_mapping(request, name="request")
         normalized_rework = _coerce_mapping(rework_context, name="rework_context")
+        explicit_correlation_id = normalized_request.get("correlation_id")
+        if isinstance(explicit_correlation_id, str) and explicit_correlation_id.strip():
+            normalized_correlation_id = explicit_correlation_id.strip()
+        else:
+            normalized_correlation_id = _stable_correlation_id(
+                task_id=normalized_task_id,
+                run_id=normalized_run_id,
+                step_id=normalized_step_id,
+            )
 
         command = self._build_command(
             action=action,
@@ -230,6 +246,7 @@ class ShimDispatchAdapter:
             "run_id": normalized_run_id,
             "step_id": normalized_step_id,
             "thread_id": normalized_thread_id,
+            "correlation_id": normalized_correlation_id,
             "retry_index": retry_index,
             "request": _copy_json(normalized_request),
         }
@@ -244,6 +261,7 @@ class ShimDispatchAdapter:
                 "run_id": normalized_run_id,
                 "step_id": normalized_step_id,
                 "thread_id": normalized_thread_id,
+                "correlation_id": normalized_correlation_id,
                 "retry_index": retry_index,
             }
             raw_stdout = json.dumps(shim_output, sort_keys=True)
@@ -269,6 +287,7 @@ class ShimDispatchAdapter:
             run_id=normalized_run_id,
             step_id=normalized_step_id,
             thread_id=normalized_thread_id,
+            correlation_id=normalized_correlation_id,
             action=action,
             retry_index=retry_index,
             command=command,
@@ -286,6 +305,7 @@ class ShimDispatchAdapter:
             run_id=normalized_run_id,
             step_id=normalized_step_id,
             thread_id=normalized_thread_id,
+            correlation_id=normalized_correlation_id,
             retry_index=retry_index,
             command=tuple(command),
             parsed_output=parsed_output,
