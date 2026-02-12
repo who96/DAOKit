@@ -5,6 +5,7 @@ from typing import Any
 
 from reliability.handoff import HandoffPackageStore
 
+from .compaction import compact_observer_relay_context
 from .runtime import HookPoint, HookRuntime
 
 
@@ -20,6 +21,7 @@ class CoreRotationHandoffHooks:
         ledger_state: dict[str, Any],
         context: dict[str, Any],
     ) -> None:
+        compact_observer_relay_context(ledger_state=ledger_state, context=context)
         evidence_paths = context.get("evidence_paths")
         package = self.handoff_store.write_package(
             ledger_state,

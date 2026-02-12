@@ -1,5 +1,15 @@
 """Succession takeover orchestration helpers."""
 
-from .takeover import SuccessionManager, SuccessionTakeoverResult
+from .takeover import (
+    SelfHealingCycleResult,
+    SelfHealingDecision,
+    SuccessionManager,
+    SuccessionTakeoverResult,
+)
 
-__all__ = ["SuccessionManager", "SuccessionTakeoverResult"]
+__all__ = [
+    "SelfHealingCycleResult",
+    "SelfHealingDecision",
+    "SuccessionManager",
+    "SuccessionTakeoverResult",
+]

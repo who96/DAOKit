@@ -131,6 +131,47 @@ class CliWorkflowTests(unittest.TestCase):
                 True,
             )
 
+    def test_status_json_surfaces_controller_lane_ownership_for_active_run(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            self._run_cli("init", "--root", str(root))
+
+            interrupted = self._run_cli(
+                "run",
+                "--root",
+                str(root),
+                "--task-id",
+                "DKT-020",
+                "--run-id",
+                "RUN-CTRL-OWN",
+                "--goal",
+                "Preserve controller lane ownership",
+                "--simulate-interruption",
+                expected_code=130,
+            )
+            self.assertIn("simulated interruption", interrupted.stderr.lower())
+
+            status = self._run_cli(
+                "status",
+                "--root",
+                str(root),
+                "--task-id",
+                "DKT-020",
+                "--run-id",
+                "RUN-CTRL-OWN",
+                "--json",
+            )
+            status_payload = json.loads(status.stdout)
+            active_leases = [
+                lease for lease in status_payload["leases"] if lease.get("status") == "ACTIVE"
+            ]
+            self.assertEqual(len(active_leases), 1)
+            self.assertEqual(active_leases[0]["lane"], "controller")
+
+            lifecycle = status_payload["pipeline_state"]["role_lifecycle"]
+            self.assertEqual(lifecycle["controller_lane"], "controller")
+            self.assertEqual(lifecycle["controller_ownership"], "controller:S1")
+
     def test_check_fails_with_diagnostic_when_state_is_invalid_json(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

@@ -59,4 +59,11 @@ This validates interruption -> takeover -> handoff create/apply continuity.
 bash examples/cli/backend_to_agent_path.sh .
 ```
 
+## Observer-Relay Recovery Workflow (Bilingual)
+
+- English: `docs/workflows/multi-agent-collaboration.en.md`
+- 中文: `docs/workflows/multi-agent-collaboration.zh-CN.md`
+
+Use these docs for the explicit health-check branch and handoff -> clear -> restore chain behind the recovery demos.
+
 For error interpretation, see `docs/error-catalog.md`.

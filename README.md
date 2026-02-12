@@ -1,52 +1,48 @@
 # DAOKit
 
-DAOKit is an open-source agent engineering kit for backend engineers who need strict orchestration, auditable execution, and reliable continuity across long-running sessions.
+Language: **English** | [Chinese](README.zh-CN.md)
+
+DAOKit is an open-source agent engineering kit for backend teams that need strict orchestration, auditable execution, and reliable continuity for long-running tasks.
 
 ## Why DAOKit
 
-- `主控一致性` (Controller Consistency): the master controller dispatches, observes, and accepts only; it does not directly perform worker-side implementation.
-- `证据验收` (Evidence-First Acceptance): no task is accepted without artifact evidence (`report.md`, `verification.log`, `audit-summary.md`).
-- `心跳 + 租约接班` (Heartbeat + Lease Succession): long-running tasks can escalate, transfer ownership, and recover without losing execution integrity.
-- `无损换芯恢复` (Near-Lossless Core Rotation): context/window resets recover from ledger + handoff package instead of fragile chat-only memory.
+- **Observer-relay boundary**: the external window forwards and visualizes only; execution authority stays in the controller lane.
+- **Evidence-first acceptance**: every accepted task is backed by artifacts (`report.md`, `verification.log`, `audit-summary.md`).
+- **Heartbeat + lease succession**: long-running runs can detect stale ownership, trigger takeover, and continue safely.
+- **Core-rotation continuity**: handoff packages support near-lossless recovery after window or context replacement.
 
-Latest release snapshot and merged acceptance report:
-- `docs/reports/final-run/RELEASE_SNAPSHOT.md`
-- `docs/reports/FINAL_ACCEPTANCE.md`
-- `docs/reports/final-run/evidence/` (tracked evidence bundle)
-- `docs/reports/final-run/evidence_manifest.sha256` (integrity hashes)
+## Release Anchors
 
-## What DAOKit Provides
+Latest release snapshot and acceptance reports:
 
-- Deterministic orchestration workflow (`extract -> plan -> dispatch -> verify -> transition`)
-- State-first execution model (`state/` ledger is source of truth)
-- Core-rotation continuity via handoff package + successor takeover
-- Extension points for function-calling tools, MCP tools, skills, and lifecycle hooks
-
-Note: `state/` is runtime-generated and intentionally not versioned. Release-level audit reproducibility is anchored by `docs/reports/final-run/` plus the tracked evidence bundle and hash manifest above.
+- [Release Snapshot](docs/reports/final-run/RELEASE_SNAPSHOT.md)
+- [Final Acceptance](docs/reports/FINAL_ACCEPTANCE.md)
+- [Evidence Bundle](docs/reports/final-run/evidence/)
+- [Evidence Manifest SHA256](docs/reports/final-run/evidence_manifest.sha256)
 
 ## Quick Start
 
-### 1. Clone and Enter Repository
+### 1. Clone and enter repository
 
 ```bash
 git clone <repository-url> DAOKit
 cd DAOKit
 ```
 
-### 2. (Optional) Create a Virtual Environment
+### 2. Optional virtual environment
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
 ```
 
-### 3. Initialize Runtime Layout
+### 3. Initialize runtime layout
 
 ```bash
 PYTHONPATH=src python3 -m cli init --root .
 ```
 
-### 4. Run a Core Workflow
+### 4. Run a core workflow
 
 ```bash
 PYTHONPATH=src python3 -m cli run \
@@ -56,7 +52,7 @@ PYTHONPATH=src python3 -m cli run \
   --goal "README demo run"
 ```
 
-### 5. Inspect State, Events, and Health
+### 5. Inspect state, events, and health
 
 ```bash
 PYTHONPATH=src python3 -m cli status --root . --task-id DKT-018-DEMO --run-id RUN-README-001 --json
@@ -66,28 +62,39 @@ PYTHONPATH=src python3 -m cli check --root .
 
 ## Demo Workflows
 
-- Orchestration consistency demo: `examples/cli/quickstart.sh`
-- Core-rotation continuity demo: `examples/cli/core_rotation_continuity.sh`
-- Backend-to-agent transition path: `examples/cli/backend_to_agent_path.sh`
+- [Orchestration consistency demo](examples/cli/quickstart.sh)
+- [Observer-relay collaboration recovery-chain demo](examples/cli/observer_relay_recovery_chain.sh)
+- [Recovery demo](examples/cli/recovery.sh)
+- [Core-rotation continuity demo](examples/cli/core_rotation_continuity.sh)
+- [Backend-to-agent transition path](examples/cli/backend_to_agent_path.sh)
 
-Run examples:
+Run demos:
 
 ```bash
 bash examples/cli/quickstart.sh .
+bash examples/cli/observer_relay_recovery_chain.sh .
+bash examples/cli/recovery.sh .
 bash examples/cli/core_rotation_continuity.sh .
 bash examples/cli/backend_to_agent_path.sh .
 ```
 
 ## Documentation Map
 
-- CLI onboarding: `docs/cli-quickstart.md`
-- Architecture overview: `docs/architecture.md`
-- Extension guide (tools/skills/hooks): `docs/extensions.md`
-- Backend-to-agent workflows: `docs/backend-to-agent-workflows.md`
-- FAQ: `docs/faq.md`
-- Security policy: `SECURITY.md`
-- Contribution guide: `CONTRIBUTING.md`
-- Roadmap (v1.1 / v1.2): `docs/roadmap.md`
+- [CLI quickstart](docs/cli-quickstart.md)
+- [Architecture overview](docs/architecture.md)
+- [Extension guide (tools/skills/hooks)](docs/extensions.md)
+- [Backend-to-agent workflows](docs/backend-to-agent-workflows.md)
+- [Multi-agent collaboration workflow (English)](docs/workflows/multi-agent-collaboration.en.md)
+- [Multi-agent collaboration workflow (Chinese)](docs/workflows/multi-agent-collaboration.zh-CN.md)
+- [Observer-relay feasibility report](docs/observer-relay-feasibility.md)
+- [Observer-relay persona and compaction policy](docs/observer-relay-persona-and-compaction.md)
+- [Observer-relay optimization plan](docs/observer-relay-optimization-plan.md)
+- [Observer-relay rollback runbook](docs/observer-relay-rollback-runbook.md)
+- [Error catalog](docs/error-catalog.md)
+- [FAQ](docs/faq.md)
+- [Roadmap](docs/roadmap.md)
+- [Security policy](SECURITY.md)
+- [Contribution guide](CONTRIBUTING.md)
 
 ## Development Verification
 
@@ -96,4 +103,10 @@ make lint
 make test
 ```
 
-If `make release-check` is not available in your branch, run `make lint && make test` plus the demo scripts above as minimum baseline verification.
+If `make release-check` is unavailable in your branch, use `make lint && make test` plus the demo scripts above as a minimum verification baseline.
+
+## Compatibility Guardrails
+
+- Keep CLI command names and argument names unchanged.
+- Keep contract semantics compatible with `schema_version=1.0.0`.
+- Keep `v1.0.0-rc1` release-anchor semantics and `docs/reports/final-run/` evidence structure unchanged.

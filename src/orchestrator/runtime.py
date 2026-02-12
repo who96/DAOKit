@@ -10,6 +10,7 @@ from rag.retrieval import (
     RetrievalResult,
     policy_from_mapping,
 )
+from state.relay_policy import RelayModePolicy
 from state.store import StateStore
 
 from .state_machine import (
@@ -23,6 +24,9 @@ from .state_machine import (
 
 
 StateMutator = Callable[[dict[str, Any]], None]
+DEFAULT_CONTROLLER_LANE = "controller"
+ROLE_KEY_CONTROLLER_LANE = "controller_lane"
+ROLE_KEY_CONTROLLER_OWNERSHIP = "controller_ownership"
 
 
 class OrchestratorRuntime:
@@ -39,12 +43,14 @@ class OrchestratorRuntime:
         retriever: PolicyAwareRetriever | None = None,
         retrieval_index_path: str | Path | None = None,
         default_retrieval_policies: Mapping[str, RetrievalPolicyConfig] | None = None,
+        relay_policy: RelayModePolicy | None = None,
     ) -> None:
         self.task_id = task_id
         self.run_id = run_id
         self.goal = goal
         self.step_id = step_id
         self.state_store = state_store
+        self.relay_policy = relay_policy or RelayModePolicy(relay_mode_enabled=False)
         self.retriever = retriever or PolicyAwareRetriever(index_path=retrieval_index_path)
         self._retrieval_cache: dict[str, RetrievalResult] = {}
         self._default_retrieval_policies = {
@@ -83,6 +89,17 @@ class OrchestratorRuntime:
             changed = True
         if "role_lifecycle" not in state or not isinstance(state["role_lifecycle"], dict):
             state["role_lifecycle"] = {"orchestrator": "idle"}
+            changed = True
+        lifecycle = state["role_lifecycle"]
+        if not isinstance(lifecycle.get(ROLE_KEY_CONTROLLER_LANE), str) or not lifecycle[
+            ROLE_KEY_CONTROLLER_LANE
+        ].strip():
+            lifecycle[ROLE_KEY_CONTROLLER_LANE] = DEFAULT_CONTROLLER_LANE
+            changed = True
+        if not isinstance(lifecycle.get(ROLE_KEY_CONTROLLER_OWNERSHIP), str) or not lifecycle[
+            ROLE_KEY_CONTROLLER_OWNERSHIP
+        ].strip():
+            lifecycle[ROLE_KEY_CONTROLLER_OWNERSHIP] = f"{lifecycle[ROLE_KEY_CONTROLLER_LANE]}:unassigned"
             changed = True
         if "succession" not in state or not isinstance(state["succession"], dict):
             state["succession"] = {"enabled": True, "last_takeover_at": None}
@@ -163,13 +180,52 @@ class OrchestratorRuntime:
         return self._execute_node("plan", self._mutate_plan)
 
     def dispatch(self) -> dict[str, Any]:
+        self.relay_policy.guard_action(action="orchestrator.dispatch")
         return self._execute_node("dispatch", self._mutate_dispatch)
 
     def verify(self) -> dict[str, Any]:
+        self.relay_policy.guard_action(action="orchestrator.verify")
         return self._execute_node("verify", self._mutate_verify)
 
     def transition(self) -> dict[str, Any]:
+        self.relay_policy.guard_action(action="orchestrator.transition")
         return self._execute_node("transition", self._mutate_transition)
+
+    def relay_forward(
+        self,
+        *,
+        message: str,
+        relay_context: Mapping[str, Any],
+    ) -> dict[str, Any]:
+        return self.relay_policy.build_relay_payload(
+            action="forward",
+            relay_context=relay_context,
+            payload={"message": message},
+        )
+
+    def relay_observe(
+        self,
+        *,
+        snapshot: Mapping[str, Any],
+        relay_context: Mapping[str, Any],
+    ) -> dict[str, Any]:
+        return self.relay_policy.build_relay_payload(
+            action="observe",
+            relay_context=relay_context,
+            payload={"snapshot": snapshot},
+        )
+
+    def relay_visualize(
+        self,
+        *,
+        snapshot: Mapping[str, Any],
+        relay_context: Mapping[str, Any],
+    ) -> dict[str, Any]:
+        return self.relay_policy.build_relay_payload(
+            action="visualize",
+            relay_context=relay_context,
+            payload={"snapshot": snapshot},
+        )
 
     def retrieve_planning_context(self, query: str | None = None) -> RetrievalResult:
         state = self.recover_state()
@@ -238,6 +294,18 @@ class OrchestratorRuntime:
                 state["current_step"] = first_step.get("id")
         if state.get("current_step") is None:
             state["current_step"] = self.step_id
+        active_step = self._normalize_optional_string(state.get("current_step")) or self.step_id
+        state["current_step"] = active_step
+
+        role_lifecycle = state.get("role_lifecycle")
+        if not isinstance(role_lifecycle, dict):
+            role_lifecycle = {}
+            state["role_lifecycle"] = role_lifecycle
+        controller_lane = self._resolve_controller_lane(role_lifecycle)
+        role_lifecycle[ROLE_KEY_CONTROLLER_LANE] = controller_lane
+        role_lifecycle[ROLE_KEY_CONTROLLER_OWNERSHIP] = f"{controller_lane}:{active_step}"
+        role_lifecycle[f"lane:{controller_lane}"] = f"active_step:{active_step}"
+        role_lifecycle[f"step:{active_step}"] = f"owned_by_lane:{controller_lane}"
 
     def _mutate_verify(self, state: dict[str, Any]) -> None:
         troubleshooting_context = self._retrieve_context_from_state(
@@ -330,6 +398,12 @@ class OrchestratorRuntime:
         if not result.enabled:
             return "disabled"
         return f"{len(result.sources)}_sources"
+
+    def _resolve_controller_lane(self, role_lifecycle: Mapping[str, Any]) -> str:
+        candidate = self._normalize_optional_string(role_lifecycle.get(ROLE_KEY_CONTROLLER_LANE))
+        if candidate is not None:
+            return candidate
+        return DEFAULT_CONTROLLER_LANE
 
     def _normalize_optional_string(self, value: Any) -> str | None:
         if not isinstance(value, str):

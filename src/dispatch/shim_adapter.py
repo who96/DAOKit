@@ -8,6 +8,7 @@ import subprocess
 from typing import Any, Callable, Mapping, Sequence
 
 from artifacts.dispatch_artifacts import DispatchArtifactStore, DispatchCallArtifacts
+from state.relay_policy import RelayModePolicy, RelayPolicyError
 
 
 def _copy_json(value: Any) -> Any:
@@ -97,10 +98,12 @@ class ShimDispatchAdapter:
         shim_path: str | Path,
         artifact_store: DispatchArtifactStore,
         command_runner: CommandRunner | None = None,
+        relay_policy: RelayModePolicy | None = None,
     ) -> None:
         self.shim_path = str(shim_path)
         self.artifact_store = artifact_store
         self.command_runner = command_runner or self._default_command_runner
+        self.relay_policy = relay_policy or RelayModePolicy(relay_mode_enabled=False)
 
     def create(
         self,
@@ -113,6 +116,7 @@ class ShimDispatchAdapter:
         retry_index: int = 0,
         dry_run: bool = False,
     ) -> DispatchCallResult:
+        self._guard_execution_action("dispatch.create")
         return self._dispatch(
             action="create",
             task_id=task_id,
@@ -136,6 +140,7 @@ class ShimDispatchAdapter:
         retry_index: int = 0,
         dry_run: bool = False,
     ) -> DispatchCallResult:
+        self._guard_execution_action("dispatch.resume")
         return self._dispatch(
             action="resume",
             task_id=task_id,
@@ -160,6 +165,7 @@ class ShimDispatchAdapter:
         dry_run: bool = False,
         rework_context: Mapping[str, Any] | None = None,
     ) -> DispatchCallResult:
+        self._guard_execution_action("dispatch.rework")
         return self._dispatch(
             action="rework",
             task_id=task_id,
@@ -171,6 +177,12 @@ class ShimDispatchAdapter:
             dry_run=dry_run,
             rework_context=rework_context,
         )
+
+    def _guard_execution_action(self, action: str) -> None:
+        try:
+            self.relay_policy.guard_action(action=action)
+        except RelayPolicyError as exc:
+            raise DispatchError(str(exc)) from exc
 
     def _dispatch(
         self,

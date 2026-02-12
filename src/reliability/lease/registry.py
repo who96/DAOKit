@@ -44,7 +44,7 @@ class LeaseRegistry:
         pid: int,
         ttl_seconds: int,
     ) -> dict[str, Any]:
-        self._expect_non_empty_text(lane, name="lane")
+        normalized_lane = self._normalize_lane(lane)
         self._expect_non_empty_text(step_id, name="step_id")
         self._expect_non_empty_text(task_id, name="task_id")
         self._expect_non_empty_text(run_id, name="run_id")
@@ -57,7 +57,7 @@ class LeaseRegistry:
 
         payload = self._load_registry()
         record = {
-            "lane": lane,
+            "lane": normalized_lane,
             "step_id": step_id,
             "task_id": task_id,
             "run_id": run_id,
@@ -72,6 +72,7 @@ class LeaseRegistry:
         }
         payload["leases"].append(record)
         self._save_registry(payload, updated_at=now)
+        self._sync_lane_ownership_lifecycle(record)
         return _copy_json(record)
 
     def heartbeat(
@@ -161,6 +162,7 @@ class LeaseRegistry:
         lease["status"] = "RELEASED"
         lease["updated_at"] = now.isoformat()
         self._save_registry(payload, updated_at=now)
+        self._sync_lane_ownership_lifecycle(lease)
         return _copy_json(lease)
 
     def takeover(
@@ -201,6 +203,7 @@ class LeaseRegistry:
             ttl_seconds=ttl_seconds,
         )
         self._save_registry(payload, updated_at=now)
+        self._sync_lane_ownership_lifecycle(lease)
         return _copy_json(lease)
 
     def takeover_running_leases(
@@ -247,6 +250,10 @@ class LeaseRegistry:
 
         if mutated:
             self._save_registry(payload, updated_at=now)
+            for lease in adopted:
+                self._sync_lane_ownership_lifecycle(lease)
+            for lease in non_adopted:
+                self._sync_lane_ownership_lifecycle(lease)
 
         return LeaseTakeoverBatchResult(
             adopted_leases=tuple(adopted),
@@ -390,6 +397,95 @@ class LeaseRegistry:
         normalized = value.strip()
         if not normalized:
             raise LeaseRegistryError(f"{name} must be non-empty")
+        return normalized
+
+    def _normalize_lane(self, lane: str) -> str:
+        normalized = self._expect_non_empty_text(lane, name="lane")
+        if normalized.lower() in {"default", "controller"}:
+            return "controller"
+        return normalized
+
+    def _sync_lane_ownership_lifecycle(self, lease: Mapping[str, Any]) -> None:
+        lane = self._normalize_optional_text(lease.get("lane"))
+        step_id = self._normalize_optional_text(lease.get("step_id"))
+        task_id = self._normalize_optional_text(lease.get("task_id"))
+        run_id = self._normalize_optional_text(lease.get("run_id"))
+        lease_status = self._normalize_optional_text(lease.get("status"))
+        if None in {lane, step_id, task_id, run_id, lease_status}:
+            return
+
+        state = self.state_store.load_state()
+        if state.get("task_id") != task_id or state.get("run_id") != run_id:
+            return
+
+        lifecycle = state.get("role_lifecycle")
+        if not isinstance(lifecycle, dict):
+            lifecycle = {}
+            state["role_lifecycle"] = lifecycle
+
+        changed = False
+        if lease_status == "ACTIVE":
+            changed = self._set_lifecycle_field(lifecycle, "controller_lane", lane) or changed
+            changed = (
+                self._set_lifecycle_field(
+                    lifecycle,
+                    "controller_ownership",
+                    f"{lane}:{step_id}",
+                )
+                or changed
+            )
+            changed = self._set_lifecycle_field(
+                lifecycle,
+                f"lane:{lane}",
+                f"active_step:{step_id}",
+            ) or changed
+            changed = self._set_lifecycle_field(
+                lifecycle,
+                f"step:{step_id}",
+                f"owned_by_lane:{lane}",
+            ) or changed
+            if state.get("current_step") is None:
+                state["current_step"] = step_id
+                changed = True
+        else:
+            changed = self._set_lifecycle_field(
+                lifecycle,
+                f"step:{step_id}",
+                f"lease_{lease_status.lower()}:{lane}",
+            ) or changed
+            if lifecycle.get("controller_ownership") == f"{lane}:{step_id}":
+                changed = (
+                    self._set_lifecycle_field(
+                        lifecycle,
+                        "controller_ownership",
+                        f"{lane}:unassigned",
+                    )
+                    or changed
+                )
+
+        if not changed:
+            return
+
+        pipeline_status = self._normalize_optional_text(state.get("status")) or "PLANNING"
+        self.state_store.save_state(
+            state,
+            node="lease_lifecycle_sync",
+            from_status=pipeline_status,
+            to_status=pipeline_status,
+        )
+
+    def _set_lifecycle_field(self, lifecycle: dict[str, Any], key: str, value: str) -> bool:
+        if lifecycle.get(key) == value:
+            return False
+        lifecycle[key] = value
+        return True
+
+    def _normalize_optional_text(self, value: Any) -> str | None:
+        if not isinstance(value, str):
+            return None
+        normalized = value.strip()
+        if not normalized:
+            return None
         return normalized
 
 

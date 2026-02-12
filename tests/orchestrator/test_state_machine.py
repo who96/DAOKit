@@ -36,6 +36,20 @@ class OrchestratorStateMachineTests(unittest.TestCase):
                 ["extract", "plan", "dispatch", "verify", "transition"],
             )
 
+    def test_dispatch_persists_controller_lane_ownership_in_lifecycle(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            runtime = self._new_runtime(Path(tmp))
+            runtime.extract()
+            runtime.plan()
+
+            state = runtime.dispatch()
+            lifecycle = state["role_lifecycle"]
+
+            self.assertEqual(lifecycle["controller_lane"], "controller")
+            self.assertEqual(lifecycle["controller_ownership"], "controller:S1")
+            self.assertEqual(lifecycle["lane:controller"], "active_step:S1")
+            self.assertEqual(lifecycle["step:S1"], "owned_by_lane:controller")
+
     def test_illegal_transition_reports_explicit_diagnostics(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             runtime = self._new_runtime(Path(tmp))
@@ -68,4 +82,3 @@ class OrchestratorStateMachineTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
-

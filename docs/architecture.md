@@ -41,6 +41,13 @@ DAOKit continuity is achieved by combining:
 
 This prevents silent ownership drift and preserves run lineage during window/context replacement.
 
+## Observer-Relay Workflow Docs (Bilingual)
+
+For a role-boundary-focused operating workflow with mirrored EN/ZH structure, see:
+
+- English: `docs/workflows/multi-agent-collaboration.en.md`
+- 中文: `docs/workflows/multi-agent-collaboration.zh-CN.md`
+
 ## Evidence Contract
 
 Release and step acceptance expects evidence artifacts:
