@@ -17,6 +17,11 @@ from .dispatch_contracts import (
     build_codex_shim_payload,
     normalize_codex_shim_outcome,
 )
+from .diagnostics_contracts import (
+    CriteriaDiagnosticsReport,
+    CriterionDiagnosticEntry,
+    CriterionRegistryEntry,
+)
 from .plan_contracts import (
     CompiledPlan,
     PlanContractError,
@@ -30,6 +35,9 @@ __all__ = [
     "AcceptanceDecision",
     "AcceptanceProofRecord",
     "CompiledPlan",
+    "CriteriaDiagnosticsReport",
+    "CriterionDiagnosticEntry",
+    "CriterionRegistryEntry",
     "CriterionResult",
     "DISPATCH_SCHEMA_VERSION",
     "DISPATCH_TARGET_CODEX_WORKER_SHIM",
