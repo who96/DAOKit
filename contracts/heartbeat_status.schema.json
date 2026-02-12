@@ -1,0 +1,84 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://daokit.dev/contracts/heartbeat_status.schema.json",
+  "title": "DAOKit Heartbeat Status Contract",
+  "description": "Canonical liveness and escalation status for active orchestrator execution.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "status",
+    "last_heartbeat_at",
+    "reason_code",
+    "updated_at"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0.0",
+      "description": "Contract version for backward-safe heartbeat parsing."
+    },
+    "status": {
+      "type": "string",
+      "enum": [
+        "IDLE",
+        "RUNNING",
+        "WARNING",
+        "STALE",
+        "BLOCKED"
+      ],
+      "description": "Current heartbeat health status."
+    },
+    "last_heartbeat_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Most recent heartbeat timestamp, null before first signal."
+    },
+    "reason_code": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Optional reason code for warning/stale states."
+    },
+    "warning_after_seconds": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Silence threshold in seconds that moves status into WARNING."
+    },
+    "stale_after_seconds": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Silence threshold in seconds that moves status into STALE."
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "UTC timestamp of the last heartbeat state update."
+    },
+    "last_escalation_at": {
+      "anyOf": [
+        {
+          "type": "string",
+          "format": "date-time"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Timestamp of the latest deduplicated escalation event."
+    }
+  }
+}

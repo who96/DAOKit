@@ -1,0 +1,37 @@
+name: Contracts Check
+
+on:
+  pull_request:
+    paths:
+      - "contracts/**"
+      - "src/contracts/**"
+      - "tests/contracts/**"
+      - ".github/workflows/contracts-check.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "contracts/**"
+      - "src/contracts/**"
+      - "tests/contracts/**"
+      - ".github/workflows/contracts-check.yml"
+
+jobs:
+  contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Validate contract tests
+        run: PYTHONPATH=src python -m unittest discover -s tests/contracts -p 'test_*.py' -v
+
+      - name: Run baseline repository checks
+        run: |
+          PYTHONPATH=src python -m unittest discover -s tests -p 'test_*.py' -v
+          python -m compileall src tests

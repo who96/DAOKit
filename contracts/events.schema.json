@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://daokit.dev/contracts/events.schema.json",
+  "title": "DAOKit Event Contract",
+  "description": "Canonical event record emitted on every state transition and verification action.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "event_id",
+    "task_id",
+    "run_id",
+    "step_id",
+    "event_type",
+    "severity",
+    "timestamp",
+    "payload",
+    "dedup_key"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0.0",
+      "description": "Contract version for backward-safe event parsing."
+    },
+    "event_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Unique identifier for this concrete event record."
+    },
+    "task_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Task identifier associated with the emitted event."
+    },
+    "run_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Run identifier associated with the emitted event."
+    },
+    "step_id": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Step identifier for step-scoped events, null for global events."
+    },
+    "event_type": {
+      "type": "string",
+      "enum": [
+        "STEP_STARTED",
+        "STEP_COMPLETED",
+        "STEP_FAILED",
+        "ACCEPTANCE_PASSED",
+        "ACCEPTANCE_FAILED",
+        "HEARTBEAT_WARNING",
+        "HEARTBEAT_STALE",
+        "LEASE_TAKEOVER",
+        "SYSTEM"
+      ],
+      "description": "Typed event category used by replay and diagnostics."
+    },
+    "severity": {
+      "type": "string",
+      "enum": [
+        "INFO",
+        "WARN",
+        "ERROR"
+      ],
+      "description": "Event severity level used for escalation and alerting."
+    },
+    "timestamp": {
+      "type": "string",
+      "format": "date-time",
+      "description": "UTC timestamp at which the event was emitted."
+    },
+    "payload": {
+      "type": "object",
+      "description": "Structured event payload for diagnostics and deterministic replay."
+    },
+    "dedup_key": {
+      "anyOf": [
+        {
+          "type": "string",
+          "minLength": 1
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Optional deduplication key for once-per-streak emissions."
+    }
+  }
+}

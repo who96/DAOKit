@@ -1,0 +1,38 @@
+{
+  "schema_version": "1.0.0",
+  "task_id": "DKT-002",
+  "run_id": "DKT-002_20260211T124625Z_367c80d",
+  "goal": "Define canonical state contracts",
+  "status": "EXECUTE",
+  "current_step": "S1",
+  "steps": [
+    {
+      "id": "S1",
+      "title": "Define canonical state contracts",
+      "category": "contracts",
+      "goal": "Create deterministic schemas",
+      "actions": [
+        "write schemas",
+        "add validator"
+      ],
+      "acceptance_criteria": [
+        "Invalid payloads rejected",
+        "Valid payloads accepted"
+      ],
+      "expected_outputs": [
+        "contracts/pipeline_state.schema.json"
+      ],
+      "dependencies": [
+        "DKT-001"
+      ]
+    }
+  ],
+  "role_lifecycle": {
+    "orchestrator": "active"
+  },
+  "succession": {
+    "enabled": true,
+    "last_takeover_at": null
+  },
+  "updated_at": "2026-02-11T20:30:00+00:00"
+}

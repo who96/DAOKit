@@ -1,0 +1,24 @@
+# Batch Prompts Index
+
+- /Users/huluobo/workSpace/DAOKit/prompts/zhukong-batch/01_BATCH_CONTROLLER_PROMPT.md
+- /Users/huluobo/workSpace/DAOKit/prompts/zhukong-batch/02_RESUME_FROM_FAILURE_DKT-002.md
+- /Users/huluobo/workSpace/DAOKit/prompts/zhukong-batch/03_CONTINUE_FROM_DKT-003_TO_DKT-018.md
+- /Users/huluobo/workSpace/DAOKit/prompts/zhukong-batch/04_RESUME_FROM_ANY_FAILURE_TEMPLATE.md
+- /Users/huluobo/workSpace/DAOKit/prompts/zhukong-batch/tasks/DKT-001.md
+- /Users/huluobo/workSpace/DAOKit/prompts/zhukong-batch/tasks/DKT-002.md
+- /Users/huluobo/workSpace/DAOKit/prompts/zhukong-batch/tasks/DKT-003.md
+- /Users/huluobo/workSpace/DAOKit/prompts/zhukong-batch/tasks/DKT-004.md
+- /Users/huluobo/workSpace/DAOKit/prompts/zhukong-batch/tasks/DKT-005.md
+- /Users/huluobo/workSpace/DAOKit/prompts/zhukong-batch/tasks/DKT-006.md
+- /Users/huluobo/workSpace/DAOKit/prompts/zhukong-batch/tasks/DKT-007.md
+- /Users/huluobo/workSpace/DAOKit/prompts/zhukong-batch/tasks/DKT-008.md
+- /Users/huluobo/workSpace/DAOKit/prompts/zhukong-batch/tasks/DKT-009.md
+- /Users/huluobo/workSpace/DAOKit/prompts/zhukong-batch/tasks/DKT-010.md
+- /Users/huluobo/workSpace/DAOKit/prompts/zhukong-batch/tasks/DKT-011.md
+- /Users/huluobo/workSpace/DAOKit/prompts/zhukong-batch/tasks/DKT-012.md
+- /Users/huluobo/workSpace/DAOKit/prompts/zhukong-batch/tasks/DKT-013.md
+- /Users/huluobo/workSpace/DAOKit/prompts/zhukong-batch/tasks/DKT-014.md
+- /Users/huluobo/workSpace/DAOKit/prompts/zhukong-batch/tasks/DKT-015.md
+- /Users/huluobo/workSpace/DAOKit/prompts/zhukong-batch/tasks/DKT-016.md
+- /Users/huluobo/workSpace/DAOKit/prompts/zhukong-batch/tasks/DKT-017.md
+- /Users/huluobo/workSpace/DAOKit/prompts/zhukong-batch/tasks/DKT-018.md

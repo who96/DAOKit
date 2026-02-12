@@ -1,0 +1,119 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://daokit.dev/contracts/process_leases.schema.json",
+  "title": "DAOKit Process Lease Contract",
+  "description": "Canonical lease register used to preserve ownership across succession events.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "leases",
+    "updated_at"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "1.0.0",
+      "description": "Contract version for backward-safe lease parsing."
+    },
+    "leases": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/lease_record"
+      },
+      "description": "Active and historical lease records owned by orchestrator lanes."
+    },
+    "updated_at": {
+      "type": "string",
+      "format": "date-time",
+      "description": "UTC timestamp when the lease register was last mutated."
+    }
+  },
+  "$defs": {
+    "lease_record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "lane",
+        "step_id",
+        "task_id",
+        "run_id",
+        "thread_id",
+        "pid",
+        "lease_token",
+        "expiry",
+        "status",
+        "last_heartbeat_at",
+        "created_at",
+        "updated_at"
+      ],
+      "properties": {
+        "lane": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Logical execution lane for this lease."
+        },
+        "step_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Step currently guarded by this lease."
+        },
+        "task_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Task identifier associated with the lease."
+        },
+        "run_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Run identifier associated with the lease."
+        },
+        "thread_id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Controller or worker thread identifier owning the lease."
+        },
+        "pid": {
+          "type": "integer",
+          "minimum": 1,
+          "description": "Operating system process id that owns the lease token."
+        },
+        "lease_token": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Opaque token required for renew/release/takeover operations."
+        },
+        "expiry": {
+          "type": "string",
+          "format": "date-time",
+          "description": "UTC timestamp when this lease becomes invalid without renewal."
+        },
+        "status": {
+          "type": "string",
+          "enum": [
+            "ACTIVE",
+            "RELEASED",
+            "EXPIRED",
+            "TAKEN_OVER"
+          ],
+          "description": "Current lease lifecycle state."
+        },
+        "last_heartbeat_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Most recent heartbeat timestamp associated with this lease."
+        },
+        "created_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "UTC timestamp when this lease record was created."
+        },
+        "updated_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "UTC timestamp when this lease record was last updated."
+        }
+      }
+    }
+  }
+}

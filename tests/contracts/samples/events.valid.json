@@ -1,0 +1,15 @@
+{
+  "schema_version": "1.0.0",
+  "event_id": "evt_20260211_0001",
+  "task_id": "DKT-002",
+  "run_id": "DKT-002_20260211T124625Z_367c80d",
+  "step_id": "S1",
+  "event_type": "STEP_STARTED",
+  "severity": "INFO",
+  "timestamp": "2026-02-11T20:31:00+00:00",
+  "payload": {
+    "message": "Step execution started",
+    "attempt": 1
+  },
+  "dedup_key": null
+}
