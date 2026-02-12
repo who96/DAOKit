@@ -9,6 +9,14 @@ from .acceptance_contracts import (
     ReworkCriterion,
     ReworkPayload,
 )
+from .dispatch_contracts import (
+    DISPATCH_SCHEMA_VERSION,
+    DISPATCH_TARGET_CODEX_WORKER_SHIM,
+    DispatchContractError,
+    DispatchOutcome,
+    build_codex_shim_payload,
+    normalize_codex_shim_outcome,
+)
 from .plan_contracts import (
     CompiledPlan,
     PlanContractError,
@@ -23,6 +31,10 @@ __all__ = [
     "AcceptanceProofRecord",
     "CompiledPlan",
     "CriterionResult",
+    "DISPATCH_SCHEMA_VERSION",
+    "DISPATCH_TARGET_CODEX_WORKER_SHIM",
+    "DispatchContractError",
+    "DispatchOutcome",
     "EvidenceRecord",
     "FailureReason",
     "PlanContractError",
@@ -34,6 +46,8 @@ __all__ = [
     "RuntimeStateStore",
     "SchemaValidationError",
     "StepContract",
+    "build_codex_shim_payload",
+    "normalize_codex_shim_outcome",
     "validate_payload",
     "validate_payload_file",
 ]
