@@ -11,11 +11,17 @@ from tools.common.optional_dependencies import OptionalDependencyError, import_o
 
 
 ENV_RUNTIME_ENGINE = "DAOKIT_RUNTIME_ENGINE"
+ENV_TOOL_ORCHESTRATION_ENGINE = "DAOKIT_TOOL_ORCHESTRATION_ENGINE"
 
 
 class RuntimeEngine(str, Enum):
     LEGACY = "legacy"
     LANGGRAPH = "langgraph"
+
+
+class ToolOrchestrationEngine(str, Enum):
+    LEGACY = "legacy"
+    LANGCHAIN = "langchain"
 
 
 class RuntimeEngineError(ValueError):
@@ -95,6 +101,52 @@ def create_runtime(
         relay_policy=relay_policy,
         langgraph_available=dependencies_available,
         missing_optional_dependencies=missing_optional_dependencies,
+        import_module=import_module,
+    )
+
+
+def resolve_tool_orchestration_engine(
+    *,
+    explicit_mode: str | None = None,
+    env: Mapping[str, str] | None = None,
+) -> ToolOrchestrationEngine:
+    source = explicit_mode
+    if source is None and env is not None:
+        source = env.get(ENV_TOOL_ORCHESTRATION_ENGINE)
+    normalized = "legacy" if source is None else source.strip().lower()
+
+    if normalized == ToolOrchestrationEngine.LEGACY.value:
+        return ToolOrchestrationEngine.LEGACY
+    if normalized == ToolOrchestrationEngine.LANGCHAIN.value:
+        return ToolOrchestrationEngine.LANGCHAIN
+
+    raise RuntimeEngineError(
+        "unsupported tool orchestration engine "
+        f"'{normalized}'. Supported values: legacy, langchain."
+    )
+
+
+def create_tool_orchestration_layer(
+    *,
+    function_calling_adapter: Any,
+    mcp_adapter: Any,
+    hook_runtime: Any | None = None,
+    skill_loader: Any | None = None,
+    explicit_mode: str | None = None,
+    env: Mapping[str, str] | None = None,
+    allow_fallback_when_unavailable: bool = True,
+    import_module: ImportModule | None = None,
+) -> Any:
+    from tools.langchain.orchestration import ToolOrchestrationLayer
+
+    selected_mode = resolve_tool_orchestration_engine(explicit_mode=explicit_mode, env=env)
+    return ToolOrchestrationLayer(
+        function_calling_adapter=function_calling_adapter,
+        mcp_adapter=mcp_adapter,
+        hook_runtime=hook_runtime,
+        skill_loader=skill_loader,
+        requested_mode=selected_mode.value,
+        allow_fallback_when_unavailable=allow_fallback_when_unavailable,
         import_module=import_module,
     )
 
