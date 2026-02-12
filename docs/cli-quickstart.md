@@ -21,6 +21,7 @@ export PYTHONPATH=src
 - `replay`
 - `takeover`
 - `handoff`
+- `bundle`
 
 ## Happy Path Demo
 
@@ -52,6 +53,32 @@ bash examples/cli/core_rotation_continuity.sh .
 ```
 
 This validates interruption -> takeover -> handoff create/apply continuity.
+
+## Evidence Bundle Generate/Review/Re-verify
+
+Use the additive `bundle` command to create a reproducible copy anchored to
+`docs/reports/final-run` topology, review inventory, and re-verify integrity:
+
+```bash
+PYTHONPATH=src python3 -m cli bundle --generate \
+  --root . \
+  --source-dir docs/reports/final-run \
+  --bundle-root .artifacts/evidence-bundles/latest \
+  --summary-json .artifacts/evidence-bundles/latest/generate-summary.json
+
+PYTHONPATH=src python3 -m cli bundle --review \
+  --root . \
+  --bundle-root .artifacts/evidence-bundles/latest \
+  --summary-json .artifacts/evidence-bundles/latest/review-summary.json
+
+PYTHONPATH=src python3 -m cli bundle --reverify \
+  --root . \
+  --bundle-root .artifacts/evidence-bundles/latest \
+  --summary-json .artifacts/evidence-bundles/latest/reverify-summary.json
+```
+
+Generated bundles preserve anchor paths at:
+`.artifacts/evidence-bundles/latest/docs/reports/final-run/`
 
 ## Full Onboarding Path
 
