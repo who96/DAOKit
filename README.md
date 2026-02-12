@@ -64,6 +64,7 @@ PYTHONPATH=src python3 -m cli check --root .
 
 - [Orchestration consistency demo](examples/cli/quickstart.sh)
 - [Observer-relay collaboration recovery-chain demo](examples/cli/observer_relay_recovery_chain.sh)
+- [Integrated-mode reliability recovery-chain demo](examples/cli/integrated_reliability_recovery_chain.sh)
 - [Recovery demo](examples/cli/recovery.sh)
 - [Core-rotation continuity demo](examples/cli/core_rotation_continuity.sh)
 - [Backend-to-agent transition path](examples/cli/backend_to_agent_path.sh)
@@ -73,6 +74,7 @@ Run demos:
 ```bash
 bash examples/cli/quickstart.sh .
 bash examples/cli/observer_relay_recovery_chain.sh .
+bash examples/cli/integrated_reliability_recovery_chain.sh .artifacts/readme_demo/integrated .artifacts/readme_demo/integrated/integrated-reliability-summary.json
 bash examples/cli/recovery.sh .
 bash examples/cli/core_rotation_continuity.sh .
 bash examples/cli/backend_to_agent_path.sh .
@@ -86,6 +88,10 @@ bash examples/cli/backend_to_agent_path.sh .
 - [Backend-to-agent workflows](docs/backend-to-agent-workflows.md)
 - [Multi-agent collaboration workflow (English)](docs/workflows/multi-agent-collaboration.en.md)
 - [Multi-agent collaboration workflow (Chinese)](docs/workflows/multi-agent-collaboration.zh-CN.md)
+- [LangChain + LangGraph + RAG cooperation (English)](docs/workflows/langchain-langgraph-rag-cooperation.en.md)
+- [LangChain + LangGraph + RAG cooperation (Chinese)](docs/workflows/langchain-langgraph-rag-cooperation.zh-CN.md)
+- [Codex integration runbook (English)](docs/workflows/codex-integration-runbook.en.md)
+- [Codex integration runbook (Chinese)](docs/workflows/codex-integration-runbook.zh-CN.md)
 - [Observer-relay feasibility report](docs/observer-relay-feasibility.md)
 - [Observer-relay persona and compaction policy](docs/observer-relay-persona-and-compaction.md)
 - [Observer-relay optimization plan](docs/observer-relay-optimization-plan.md)
