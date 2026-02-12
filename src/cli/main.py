@@ -10,7 +10,7 @@ import sys
 from typing import Any, Sequence
 
 from daokit.bootstrap import RepositoryInitError, initialize_repository
-from orchestrator.runtime import OrchestratorRuntime
+from orchestrator.engine import create_runtime
 from reliability.handoff import HandoffPackageError, HandoffPackageStore
 from reliability.heartbeat import (
     HeartbeatEvaluatorError,
@@ -40,6 +40,7 @@ RUN_ACTIVE_STATUSES = {
     "WARNING",
     "STALE",
 }
+RUNTIME_SETTINGS_FILE = Path("state") / "runtime_settings.json"
 
 
 @dataclass(frozen=True)
@@ -248,15 +249,21 @@ def _cmd_check(args: argparse.Namespace) -> int:
 def _cmd_run(args: argparse.Namespace) -> int:
     root = Path(args.root).resolve()
     state_store = StateStore(root / "state")
+    runtime_settings = _load_optional_runtime_settings(root)
 
     run_id = args.run_id or _generate_run_id(args.task_id)
-    runtime = OrchestratorRuntime(
-        task_id=args.task_id,
-        run_id=run_id,
-        goal=args.goal,
-        step_id=args.step_id,
-        state_store=state_store,
-    )
+    try:
+        runtime = create_runtime(
+            task_id=args.task_id,
+            run_id=run_id,
+            goal=args.goal,
+            step_id=args.step_id,
+            state_store=state_store,
+            env=os.environ,
+            config=runtime_settings,
+        )
+    except Exception as exc:  # pragma: no cover - defensive CLI boundary
+        raise CliCommandError("E_RUN_FAILED", str(exc)) from exc
 
     lease_registry: LeaseRegistry | None = None
     lease_record: dict[str, Any] | None = None
@@ -528,6 +535,23 @@ def _load_json_file(path: Path, *, code: str) -> dict[str, Any]:
 
     if not isinstance(payload, dict):
         raise CliCommandError(code, f"{path}: expected JSON object")
+    return payload
+
+
+def _load_optional_runtime_settings(root: Path) -> dict[str, Any] | None:
+    settings_path = root / RUNTIME_SETTINGS_FILE
+    if not settings_path.exists():
+        return None
+    if not settings_path.is_file():
+        raise CliCommandError("E_RUN_FAILED", f"runtime settings path is not a file: {settings_path}")
+
+    try:
+        payload = json.loads(settings_path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as exc:
+        raise CliCommandError("E_RUN_FAILED", f"{settings_path}: invalid JSON") from exc
+
+    if not isinstance(payload, dict):
+        raise CliCommandError("E_RUN_FAILED", f"{settings_path}: expected JSON object")
     return payload
 
 
