@@ -8,6 +8,7 @@ from typing import Any, Callable, Mapping
 from contracts.runtime_adapters import RuntimeRelayPolicy, RuntimeRetriever, RuntimeStateStore
 from rag.retrieval import RetrievalPolicyConfig
 from tools.common.optional_dependencies import OptionalDependencyError, import_optional_dependency
+from .runtime import DEFAULT_DISPATCH_MAX_RESUME_RETRIES, DEFAULT_DISPATCH_MAX_REWORK_ATTEMPTS, RuntimeDispatchAdapter
 
 
 ENV_RUNTIME_ENGINE = "DAOKIT_RUNTIME_ENGINE"
@@ -64,6 +65,9 @@ def create_runtime(
     retrieval_index_path: str | Path | None = None,
     default_retrieval_policies: Mapping[str, RetrievalPolicyConfig] | None = None,
     relay_policy: RuntimeRelayPolicy | None = None,
+    dispatch_adapter: RuntimeDispatchAdapter | None = None,
+    dispatch_max_resume_retries: int = DEFAULT_DISPATCH_MAX_RESUME_RETRIES,
+    dispatch_max_rework_attempts: int = DEFAULT_DISPATCH_MAX_REWORK_ATTEMPTS,
     explicit_engine: str | None = None,
     env: Mapping[str, str] | None = None,
     import_module: ImportModule | None = None,
@@ -83,6 +87,9 @@ def create_runtime(
             retrieval_index_path=retrieval_index_path,
             default_retrieval_policies=default_retrieval_policies,
             relay_policy=relay_policy,
+            dispatch_adapter=dispatch_adapter,
+            dispatch_max_resume_retries=dispatch_max_resume_retries,
+            dispatch_max_rework_attempts=dispatch_max_rework_attempts,
         )
 
     dependencies_available, missing_optional_dependencies = _inspect_langgraph_optional_dependencies(
@@ -99,6 +106,9 @@ def create_runtime(
         retrieval_index_path=retrieval_index_path,
         default_retrieval_policies=default_retrieval_policies,
         relay_policy=relay_policy,
+        dispatch_adapter=dispatch_adapter,
+        dispatch_max_resume_retries=dispatch_max_resume_retries,
+        dispatch_max_rework_attempts=dispatch_max_rework_attempts,
         langgraph_available=dependencies_available,
         missing_optional_dependencies=missing_optional_dependencies,
         import_module=import_module,

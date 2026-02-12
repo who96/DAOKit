@@ -68,10 +68,13 @@ class ShimDispatchAdapterTests(unittest.TestCase):
 
             self.assertEqual(request_doc["action"], "create")
             self.assertIn("--dry-run", request_doc["command"])
+            self.assertIn("correlation_id", request_doc)
             self.assertIn("raw_stdout", output_doc)
             self.assertIn("parsed_output", output_doc)
+            self.assertIn("correlation_id", output_doc)
             self.assertIn("normalized_output_paths", output_doc)
             self.assertEqual(error_doc["error"], None)
+            self.assertIn("correlation_id", error_doc)
             self.assertIn("raw_stderr", error_doc)
 
     def test_thread_and_run_correlation_stable_across_retries(self) -> None:
@@ -110,8 +113,14 @@ class ShimDispatchAdapterTests(unittest.TestCase):
 
             self.assertEqual(first.thread_id, second.thread_id)
             self.assertEqual(first.thread_id, resumed.thread_id)
+            self.assertEqual(first.correlation_id, second.correlation_id)
+            self.assertEqual(first.correlation_id, resumed.correlation_id)
             self.assertEqual(first.run_id, second.run_id)
             self.assertEqual(second.run_id, resumed.run_id)
+
+            first_request = json.loads(first.artifacts.request_path.read_text(encoding="utf-8"))
+            resumed_request = json.loads(resumed.artifacts.request_path.read_text(encoding="utf-8"))
+            self.assertEqual(first_request["correlation_id"], resumed_request["correlation_id"])
 
 
 if __name__ == "__main__":

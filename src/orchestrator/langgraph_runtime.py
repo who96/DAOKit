@@ -6,8 +6,9 @@ from typing import Any, Callable, Mapping, Protocol
 
 from contracts.runtime_adapters import RuntimeRelayPolicy, RuntimeRetriever, RuntimeStateStore
 from rag.retrieval import RetrievalPolicyConfig
+from .runtime import DEFAULT_DISPATCH_MAX_RESUME_RETRIES, DEFAULT_DISPATCH_MAX_REWORK_ATTEMPTS
 
-from .runtime import OrchestratorRuntime
+from .runtime import OrchestratorRuntime, RuntimeDispatchAdapter
 from .state_machine import NODE_TRANSITIONS, STATUS_TO_NODE, IllegalTransitionError, OrchestratorStatus, parse_status
 
 
@@ -33,6 +34,9 @@ class LangGraphOrchestratorRuntime(OrchestratorRuntime):
         retrieval_index_path: str | Path | None = None,
         default_retrieval_policies: Mapping[str, RetrievalPolicyConfig] | None = None,
         relay_policy: RuntimeRelayPolicy | None = None,
+        dispatch_adapter: RuntimeDispatchAdapter | None = None,
+        dispatch_max_resume_retries: int = DEFAULT_DISPATCH_MAX_RESUME_RETRIES,
+        dispatch_max_rework_attempts: int = DEFAULT_DISPATCH_MAX_REWORK_ATTEMPTS,
         langgraph_available: bool = False,
         missing_optional_dependencies: tuple[str, ...] = (),
         import_module: ImportModule | None = None,
@@ -47,6 +51,9 @@ class LangGraphOrchestratorRuntime(OrchestratorRuntime):
             retrieval_index_path=retrieval_index_path,
             default_retrieval_policies=default_retrieval_policies,
             relay_policy=relay_policy,
+            dispatch_adapter=dispatch_adapter,
+            dispatch_max_resume_retries=dispatch_max_resume_retries,
+            dispatch_max_rework_attempts=dispatch_max_rework_attempts,
         )
         self.langgraph_available = bool(langgraph_available)
         self.missing_optional_dependencies = tuple(missing_optional_dependencies)
