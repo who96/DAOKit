@@ -1,0 +1,316 @@
+{
+  "task_id": "DKT-036",
+  "run_id": "RUN-INTEGRATED-RELIABILITY",
+  "step_id": "S1",
+  "scenario_root": "/Users/huluobo/workSpace/DAOKit/.worktrees/dkt-036/.artifacts/agent_runs/DKT-036_20260212T093654Z_a62b87a/S1/scenario_sandbox",
+  "runtime_mode": "integrated",
+  "resolved_runtime_engine": "langgraph",
+  "runtime_class": "LangGraphOrchestratorRuntime",
+  "graph_backend": "fallback",
+  "active_status_before_recovery": "EXECUTE",
+  "takeover": {
+    "action": "TAKEOVER",
+    "decision_reason_code": "HEARTBEAT_STALE",
+    "heartbeat_status": "STALE",
+    "lease_reason_code": "VALID_ACTIVE_LEASE",
+    "takeover_at": "2026-02-12T09:46:59.687543+00:00",
+    "adopted_step_ids": [
+      "S1"
+    ],
+    "failed_step_ids": [],
+    "handoff_applied": true,
+    "handoff_resume_step_id": "S1"
+  },
+  "heartbeat": {
+    "first_tick": {
+      "status": "STALE",
+      "reason_code": "NO_OUTPUT_20M",
+      "silence_seconds": 7500,
+      "stale_event_emitted": true
+    },
+    "second_tick": {
+      "status": "STALE",
+      "reason_code": "NO_OUTPUT_20M",
+      "silence_seconds": 7620,
+      "stale_event_emitted": false
+    },
+    "stale_event_count": 2
+  },
+  "status_after_recovery": {
+    "pipeline_state": {
+      "schema_version": "1.0.0",
+      "task_id": "DKT-036",
+      "run_id": "RUN-INTEGRATED-RELIABILITY",
+      "goal": "Validate integrated stale takeover and handoff reliability",
+      "status": "EXECUTE",
+      "current_step": "S1",
+      "steps": [
+        {
+          "id": "S1",
+          "title": "Implement orchestrator state machine",
+          "category": "implementation",
+          "goal": "Validate integrated stale takeover and handoff reliability",
+          "actions": [
+            "Implement nodes extract/plan/dispatch/verify/transition",
+            "Persist state snapshots between node transitions",
+            "Add transition guards for forbidden jumps"
+          ],
+          "acceptance_criteria": [
+            "Graph runs happy path end-to-end",
+            "Illegal transition attempts fail with explicit diagnostics",
+            "State is recoverable after process restart"
+          ],
+          "expected_outputs": [
+            "report.md",
+            "verification.log",
+            "audit-summary.md"
+          ],
+          "dependencies": [
+            "DKT-002"
+          ]
+        }
+      ],
+      "role_lifecycle": {
+        "orchestrator": "dispatch_complete",
+        "controller_lane": "controller",
+        "controller_ownership": "controller:S1",
+        "analysis": "prepared",
+        "planning_retrieval": "0_sources",
+        "lane:controller": "active_step:S1",
+        "step:S1": "owned_by_lane:controller",
+        "handoff_resume_step": "S1",
+        "handoff_next_action": "resume",
+        "handoff_resumable_steps": "S1",
+        "handoff_skipped_steps": "",
+        "handoff_failed_steps": "",
+        "handoff_pending_steps": "S1"
+      },
+      "succession": {
+        "enabled": true,
+        "last_takeover_at": "2026-02-12T09:46:59.687543+00:00"
+      },
+      "updated_at": "2026-02-12T09:44:59.688919+00:00"
+    },
+    "heartbeat_status": {
+      "schema_version": "1.0.0",
+      "status": "STALE",
+      "last_heartbeat_at": "2026-02-12T07:39:59.687543+00:00",
+      "reason_code": "NO_OUTPUT_20M",
+      "warning_after_seconds": 900,
+      "stale_after_seconds": 1200,
+      "last_escalation_at": "2026-02-12T09:44:59.687942+00:00",
+      "updated_at": "2026-02-12T09:44:59.688229+00:00"
+    },
+    "leases": [
+      {
+        "lane": "controller",
+        "step_id": "S1",
+        "task_id": "DKT-036",
+        "run_id": "RUN-INTEGRATED-RELIABILITY",
+        "thread_id": "integrated-successor-thread",
+        "pid": 54321,
+        "lease_token": "lease_0468aa4f73e04ab5ae2444f1c51c3e80",
+        "expiry": "2026-02-12T10:04:59.687174+00:00",
+        "status": "ACTIVE",
+        "last_heartbeat_at": "2026-02-12T09:46:59.687543+00:00",
+        "created_at": "2026-02-12T09:44:59.687174+00:00",
+        "updated_at": "2026-02-12T09:46:59.687543+00:00"
+      }
+    ],
+    "handoff_package": {
+      "schema_version": "1.0.0",
+      "task_id": "DKT-036",
+      "run_id": "RUN-INTEGRATED-RELIABILITY",
+      "current_step": "S1",
+      "open_acceptance_items": [
+        {
+          "step_id": "S1",
+          "criterion": "Graph runs happy path end-to-end"
+        },
+        {
+          "step_id": "S1",
+          "criterion": "Illegal transition attempts fail with explicit diagnostics"
+        },
+        {
+          "step_id": "S1",
+          "criterion": "State is recoverable after process restart"
+        }
+      ],
+      "evidence_paths": [
+        "report.md",
+        "verification.log",
+        "audit-summary.md"
+      ],
+      "next_action": "resume",
+      "resumable_step_ids": [
+        "S1"
+      ],
+      "skipped_step_ids": [],
+      "step_status": {
+        "accepted": [],
+        "failed": [],
+        "pending": [
+          "S1"
+        ]
+      },
+      "created_at": "2026-02-12T09:44:59.687407+00:00",
+      "package_hash": "5785fbee6b117014b790d447e3fc1d93b2ff46bfd916753839bf53543a0d8f50"
+    }
+  },
+  "status_final": {
+    "pipeline_state": {
+      "schema_version": "1.0.0",
+      "task_id": "DKT-036",
+      "run_id": "RUN-INTEGRATED-RELIABILITY",
+      "goal": "Validate integrated stale takeover and handoff reliability",
+      "status": "DONE",
+      "current_step": "S1",
+      "steps": [
+        {
+          "id": "S1",
+          "title": "Implement orchestrator state machine",
+          "category": "implementation",
+          "goal": "Validate integrated stale takeover and handoff reliability",
+          "actions": [
+            "Implement nodes extract/plan/dispatch/verify/transition",
+            "Persist state snapshots between node transitions",
+            "Add transition guards for forbidden jumps"
+          ],
+          "acceptance_criteria": [
+            "Graph runs happy path end-to-end",
+            "Illegal transition attempts fail with explicit diagnostics",
+            "State is recoverable after process restart"
+          ],
+          "expected_outputs": [
+            "report.md",
+            "verification.log",
+            "audit-summary.md"
+          ],
+          "dependencies": [
+            "DKT-002"
+          ]
+        }
+      ],
+      "role_lifecycle": {
+        "orchestrator": "transition_complete",
+        "controller_lane": "controller",
+        "controller_ownership": "controller:S1",
+        "analysis": "prepared",
+        "planning_retrieval": "0_sources",
+        "lane:controller": "active_step:S1",
+        "step:S1": "owned_by_lane:controller",
+        "handoff_resume_step": "S1",
+        "handoff_next_action": "resume",
+        "handoff_resumable_steps": "S1",
+        "handoff_skipped_steps": "",
+        "handoff_failed_steps": "",
+        "handoff_pending_steps": "S1",
+        "acceptance": "passed",
+        "troubleshooting_retrieval": "0_sources"
+      },
+      "succession": {
+        "enabled": true,
+        "last_takeover_at": "2026-02-12T09:46:59.687543+00:00"
+      },
+      "updated_at": "2026-02-12T09:44:59.796332+00:00"
+    },
+    "heartbeat_status": {
+      "schema_version": "1.0.0",
+      "status": "STALE",
+      "last_heartbeat_at": "2026-02-12T07:39:59.687543+00:00",
+      "reason_code": "NO_OUTPUT_20M",
+      "warning_after_seconds": 900,
+      "stale_after_seconds": 1200,
+      "last_escalation_at": "2026-02-12T09:44:59.687942+00:00",
+      "updated_at": "2026-02-12T09:44:59.688229+00:00"
+    },
+    "leases": [
+      {
+        "lane": "controller",
+        "step_id": "S1",
+        "task_id": "DKT-036",
+        "run_id": "RUN-INTEGRATED-RELIABILITY",
+        "thread_id": "integrated-successor-thread",
+        "pid": 54321,
+        "lease_token": "lease_0468aa4f73e04ab5ae2444f1c51c3e80",
+        "expiry": "2026-02-12T10:04:59.687174+00:00",
+        "status": "ACTIVE",
+        "last_heartbeat_at": "2026-02-12T09:46:59.687543+00:00",
+        "created_at": "2026-02-12T09:44:59.687174+00:00",
+        "updated_at": "2026-02-12T09:46:59.687543+00:00"
+      }
+    ],
+    "handoff_package": {
+      "schema_version": "1.0.0",
+      "task_id": "DKT-036",
+      "run_id": "RUN-INTEGRATED-RELIABILITY",
+      "current_step": "S1",
+      "open_acceptance_items": [
+        {
+          "step_id": "S1",
+          "criterion": "Graph runs happy path end-to-end"
+        },
+        {
+          "step_id": "S1",
+          "criterion": "Illegal transition attempts fail with explicit diagnostics"
+        },
+        {
+          "step_id": "S1",
+          "criterion": "State is recoverable after process restart"
+        }
+      ],
+      "evidence_paths": [
+        "report.md",
+        "verification.log",
+        "audit-summary.md"
+      ],
+      "next_action": "resume",
+      "resumable_step_ids": [
+        "S1"
+      ],
+      "skipped_step_ids": [],
+      "step_status": {
+        "accepted": [],
+        "failed": [],
+        "pending": [
+          "S1"
+        ]
+      },
+      "created_at": "2026-02-12T09:44:59.687407+00:00",
+      "package_hash": "5785fbee6b117014b790d447e3fc1d93b2ff46bfd916753839bf53543a0d8f50"
+    }
+  },
+  "final_state": {
+    "status": "DONE",
+    "current_step": "S1",
+    "task_id": "DKT-036",
+    "run_id": "RUN-INTEGRATED-RELIABILITY"
+  },
+  "event_count": 10,
+  "replay_count": 10,
+  "checks": {
+    "forced_stale_condition": true,
+    "takeover_and_handoff_applied_during_active_run": true,
+    "event_lease_state_consistent": true,
+    "status_replay_consistent_after_recovery": true,
+    "recovered_without_manual_state_repair": true
+  },
+  "command_log": [
+    {
+      "command": "python -m cli status --root /Users/huluobo/workSpace/DAOKit/.worktrees/dkt-036/.artifacts/agent_runs/DKT-036_20260212T093654Z_a62b87a/S1/scenario_sandbox --task-id DKT-036 --run-id RUN-INTEGRATED-RELIABILITY --json",
+      "exit_code": 0
+    },
+    {
+      "command": "python -m cli replay --root /Users/huluobo/workSpace/DAOKit/.worktrees/dkt-036/.artifacts/agent_runs/DKT-036_20260212T093654Z_a62b87a/S1/scenario_sandbox --source events --limit 500 --json",
+      "exit_code": 0
+    },
+    {
+      "command": "python -m cli status --root /Users/huluobo/workSpace/DAOKit/.worktrees/dkt-036/.artifacts/agent_runs/DKT-036_20260212T093654Z_a62b87a/S1/scenario_sandbox --task-id DKT-036 --run-id RUN-INTEGRATED-RELIABILITY --json",
+      "exit_code": 0
+    },
+    {
+      "command": "python -m cli replay --root /Users/huluobo/workSpace/DAOKit/.worktrees/dkt-036/.artifacts/agent_runs/DKT-036_20260212T093654Z_a62b87a/S1/scenario_sandbox --source events --limit 500 --json",
+      "exit_code": 0
+    }
+  ]
+}
