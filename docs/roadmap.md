@@ -10,11 +10,14 @@ Target themes:
 - Expand acceptance gate diagnostics with explicit criterion mapping output.
 - Improve CLI ergonomics for reproducible release verification bundles.
 - Add contributor templates for new tool adapters and skill manifests.
+- Freeze v1.1 guardrail charter and acceptance matrix as rollout baseline.
+- Keep v1.1 rollout assets LangGraph-only (no orchestration-engine switching surface).
 
 Expected deliverables:
 
 - Release verification command surface standardized.
 - Stronger docs/test coupling for extension contributions.
+- Published guardrail charter and acceptance matrix for v1.1 waves.
 
 ## v1.2 (Reliability and Operator Experience)
 

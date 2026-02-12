@@ -12,6 +12,7 @@
 - /Users/huluobo/workSpace/DAOKit/specs/004-v1-1-tooling-verification-hardening/requirements.md
 - /Users/huluobo/workSpace/DAOKit/specs/004-v1-1-tooling-verification-hardening/design.md
 - /Users/huluobo/workSpace/DAOKit/specs/004-v1-1-tooling-verification-hardening/tasks.md
+- /Users/huluobo/workSpace/DAOKit/specs/004-v1-1-tooling-verification-hardening/guardrail-charter-acceptance-matrix.md
 - /Users/huluobo/workSpace/DAOKit/prompts/zhukong-batch/tasks/DKT-038.md
 - /Users/huluobo/workSpace/DAOKit/prompts/zhukong-batch/tasks/DKT-039.md
 - /Users/huluobo/workSpace/DAOKit/prompts/zhukong-batch/tasks/DKT-040.md

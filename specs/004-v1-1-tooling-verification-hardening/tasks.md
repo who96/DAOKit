@@ -19,7 +19,7 @@ Lock v1.1 scope, compatibility guardrails, and acceptance matrix with explicit L
 3. Legacy runtime path is absent from v1.1 rollout plan.
 
 **Deliverables**
-- Guardrail charter + acceptance matrix doc.
+- Guardrail charter + acceptance matrix doc (`specs/004-v1-1-tooling-verification-hardening/guardrail-charter-acceptance-matrix.md`).
 
 **Dependencies**
 - DKT-037.
