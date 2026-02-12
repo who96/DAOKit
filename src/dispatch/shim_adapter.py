@@ -8,12 +8,12 @@ import subprocess
 from typing import Any, Callable, Mapping, Sequence
 
 from artifacts.dispatch_artifacts import DispatchArtifactStore, DispatchCallArtifacts
+from contracts.dispatch_contracts import (
+    DispatchContractError,
+    build_codex_shim_payload,
+    normalize_codex_shim_outcome,
+)
 from state.relay_policy import RelayModePolicy, RelayPolicyError
-
-
-def _copy_json(value: Any) -> Any:
-    return json.loads(json.dumps(value))
-
 
 def _expect_non_empty_string(value: Any, *, name: str) -> str:
     if not isinstance(value, str):
@@ -22,14 +22,6 @@ def _expect_non_empty_string(value: Any, *, name: str) -> str:
     if not normalized:
         raise DispatchError(f"{name} must be a non-empty string")
     return normalized
-
-
-def _coerce_mapping(value: Any, *, name: str) -> dict[str, Any]:
-    if value is None:
-        return {}
-    if not isinstance(value, Mapping):
-        raise DispatchError(f"{name} must be an object")
-    return dict(value)
 
 
 def _stable_thread_id(*, task_id: str, run_id: str, step_id: str) -> str:
@@ -220,9 +212,9 @@ class ShimDispatchAdapter:
         if retry_index < 0:
             raise DispatchError("retry_index must be >= 0")
 
-        normalized_request = _coerce_mapping(request, name="request")
-        normalized_rework = _coerce_mapping(rework_context, name="rework_context")
-        explicit_correlation_id = normalized_request.get("correlation_id")
+        explicit_correlation_id: Any = None
+        if isinstance(request, Mapping):
+            explicit_correlation_id = request.get("correlation_id")
         if isinstance(explicit_correlation_id, str) and explicit_correlation_id.strip():
             normalized_correlation_id = explicit_correlation_id.strip()
         else:
@@ -240,18 +232,20 @@ class ShimDispatchAdapter:
             thread_id=normalized_thread_id,
             dry_run=dry_run,
         )
-        payload = {
-            "action": action,
-            "task_id": normalized_task_id,
-            "run_id": normalized_run_id,
-            "step_id": normalized_step_id,
-            "thread_id": normalized_thread_id,
-            "correlation_id": normalized_correlation_id,
-            "retry_index": retry_index,
-            "request": _copy_json(normalized_request),
-        }
-        if normalized_rework:
-            payload["rework_context"] = _copy_json(normalized_rework)
+        try:
+            payload = build_codex_shim_payload(
+                action=action,
+                task_id=normalized_task_id,
+                run_id=normalized_run_id,
+                step_id=normalized_step_id,
+                thread_id=normalized_thread_id,
+                retry_index=retry_index,
+                request=request,
+                rework_context=rework_context,
+            )
+        except DispatchContractError as exc:
+            raise DispatchError(str(exc)) from exc
+        payload["correlation_id"] = normalized_correlation_id
 
         if dry_run:
             shim_output = {
@@ -277,10 +271,13 @@ class ShimDispatchAdapter:
             return_code = int(completed.returncode)
 
         parsed_output = _parse_output(raw_stdout)
-        status = "success" if return_code == 0 else "error"
-        error_message = None if return_code == 0 else f"shim exited with status {return_code}"
-        if return_code == 0 and isinstance(parsed_output.get("status"), str):
-            status = str(parsed_output["status"]).strip() or status
+        normalized_outcome = normalize_codex_shim_outcome(
+            return_code=return_code,
+            parsed_output=parsed_output,
+            raw_stderr=raw_stderr,
+        )
+        status = normalized_outcome.status
+        error_message = normalized_outcome.error
 
         artifacts = self.artifact_store.write_call_artifacts(
             task_id=normalized_task_id,

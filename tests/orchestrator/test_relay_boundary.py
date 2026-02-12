@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+import subprocess
 import tempfile
 import unittest
 
@@ -141,6 +142,35 @@ class ObserverRelayBoundaryTests(unittest.TestCase):
                 str(ctx.exception),
                 "relay context missing required fields: constraints, controller_route_summary, current_blockers, latest_instruction",
             )
+
+    def test_non_relay_mode_accepts_normalized_codex_status_alias(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+
+            def fake_runner(command: list[str], payload: str) -> subprocess.CompletedProcess[str]:
+                return subprocess.CompletedProcess(
+                    args=command,
+                    returncode=0,
+                    stdout='{"status":"done"}',
+                    stderr="",
+                )
+
+            adapter = ShimDispatchAdapter(
+                shim_path="/usr/local/bin/daokit-shim",
+                artifact_store=DispatchArtifactStore(root / "artifacts"),
+                command_runner=fake_runner,
+                relay_policy=RelayModePolicy(relay_mode_enabled=False),
+            )
+
+            result = adapter.create(
+                task_id="DKT-034",
+                run_id="DKT-034_RUN",
+                step_id="S1",
+                request={"task_kind": "step"},
+                dry_run=False,
+            )
+
+            self.assertEqual(result.status, "success")
 
 
 if __name__ == "__main__":
