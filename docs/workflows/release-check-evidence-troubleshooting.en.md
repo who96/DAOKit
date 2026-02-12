@@ -3,27 +3,47 @@
 ## When to Use
 Use this flow when `make release-check` passes/fails but acceptance linkage is unclear, or when criteria diagnostics include `MISSING`/`BROKEN` evidence pointers.
 
-## Baseline Sequence
-1. Run baseline verification:
+## CI-Aligned Hardening Gate Order
+Run the same gate sequence locally that CI executes in `.github/workflows/v11-hardening-gate.yml`.
+
+1. RC-RC-001 release-check baseline gate:
 
 ```bash
-make lint && make test && make release-check
+make gate-release-check
 ```
 
-2. Validate criteria linkage conventions:
+2. RC-DIAG-001 criteria linkage diagnostics gate:
 
 ```bash
-PYTHONPATH=src python3 scripts/check_criteria_linkage.py \
-  --criteria-map docs/reports/criteria-map.json \
-  --summary-json .artifacts/release-check/criteria-linkage-check.json
+make gate-criteria-linkage
 ```
 
-3. Inspect generated outputs:
+3. RC-TPL-001 template verification gate:
+
+```bash
+make gate-template-checks
+```
+
+4. Optional one-shot wrapper (same order and checks):
+
+```bash
+make ci-hardening-gate
+```
+
+5. Inspect generated outputs:
 - `.artifacts/release-check/verification.log`
 - `.artifacts/release-check/summary.json`
 - `docs/reports/criteria-map.json`
 - `docs/reports/criteria-map.md`
 - `.artifacts/release-check/criteria-linkage-check.json`
+
+## Criterion to Evidence Mapping
+
+| Criterion ID | Gate Command | Primary Evidence |
+| --- | --- | --- |
+| RC-RC-001 | `make gate-release-check` | `.artifacts/release-check/verification.log`, `.artifacts/release-check/summary.json` |
+| RC-DIAG-001 | `make gate-criteria-linkage` | `docs/reports/criteria-map.json`, `docs/reports/criteria-map.md`, `.artifacts/release-check/criteria-linkage-check.json` |
+| RC-TPL-001 | `make gate-template-checks` | template-suite command output (`tests/templates/`) plus release-check evidence pointers |
 
 ## Failure Diagnosis by Pointer State
 - `MISSING:<output>@<path>`:

@@ -89,13 +89,14 @@ PYTHONPATH=src python3 -m cli replay \
 - `status` 输出包含契约兼容对象（`pipeline_state`、`heartbeat_status`、`leases`）。
 - replay 输出非空，且与 summary 中的检查结果一致。
 
-### Step 5：执行仓库基线验证
+### Step 5：执行与 CI 对齐的 hardening gate 顺序
 
 ```bash
-make lint && make test
+make ci-hardening-gate
 ```
 
-预期：命令退出码为 `0`。
+预期：按顺序执行并通过 `RC-RC-001`、`RC-DIAG-001`、`RC-TPL-001`
+（`gate-release-check` -> `gate-criteria-linkage` -> `gate-template-checks`），退出码为 `0`。
 
 ## 4. 已完成波次的参考证据
 
@@ -113,7 +114,7 @@ make lint && make test
 | `integrated_reliability_recovery_chain.sh` | 触发 integrated runtime 分发与恢复动作 |
 | Summary JSON 关键字段 | LangGraph 运行时主导与恢复连续性 |
 | `cli status` + `cli replay` | 账本/事件一致性与可追溯性 |
-| `make lint && make test` | 项目基线验证门禁 |
+| `make ci-hardening-gate` | v1.1 hardening 门禁顺序与证据关联诊断 |
 
 ## 6. 兼容性护栏
 

@@ -1,0 +1,69 @@
+name: v1.1 Hardening Gate
+
+on:
+  pull_request:
+    paths:
+      - "Makefile"
+      - "src/verification/**"
+      - "scripts/check_criteria_linkage.py"
+      - "docs/workflows/release-check-evidence-troubleshooting.en.md"
+      - "docs/workflows/codex-integration-runbook.en.md"
+      - "docs/workflows/codex-integration-runbook.zh-CN.md"
+      - "docs/contributors/**"
+      - "docs/reports/criteria-map.json"
+      - "docs/reports/criteria-map.md"
+      - "templates/**"
+      - "tests/templates/**"
+      - "tests/ci/**"
+      - ".github/workflows/v11-hardening-gate.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "Makefile"
+      - "src/verification/**"
+      - "scripts/check_criteria_linkage.py"
+      - "docs/workflows/release-check-evidence-troubleshooting.en.md"
+      - "docs/workflows/codex-integration-runbook.en.md"
+      - "docs/workflows/codex-integration-runbook.zh-CN.md"
+      - "docs/contributors/**"
+      - "docs/reports/criteria-map.json"
+      - "docs/reports/criteria-map.md"
+      - "templates/**"
+      - "tests/templates/**"
+      - "tests/ci/**"
+      - ".github/workflows/v11-hardening-gate.yml"
+
+jobs:
+  hardening-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: RC-RC-001 Release-check baseline gate
+        run: make gate-release-check
+
+      - name: RC-DIAG-001 Criteria linkage diagnostics gate
+        run: make gate-criteria-linkage
+
+      - name: RC-TPL-001 Template verification gate
+        run: make gate-template-checks
+
+      - name: Upload hardening gate evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: v11-hardening-gate-evidence
+          if-no-files-found: warn
+          path: |
+            .artifacts/release-check/verification.log
+            .artifacts/release-check/summary.json
+            .artifacts/release-check/criteria-linkage-check.json
+            docs/reports/criteria-map.json
+            docs/reports/criteria-map.md

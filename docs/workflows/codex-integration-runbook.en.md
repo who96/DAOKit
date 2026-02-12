@@ -89,13 +89,14 @@ Expected:
 - `status` output includes contract-compatible objects (`pipeline_state`, `heartbeat_status`, `leases`).
 - replay output is non-empty and consistent with summary checks.
 
-### Step 5: Run baseline repository verification
+### Step 5: Run CI-aligned hardening gate sequence
 
 ```bash
-make lint && make test
+make ci-hardening-gate
 ```
 
-Expected: command exits `0`.
+Expected: command exits `0` after running `RC-RC-001`, `RC-DIAG-001`, and `RC-TPL-001`
+in order (`gate-release-check` -> `gate-criteria-linkage` -> `gate-template-checks`).
 
 ## 4. Reference evidence from finalized integration wave
 
@@ -113,7 +114,7 @@ The following tracked artifacts demonstrate the same flow already accepted in DK
 | `integrated_reliability_recovery_chain.sh` | Dispatch to integrated runtime with recovery operations |
 | Summary JSON checkpoints | LangGraph runtime ownership + recovery continuity |
 | `cli status` and `cli replay` | Ledger/event consistency and traceability |
-| `make lint && make test` | Baseline project verification gate |
+| `make ci-hardening-gate` | v1.1 hardening gate sequence with evidence-linked diagnostics |
 
 ## 6. Guardrails
 
