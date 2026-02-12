@@ -5,7 +5,7 @@ import tempfile
 import unittest
 
 from rag.ingest.pipeline import FileIngestionItem, rebuild_index
-from rag.retrieval import PolicyAwareRetriever, RetrievalPolicyConfig
+from rag.retrieval import PolicyAwareRetriever, RetrievalPolicyConfig, policy_from_mapping
 
 
 class RetrievalPolicyTests(unittest.TestCase):
@@ -113,6 +113,47 @@ class RetrievalPolicyTests(unittest.TestCase):
 
             self.assertFalse(result.enabled)
             self.assertEqual(result.sources, ())
+
+    def test_policy_from_mapping_applies_configurable_overrides(self) -> None:
+        base = RetrievalPolicyConfig(
+            enabled=True,
+            top_k=3,
+            min_relevance_score=0.2,
+            allow_global_fallback=True,
+        )
+        resolved = policy_from_mapping(
+            {
+                "enabled": False,
+                "top_k": 7,
+                "min_relevance_score": 0.85,
+                "allow_global_fallback": False,
+            },
+            base=base,
+        )
+
+        self.assertFalse(resolved.enabled)
+        self.assertEqual(resolved.top_k, 7)
+        self.assertEqual(resolved.min_relevance_score, 0.85)
+        self.assertFalse(resolved.allow_global_fallback)
+
+    def test_policy_from_mapping_ignores_invalid_values(self) -> None:
+        base = RetrievalPolicyConfig(
+            enabled=True,
+            top_k=2,
+            min_relevance_score=0.4,
+            allow_global_fallback=False,
+        )
+        resolved = policy_from_mapping(
+            {
+                "enabled": "false",
+                "top_k": "not-int",
+                "min_relevance_score": "bad",
+                "allow_global_fallback": "yes",
+            },
+            base=base,
+        )
+
+        self.assertEqual(resolved, base)
 
 
 if __name__ == "__main__":

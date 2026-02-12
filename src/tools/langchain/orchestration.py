@@ -5,9 +5,16 @@ from datetime import datetime, timezone
 from enum import Enum
 import importlib
 import json
+from pathlib import Path
 from typing import Any, Callable, Mapping, Protocol
 from uuid import uuid4
 
+from rag.retrieval import (
+    PolicyAwareRetriever,
+    RetrievalPolicyConfig,
+    RetrievalResult,
+    policy_from_mapping,
+)
 from skills.loader import LoadedSkill, SkillLoader
 from tools.common.optional_dependencies import OptionalDependencyError, import_optional_dependency
 from tools.function_calling.adapter import FunctionCallingAdapter, ToolInvocationResult
@@ -83,19 +90,41 @@ class ToolOrchestrationLayer:
         requested_mode: str = ToolOrchestrationMode.LEGACY.value,
         allow_fallback_when_unavailable: bool = True,
         import_module: ImportModule | None = None,
+        retriever: Any | None = None,
+        retrieval_index_path: str | Path | None = None,
+        default_retrieval_policies: Mapping[str, RetrievalPolicyConfig] | None = None,
     ) -> None:
+        self._import_module = import_module or importlib.import_module
         self.adapters = ToolAdapterBundle(
             function_calling=function_calling_adapter,
             mcp=mcp_adapter,
             hooks=hook_runtime,
             skills=skill_loader,
         )
+        self.retriever = retriever or PolicyAwareRetriever(index_path=retrieval_index_path)
+        self._retrieval_cache: dict[str, RetrievalResult] = {}
+        self._default_retrieval_policies = {
+            "planning": RetrievalPolicyConfig(
+                enabled=True,
+                top_k=3,
+                min_relevance_score=0.2,
+                allow_global_fallback=True,
+            ),
+            "troubleshooting": RetrievalPolicyConfig(
+                enabled=True,
+                top_k=3,
+                min_relevance_score=0.2,
+                allow_global_fallback=True,
+            ),
+        }
+        if default_retrieval_policies is not None:
+            self._default_retrieval_policies.update(default_retrieval_policies)
         self._requested_mode = _parse_mode(requested_mode)
         self._trace_logs: list[ToolTraceEntry] = []
         self._fallback_reason: str | None = None
         self._active_mode = self._resolve_mode(
             allow_fallback_when_unavailable=allow_fallback_when_unavailable,
-            import_module=import_module,
+            import_module=self._import_module,
         )
 
     def mode_status(self) -> ToolOrchestrationModeStatus:
@@ -214,6 +243,127 @@ class ToolOrchestrationLayer:
             finished_at=finished_at,
         )
         return result
+
+    def latest_retrieval(self, use_case: str) -> RetrievalResult | None:
+        normalized_use_case = _expect_non_empty_string(use_case, name="use_case")
+        return self._retrieval_cache.get(normalized_use_case)
+
+    def invoke_retrieval(
+        self,
+        *,
+        task_id: str,
+        run_id: str,
+        step_id: str,
+        use_case: str,
+        query: str,
+        policy: RetrievalPolicyConfig | Mapping[str, Any] | None = None,
+        correlation_id: str | None = None,
+    ) -> RetrievalResult:
+        normalized_task_id = _expect_non_empty_string(task_id, name="task_id")
+        normalized_run_id = _expect_non_empty_string(run_id, name="run_id")
+        normalized_step_id = _expect_non_empty_string(step_id, name="step_id")
+        normalized_use_case = _expect_non_empty_string(use_case, name="use_case")
+        if not isinstance(query, str):
+            raise ToolOrchestrationError("query must be a string")
+        normalized_correlation = _resolve_correlation_id(
+            correlation_id=correlation_id,
+            task_id=normalized_task_id,
+            run_id=normalized_run_id,
+            step_id=normalized_step_id,
+            adapter="retrieval",
+        )
+        resolved_policy = self._resolve_retrieval_policy(
+            use_case=normalized_use_case,
+            policy=policy,
+        )
+
+        started_at = _utc_now()
+        raw_result = self.retriever.retrieve(
+            use_case=normalized_use_case,
+            query=query,
+            task_id=normalized_task_id,
+            run_id=normalized_run_id,
+            policy=resolved_policy,
+        )
+        result = self._coerce_retrieval_result(raw_result)
+        self._retrieval_cache[normalized_use_case] = result
+        finished_at = _utc_now()
+
+        self._append_trace(
+            adapter="retrieval",
+            operation=normalized_use_case,
+            task_id=normalized_task_id,
+            run_id=normalized_run_id,
+            step_id=normalized_step_id,
+            correlation_id=normalized_correlation,
+            status="success",
+            payload={
+                "query": result.query,
+                "enabled": result.enabled,
+                "top_k": result.top_k,
+                "min_relevance_score": result.min_relevance_score,
+                "source_count": len(result.sources),
+                "sources": [
+                    {
+                        "chunk_id": source.chunk_id,
+                        "source_path": source.source_path,
+                        "source_type": source.source_type,
+                        "task_id": source.task_id,
+                        "run_id": source.run_id,
+                        "relevance_score": source.relevance_score,
+                    }
+                    for source in result.sources
+                ],
+            },
+            started_at=started_at,
+            finished_at=finished_at,
+        )
+        return result
+
+    def invoke_retrieval_documents(
+        self,
+        *,
+        task_id: str,
+        run_id: str,
+        step_id: str,
+        use_case: str,
+        query: str,
+        policy: RetrievalPolicyConfig | Mapping[str, Any] | None = None,
+        correlation_id: str | None = None,
+    ) -> tuple[Any, ...]:
+        result = self.invoke_retrieval(
+            task_id=task_id,
+            run_id=run_id,
+            step_id=step_id,
+            use_case=use_case,
+            query=query,
+            policy=policy,
+            correlation_id=correlation_id,
+        )
+        try:
+            module = import_optional_dependency(
+                "langchain_core.documents",
+                feature_name="langchain retrieval bridge",
+                extras_hint="pip install 'daokit[langchain]'",
+                import_module=self._import_module,
+            )
+            document_type = getattr(module, "Document")
+            return tuple(
+                document_type(
+                    page_content=source.text,
+                    metadata={
+                        "chunk_id": source.chunk_id,
+                        "source_path": source.source_path,
+                        "source_type": source.source_type,
+                        "task_id": source.task_id,
+                        "run_id": source.run_id,
+                        "relevance_score": source.relevance_score,
+                    },
+                )
+                for source in result.sources
+            )
+        except (OptionalDependencyError, AttributeError):
+            return tuple(self._to_document_mapping(source) for source in result.sources)
 
     def load_skill(
         self,
@@ -342,6 +492,44 @@ class ToolOrchestrationLayer:
             finished_at=finished_at,
         )
         return result
+
+    def _resolve_retrieval_policy(
+        self,
+        *,
+        use_case: str,
+        policy: RetrievalPolicyConfig | Mapping[str, Any] | None,
+    ) -> RetrievalPolicyConfig:
+        base = self._default_retrieval_policies.get(use_case)
+        base_policy = base if base is not None else RetrievalPolicyConfig()
+        if policy is None:
+            return base_policy
+        if isinstance(policy, RetrievalPolicyConfig):
+            return policy
+        if isinstance(policy, Mapping):
+            return policy_from_mapping(policy, base=base_policy)
+        raise ToolOrchestrationError(
+            "policy must be a RetrievalPolicyConfig, mapping, or None"
+        )
+
+    def _coerce_retrieval_result(self, value: Any) -> RetrievalResult:
+        if isinstance(value, RetrievalResult):
+            return value
+        raise ToolOrchestrationError(
+            "retriever must return rag.retrieval.RetrievalResult for advisory retrieval"
+        )
+
+    def _to_document_mapping(self, source: Any) -> dict[str, Any]:
+        return {
+            "page_content": source.text,
+            "metadata": {
+                "chunk_id": source.chunk_id,
+                "source_path": source.source_path,
+                "source_type": source.source_type,
+                "task_id": source.task_id,
+                "run_id": source.run_id,
+                "relevance_score": source.relevance_score,
+            },
+        }
 
     def _resolve_mode(
         self,
