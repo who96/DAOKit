@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 from typing import Any, Callable, Mapping
 
+from contracts.runtime_adapters import RuntimeRelayPolicy, RuntimeRetriever, RuntimeStateStore
 from rag.retrieval import (
     PolicyAwareRetriever,
     RetrievalPolicyConfig,
@@ -11,7 +12,6 @@ from rag.retrieval import (
     policy_from_mapping,
 )
 from state.relay_policy import RelayModePolicy
-from state.store import StateStore
 
 from .state_machine import (
     IllegalTransitionError,
@@ -38,12 +38,12 @@ class OrchestratorRuntime:
         task_id: str,
         run_id: str,
         goal: str,
-        state_store: StateStore,
+        state_store: RuntimeStateStore,
         step_id: str = "S1",
-        retriever: PolicyAwareRetriever | None = None,
+        retriever: RuntimeRetriever | None = None,
         retrieval_index_path: str | Path | None = None,
         default_retrieval_policies: Mapping[str, RetrievalPolicyConfig] | None = None,
-        relay_policy: RelayModePolicy | None = None,
+        relay_policy: RuntimeRelayPolicy | None = None,
     ) -> None:
         self.task_id = task_id
         self.run_id = run_id

@@ -15,6 +15,7 @@ from .plan_contracts import (
     REQUIRED_STEP_FIELDS,
     StepContract,
 )
+from .runtime_adapters import RuntimeRelayPolicy, RuntimeRetriever, RuntimeStateStore
 from .validator import SchemaValidationError, validate_payload, validate_payload_file
 
 __all__ = [
@@ -28,6 +29,9 @@ __all__ = [
     "REQUIRED_STEP_FIELDS",
     "ReworkCriterion",
     "ReworkPayload",
+    "RuntimeRelayPolicy",
+    "RuntimeRetriever",
+    "RuntimeStateStore",
     "SchemaValidationError",
     "StepContract",
     "validate_payload",
