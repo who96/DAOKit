@@ -13,6 +13,15 @@ from .runtime import DEFAULT_DISPATCH_MAX_RESUME_RETRIES, DEFAULT_DISPATCH_MAX_R
 
 ENV_RUNTIME_ENGINE = "DAOKIT_RUNTIME_ENGINE"
 ENV_TOOL_ORCHESTRATION_ENGINE = "DAOKIT_TOOL_ORCHESTRATION_ENGINE"
+ENV_ENGINE_MODE = "DAOKIT_ENGINE_MODE"
+CONFIG_RUNTIME_ENGINE_PATHS = (
+    ("runtime", "engine"),
+    ("runtime", "mode"),
+)
+CONFIG_TOOL_ORCHESTRATION_ENGINE_PATHS = (
+    ("runtime", "tool_orchestration_engine"),
+    ("runtime", "mode"),
+)
 
 
 class RuntimeEngine(str, Enum):
@@ -38,19 +47,28 @@ def resolve_runtime_engine(
     *,
     explicit_engine: str | None = None,
     env: Mapping[str, str] | None = None,
+    config: Mapping[str, Any] | None = None,
 ) -> RuntimeEngine:
     source = explicit_engine
     if source is None and env is not None:
         source = env.get(ENV_RUNTIME_ENGINE)
+    if source is None and env is not None:
+        source = env.get(ENV_ENGINE_MODE)
+    if source is None:
+        source = _read_config_string(
+            config,
+            path_candidates=CONFIG_RUNTIME_ENGINE_PATHS,
+        )
     normalized = "legacy" if source is None else source.strip().lower()
 
     if normalized == RuntimeEngine.LEGACY.value:
         return RuntimeEngine.LEGACY
-    if normalized == RuntimeEngine.LANGGRAPH.value:
+    if normalized in (RuntimeEngine.LANGGRAPH.value, "integrated"):
         return RuntimeEngine.LANGGRAPH
 
     raise RuntimeEngineError(
-        f"unsupported runtime engine '{normalized}'. Supported values: legacy, langgraph."
+        "unsupported runtime engine "
+        f"'{normalized}'. Supported values: legacy, langgraph, integrated."
     )
 
 
@@ -70,11 +88,16 @@ def create_runtime(
     dispatch_max_rework_attempts: int = DEFAULT_DISPATCH_MAX_REWORK_ATTEMPTS,
     explicit_engine: str | None = None,
     env: Mapping[str, str] | None = None,
+    config: Mapping[str, Any] | None = None,
     import_module: ImportModule | None = None,
     legacy_runtime_factory: LegacyRuntimeFactory | None = None,
     langgraph_runtime_factory: LangGraphRuntimeFactory | None = None,
 ) -> Any:
-    selected_engine = resolve_runtime_engine(explicit_engine=explicit_engine, env=env)
+    selected_engine = resolve_runtime_engine(
+        explicit_engine=explicit_engine,
+        env=env,
+        config=config,
+    )
     if selected_engine == RuntimeEngine.LEGACY:
         factory = legacy_runtime_factory or _build_legacy_runtime
         return factory(
@@ -119,20 +142,28 @@ def resolve_tool_orchestration_engine(
     *,
     explicit_mode: str | None = None,
     env: Mapping[str, str] | None = None,
+    config: Mapping[str, Any] | None = None,
 ) -> ToolOrchestrationEngine:
     source = explicit_mode
     if source is None and env is not None:
         source = env.get(ENV_TOOL_ORCHESTRATION_ENGINE)
+    if source is None and env is not None:
+        source = env.get(ENV_ENGINE_MODE)
+    if source is None:
+        source = _read_config_string(
+            config,
+            path_candidates=CONFIG_TOOL_ORCHESTRATION_ENGINE_PATHS,
+        )
     normalized = "legacy" if source is None else source.strip().lower()
 
     if normalized == ToolOrchestrationEngine.LEGACY.value:
         return ToolOrchestrationEngine.LEGACY
-    if normalized == ToolOrchestrationEngine.LANGCHAIN.value:
+    if normalized in (ToolOrchestrationEngine.LANGCHAIN.value, "integrated"):
         return ToolOrchestrationEngine.LANGCHAIN
 
     raise RuntimeEngineError(
         "unsupported tool orchestration engine "
-        f"'{normalized}'. Supported values: legacy, langchain."
+        f"'{normalized}'. Supported values: legacy, langchain, integrated."
     )
 
 
@@ -144,12 +175,17 @@ def create_tool_orchestration_layer(
     skill_loader: Any | None = None,
     explicit_mode: str | None = None,
     env: Mapping[str, str] | None = None,
+    config: Mapping[str, Any] | None = None,
     allow_fallback_when_unavailable: bool = True,
     import_module: ImportModule | None = None,
 ) -> Any:
     from tools.langchain.orchestration import ToolOrchestrationLayer
 
-    selected_mode = resolve_tool_orchestration_engine(explicit_mode=explicit_mode, env=env)
+    selected_mode = resolve_tool_orchestration_engine(
+        explicit_mode=explicit_mode,
+        env=env,
+        config=config,
+    )
     return ToolOrchestrationLayer(
         function_calling_adapter=function_calling_adapter,
         mcp_adapter=mcp_adapter,
@@ -190,3 +226,28 @@ def _inspect_langgraph_optional_dependencies(
         except OptionalDependencyError:
             missing_modules.append(module_name)
     return len(missing_modules) == 0, tuple(missing_modules)
+
+
+def _read_config_string(
+    config: Mapping[str, Any] | None,
+    *,
+    path_candidates: tuple[tuple[str, ...], ...],
+) -> str | None:
+    for path in path_candidates:
+        value = _get_nested_config_value(config, path=path)
+        if value is not None:
+            return value
+    return None
+
+
+def _get_nested_config_value(config: Mapping[str, Any] | None, *, path: tuple[str, ...]) -> str | None:
+    node: Any = config
+    for token in path:
+        if not isinstance(node, dict):
+            return None
+        if token not in node:
+            return None
+        node = node[token]
+    if isinstance(node, str):
+        return node
+    return None
