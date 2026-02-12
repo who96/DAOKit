@@ -24,6 +24,7 @@ class RuntimeEngineError(ValueError):
 
 ImportModule = Callable[[str], Any]
 LegacyRuntimeFactory = Callable[..., Any]
+LangGraphRuntimeFactory = Callable[..., Any]
 
 
 def resolve_runtime_engine(
@@ -61,6 +62,7 @@ def create_runtime(
     env: Mapping[str, str] | None = None,
     import_module: ImportModule | None = None,
     legacy_runtime_factory: LegacyRuntimeFactory | None = None,
+    langgraph_runtime_factory: LangGraphRuntimeFactory | None = None,
 ) -> Any:
     selected_engine = resolve_runtime_engine(explicit_engine=explicit_engine, env=env)
     if selected_engine == RuntimeEngine.LEGACY:
@@ -77,10 +79,23 @@ def create_runtime(
             relay_policy=relay_policy,
         )
 
-    _assert_langgraph_optional_dependencies(import_module=import_module)
-    raise RuntimeEngineError(
-        "runtime engine 'langgraph' is feature-gated and not implemented in this baseline. "
-        "Use engine 'legacy' until LangGraph runtime wiring lands."
+    dependencies_available, missing_optional_dependencies = _inspect_langgraph_optional_dependencies(
+        import_module=import_module
+    )
+    factory = langgraph_runtime_factory or _build_langgraph_runtime
+    return factory(
+        task_id=task_id,
+        run_id=run_id,
+        goal=goal,
+        state_store=state_store,
+        step_id=step_id,
+        retriever=retriever,
+        retrieval_index_path=retrieval_index_path,
+        default_retrieval_policies=default_retrieval_policies,
+        relay_policy=relay_policy,
+        langgraph_available=dependencies_available,
+        missing_optional_dependencies=missing_optional_dependencies,
+        import_module=import_module,
     )
 
 
@@ -90,8 +105,18 @@ def _build_legacy_runtime(**kwargs: Any) -> Any:
     return OrchestratorRuntime(**kwargs)
 
 
-def _assert_langgraph_optional_dependencies(*, import_module: ImportModule | None) -> None:
+def _build_langgraph_runtime(**kwargs: Any) -> Any:
+    from orchestrator.langgraph_runtime import LangGraphOrchestratorRuntime
+
+    return LangGraphOrchestratorRuntime(**kwargs)
+
+
+def _inspect_langgraph_optional_dependencies(
+    *,
+    import_module: ImportModule | None,
+) -> tuple[bool, tuple[str, ...]]:
     importer = import_module or importlib.import_module
+    missing_modules: list[str] = []
     for module_name in ("langchain", "langgraph"):
         try:
             import_optional_dependency(
@@ -100,8 +125,6 @@ def _assert_langgraph_optional_dependencies(*, import_module: ImportModule | Non
                 extras_hint="pip install 'daokit[integration]'",
                 import_module=importer,
             )
-        except OptionalDependencyError as exc:
-            raise RuntimeEngineError(
-                "langgraph engine optional dependencies are not installed. "
-                "Install extras for both langchain and langgraph: pip install 'daokit[integration]'."
-            ) from exc
+        except OptionalDependencyError:
+            missing_modules.append(module_name)
+    return len(missing_modules) == 0, tuple(missing_modules)
