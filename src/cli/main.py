@@ -9,6 +9,12 @@ from pathlib import Path
 import sys
 from typing import Any, Sequence
 
+from cli.bundle import (
+    BundleCommandError,
+    generate_bundle,
+    review_bundle,
+    reverify_bundle,
+)
 from daokit.bootstrap import RepositoryInitError, initialize_repository
 from orchestrator.engine import create_runtime
 from reliability.handoff import HandoffPackageError, HandoffPackageStore
@@ -138,6 +144,44 @@ def _build_parser() -> argparse.ArgumentParser:
         help="Override evidence output paths (repeatable)",
     )
 
+    bundle_parser = subparsers.add_parser(
+        "bundle",
+        help="Generate, review, or re-verify release evidence bundles",
+    )
+    bundle_parser.add_argument("--root", default=".", help="Repository root path")
+    bundle_mode = bundle_parser.add_mutually_exclusive_group(required=True)
+    bundle_mode.add_argument(
+        "--generate",
+        action="store_true",
+        help="Generate anchored release evidence bundle",
+    )
+    bundle_mode.add_argument(
+        "--review",
+        action="store_true",
+        help="Review bundle inventory and manifest status",
+    )
+    bundle_mode.add_argument(
+        "--reverify",
+        action="store_true",
+        help="Re-verify evidence bundle integrity and command markers",
+    )
+    bundle_parser.add_argument(
+        "--source-dir",
+        default="docs/reports/final-run",
+        help="Source final-run path for bundle generation",
+    )
+    bundle_parser.add_argument(
+        "--bundle-root",
+        default=".artifacts/evidence-bundles/latest",
+        help="Bundle root path",
+    )
+    bundle_parser.add_argument(
+        "--summary-json",
+        default=".artifacts/evidence-bundles/latest/summary.json",
+        help="Summary output path",
+    )
+    bundle_parser.add_argument("--json", action="store_true", help="Print JSON payload")
+
     return parser
 
 
@@ -153,6 +197,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "replay": _cmd_replay,
         "takeover": _cmd_takeover,
         "handoff": _cmd_handoff,
+        "bundle": _cmd_bundle,
     }
 
     try:
@@ -508,6 +553,59 @@ def _cmd_handoff(args: argparse.Namespace) -> int:
 
     print(json.dumps(package, indent=2))
     return 0
+
+
+def _cmd_bundle(args: argparse.Namespace) -> int:
+    root = Path(args.root).resolve()
+
+    try:
+        if args.generate:
+            payload = generate_bundle(
+                root=root,
+                source_dir=args.source_dir,
+                bundle_root=args.bundle_root,
+                summary_json=args.summary_json,
+            )
+            exit_code = 0
+        elif args.review:
+            payload = review_bundle(
+                root=root,
+                bundle_root=args.bundle_root,
+                summary_json=args.summary_json,
+            )
+            exit_code = 0
+        elif args.reverify:
+            exit_code, payload = reverify_bundle(
+                root=root,
+                bundle_root=args.bundle_root,
+                summary_json=args.summary_json,
+            )
+        else:
+            raise CliCommandError("E_BUNDLE_FAILED", "one bundle mode must be selected")
+    except BundleCommandError as exc:
+        raise CliCommandError(exc.code, exc.message, exit_code=exc.exit_code) from exc
+
+    if args.json:
+        print(json.dumps(payload, indent=2, sort_keys=True))
+    else:
+        print(f"workflow={payload.get('workflow')}")
+        print(f"status={payload.get('status')}")
+        print(f"bundle_root={payload.get('bundle_root')}")
+        print(f"anchor_path={payload.get('anchor_path')}")
+        if args.reverify:
+            print(
+                " ".join(
+                    [
+                        f"manifest_entries_checked={payload.get('manifest_entries_checked')}",
+                        f"verification_logs_checked={payload.get('verification_logs_checked')}",
+                        (
+                            "missing_required_paths="
+                            f"{len(payload.get('required_paths_missing', []))}"
+                        ),
+                    ]
+                )
+            )
+    return exit_code
 
 
 def _validate_required_state_layout(root: Path) -> None:

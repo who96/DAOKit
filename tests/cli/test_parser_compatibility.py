@@ -6,7 +6,7 @@ import unittest
 from cli.main import _build_parser
 
 
-EXPECTED_COMMANDS = (
+EXPECTED_EXISTING_COMMANDS = (
     "init",
     "check",
     "run",
@@ -70,6 +70,17 @@ EXPECTED_LONG_OPTION_DESTS: dict[str, dict[str, str]] = {
     },
 }
 
+EXPECTED_BUNDLE_LONG_OPTION_DESTS = {
+    "--root": "root",
+    "--generate": "generate",
+    "--review": "review",
+    "--reverify": "reverify",
+    "--source-dir": "source_dir",
+    "--bundle-root": "bundle_root",
+    "--summary-json": "summary_json",
+    "--json": "json",
+}
+
 
 def _subparser_choices(parser: argparse.ArgumentParser) -> dict[str, argparse.ArgumentParser]:
     for action in parser._actions:
@@ -97,19 +108,27 @@ class CliParserCompatibilityTests(unittest.TestCase):
     def test_cli_command_names_remain_unchanged(self) -> None:
         parser = _build_parser()
         choices = _subparser_choices(parser)
-        self.assertEqual(tuple(choices.keys()), EXPECTED_COMMANDS)
+        command_names = tuple(choices.keys())
+        self.assertEqual(command_names[: len(EXPECTED_EXISTING_COMMANDS)], EXPECTED_EXISTING_COMMANDS)
+        self.assertIn("bundle", choices)
 
     def test_cli_argument_names_and_destinations_remain_unchanged(self) -> None:
         parser = _build_parser()
         choices = _subparser_choices(parser)
 
-        for command in EXPECTED_COMMANDS:
+        for command in EXPECTED_EXISTING_COMMANDS:
             self.assertIn(command, choices)
             self.assertEqual(
                 _long_option_dest_map(choices[command]),
                 EXPECTED_LONG_OPTION_DESTS[command],
                 f"{command} parser surface changed",
             )
+
+    def test_bundle_argument_names_are_stable(self) -> None:
+        parser = _build_parser()
+        choices = _subparser_choices(parser)
+        self.assertIn("bundle", choices)
+        self.assertEqual(_long_option_dest_map(choices["bundle"]), EXPECTED_BUNDLE_LONG_OPTION_DESTS)
 
 
 if __name__ == "__main__":
