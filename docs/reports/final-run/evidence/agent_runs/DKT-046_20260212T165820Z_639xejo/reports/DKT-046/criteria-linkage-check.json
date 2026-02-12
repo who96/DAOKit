@@ -1,0 +1,9 @@
+{
+  "criteria_count": 6,
+  "criteria_map": "docs/reports/criteria-map.json",
+  "issue_count": 0,
+  "issues": [],
+  "schema_version": "1.0.0",
+  "status": "passed",
+  "workflow": "criteria-linkage-check"
+}

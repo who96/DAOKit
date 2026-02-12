@@ -10,6 +10,10 @@ The format is based on Keep a Changelog principles.
 - v1.1 roadmap execution (tooling and verification hardening)
 - v1.2 roadmap execution (reliability and operator experience)
 
+### Added
+- Published DKT-046 v1.1 final verification packet and release readiness summary under `docs/reports/final-run/`.
+- Refreshed `docs/reports/criteria-map.{json,md}` from legacy DKT-042 snapshot pointers to DKT-046 evidence-linked full coverage.
+
 ## [1.0.0-rc1] - 2026-02-12
 
 Initial open-source release package for portfolio-grade agent engineering.
