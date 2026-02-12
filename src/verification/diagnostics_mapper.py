@@ -7,6 +7,7 @@ from typing import Iterable
 from contracts.acceptance_contracts import (
     AcceptanceDecision,
     CriterionResult,
+    EvidenceRecord,
     FailureReason,
 )
 from contracts.diagnostics_contracts import (
@@ -23,6 +24,12 @@ from verification.criteria_registry import (
 
 REASON_REMEDIATION_HINTS = {
     "MISSING_EVIDENCE": "create missing evidence artifacts and rerun verification",
+    "MISSING_EVIDENCE_POINTER": (
+        "restore missing evidence pointers and rerun release-check diagnostics"
+    ),
+    "BROKEN_EVIDENCE_POINTER": (
+        "repair broken evidence pointers so they resolve inside the evidence root"
+    ),
     "MISSING_COMMAND_EVIDENCE": (
         "add command evidence markers to verification.log "
         "('Command: <cmd>' and/or '=== COMMAND ENTRY N START/END ===')"
@@ -35,6 +42,12 @@ REASON_REMEDIATION_HINTS = {
     "SCOPE_AUDIT_INPUT_INVALID": "fix scope-audit inputs and rerun acceptance checks",
 }
 
+POINTER_PRESENT = "EVIDENCE"
+POINTER_MISSING = "MISSING"
+POINTER_BROKEN = "BROKEN"
+POINTER_UNRESOLVED = "UNRESOLVED"
+POINTER_STATES = {POINTER_PRESENT, POINTER_MISSING, POINTER_BROKEN, POINTER_UNRESOLVED}
+
 
 def build_release_diagnostics_report(
     decision: AcceptanceDecision,
@@ -43,10 +56,9 @@ def build_release_diagnostics_report(
 ) -> CriteriaDiagnosticsReport:
     criteria_by_id = {item.criterion_id: item for item in decision.proof.criteria}
     criteria_by_text = {_normalize_text(item.criterion): item for item in decision.proof.criteria}
-    existing_refs = tuple(
-        sorted(item.output_name for item in decision.proof.evidence if item.exists)
-    )
-    missing_refs = _collect_missing_evidence_refs(decision.failure_reasons)
+    evidence_by_output = _index_evidence_by_output(decision.proof.evidence)
+    missing_outputs = _collect_missing_evidence_outputs(decision.failure_reasons)
+    invalid_paths_by_output = _collect_invalid_evidence_paths(decision.failure_reasons)
 
     mapped: list[CriterionDiagnosticEntry] = []
     for registry_entry in registry:
@@ -55,17 +67,24 @@ def build_release_diagnostics_report(
             criteria_by_id=criteria_by_id,
             criteria_by_text=criteria_by_text,
         )
-        status = _resolve_status(criterion_result)
-        reason_codes = (
+        base_reason_codes = (
             ("UNMAPPED_CRITERION",)
             if criterion_result is None
             else tuple(criterion_result.reason_codes)
         )
-        evidence_refs = _resolve_evidence_refs(
+        evidence_refs, pointer_reason_codes = _resolve_evidence_pointers(
             registry_entry=registry_entry,
+            evidence_by_output=evidence_by_output,
+            missing_outputs=missing_outputs,
+            invalid_paths_by_output=invalid_paths_by_output,
+        )
+        reason_codes = _merge_reason_codes(
+            base_reason_codes,
+            () if criterion_result is None else pointer_reason_codes,
+        )
+        status = _resolve_status(
             criterion_result=criterion_result,
-            existing_refs=existing_refs,
-            missing_refs=missing_refs,
+            pointer_reason_codes=() if criterion_result is None else pointer_reason_codes,
         )
         remediation_hint = _resolve_remediation_hint(
             registry_entry=registry_entry,
@@ -92,6 +111,31 @@ def build_release_diagnostics_report(
         proof_id=decision.proof.proof_id,
         criteria=tuple(mapped),
     )
+
+
+def check_evidence_pointer_consistency(
+    report: CriteriaDiagnosticsReport,
+) -> tuple[str, ...]:
+    issues: list[str] = []
+    for entry in report.criteria:
+        if not entry.evidence_refs:
+            issues.append(f"{entry.criterion_id}:missing_evidence_pointer")
+            continue
+
+        has_non_present_pointer = False
+        for pointer in entry.evidence_refs:
+            pointer_state = _pointer_state(pointer)
+            if pointer_state is None:
+                issues.append(f"{entry.criterion_id}:invalid_pointer_format:{pointer}")
+                continue
+            if pointer_state != POINTER_PRESENT:
+                has_non_present_pointer = True
+        if entry.status == "passed" and has_non_present_pointer:
+            issues.append(
+                f"{entry.criterion_id}:passed_with_non_present_pointer"
+            )
+
+    return tuple(issues)
 
 
 def render_criteria_map_json(report: CriteriaDiagnosticsReport) -> str:
@@ -169,13 +213,40 @@ def _resolve_result(
     return criteria_by_text.get(_normalize_text(registry_entry.criterion))
 
 
-def _resolve_status(criterion_result: CriterionResult | None) -> str:
+def _resolve_status(
+    *,
+    criterion_result: CriterionResult | None,
+    pointer_reason_codes: tuple[str, ...],
+) -> str:
     if criterion_result is None:
         return "missing"
-    return "passed" if criterion_result.passed else "failed"
+    if not criterion_result.passed:
+        return "failed"
+    if pointer_reason_codes:
+        return "failed"
+    return "passed"
 
 
-def _collect_missing_evidence_refs(failure_reasons: Iterable[FailureReason]) -> tuple[str, ...]:
+def _index_evidence_by_output(
+    evidence_records: Iterable[EvidenceRecord],
+) -> dict[str, tuple[EvidenceRecord, ...]]:
+    indexed: dict[str, list[EvidenceRecord]] = {}
+    for record in evidence_records:
+        indexed.setdefault(record.output_name, []).append(record)
+    return {
+        output_name: tuple(
+            sorted(
+                records,
+                key=lambda item: (0 if item.exists else 1, _normalize_path(item.path)),
+            )
+        )
+        for output_name, records in indexed.items()
+    }
+
+
+def _collect_missing_evidence_outputs(
+    failure_reasons: Iterable[FailureReason],
+) -> tuple[str, ...]:
     missing: list[str] = []
     for reason in failure_reasons:
         if reason.code != "MISSING_EVIDENCE":
@@ -183,52 +254,71 @@ def _collect_missing_evidence_refs(failure_reasons: Iterable[FailureReason]) -> 
         missing_output = reason.details.get("missing_output")
         if not isinstance(missing_output, str):
             continue
-        marker = f"MISSING:{missing_output}"
-        if marker not in missing:
-            missing.append(marker)
+        if missing_output not in missing:
+            missing.append(missing_output)
     return tuple(sorted(missing))
 
 
-def _resolve_evidence_refs(
+def _collect_invalid_evidence_paths(
+    failure_reasons: Iterable[FailureReason],
+) -> dict[str, tuple[str, ...]]:
+    invalid: dict[str, list[str]] = {}
+    for reason in failure_reasons:
+        if reason.code != "INVALID_EVIDENCE_PATH":
+            continue
+        output_name = reason.details.get("output_name")
+        raw_path = reason.details.get("path")
+        if not isinstance(output_name, str):
+            continue
+        if isinstance(raw_path, str) and raw_path.strip():
+            invalid.setdefault(output_name, []).append(_normalize_path(raw_path))
+        else:
+            invalid.setdefault(output_name, [])
+    return {
+        output_name: tuple(sorted(set(paths)))
+        for output_name, paths in invalid.items()
+    }
+
+
+def _resolve_evidence_pointers(
     *,
     registry_entry: CriterionRegistryEntry,
-    criterion_result: CriterionResult | None,
-    existing_refs: tuple[str, ...],
-    missing_refs: tuple[str, ...],
-) -> tuple[str, ...]:
+    evidence_by_output: dict[str, tuple[EvidenceRecord, ...]],
+    missing_outputs: tuple[str, ...],
+    invalid_paths_by_output: dict[str, tuple[str, ...]],
+) -> tuple[tuple[str, ...], tuple[str, ...]]:
     resolved: list[str] = []
+    pointer_reason_codes: list[str] = []
+    missing_set = set(missing_outputs)
+
     for expected in registry_entry.evidence_refs:
-        if expected in existing_refs:
-            resolved.append(expected)
+        evidence_records = evidence_by_output.get(expected, ())
+        present_paths = tuple(
+            _normalize_path(item.path) for item in evidence_records if item.exists
+        )
+        declared_paths = tuple(_normalize_path(item.path) for item in evidence_records)
+        invalid_paths = invalid_paths_by_output.get(expected, ())
+
+        if present_paths:
+            for path in present_paths:
+                resolved.append(_format_pointer(POINTER_PRESENT, expected, path))
             continue
-        missing_marker = f"MISSING:{expected}"
-        if missing_marker in missing_refs:
-            resolved.append(missing_marker)
 
-    if criterion_result is not None and "MISSING_EVIDENCE" in criterion_result.reason_codes:
-        for marker in missing_refs:
-            if marker not in resolved:
-                resolved.append(marker)
-    if criterion_result is not None and "MISSING_COMMAND_EVIDENCE" in criterion_result.reason_codes:
-        if "verification.log" in existing_refs and "verification.log" not in resolved:
-            resolved.append("verification.log")
+        if invalid_paths:
+            for path in invalid_paths:
+                resolved.append(_format_pointer(POINTER_BROKEN, expected, path))
+            pointer_reason_codes.append("BROKEN_EVIDENCE_POINTER")
+            continue
 
-    if not resolved:
-        if existing_refs:
-            resolved.append(existing_refs[0])
-        elif missing_refs:
-            resolved.append(missing_refs[0])
+        if expected in missing_set or declared_paths:
+            path = declared_paths[0] if declared_paths else None
+            resolved.append(_format_pointer(POINTER_MISSING, expected, path))
+            pointer_reason_codes.append("MISSING_EVIDENCE_POINTER")
         else:
-            resolved.append("NO_EVIDENCE")
+            resolved.append(_format_pointer(POINTER_MISSING, expected))
+            pointer_reason_codes.append("MISSING_EVIDENCE_POINTER")
 
-    unique: list[str] = []
-    seen: set[str] = set()
-    for item in resolved:
-        if item in seen:
-            continue
-        seen.add(item)
-        unique.append(item)
-    return tuple(unique)
+    return (_dedupe_preserve_order(resolved), _dedupe_preserve_order(pointer_reason_codes))
 
 
 def _resolve_remediation_hint(
@@ -246,6 +336,43 @@ def _resolve_remediation_hint(
             "input with the release criteria registry"
         )
     return registry_entry.remediation_hint
+
+
+def _merge_reason_codes(*groups: tuple[str, ...]) -> tuple[str, ...]:
+    merged: list[str] = []
+    for group in groups:
+        for item in group:
+            if item not in merged:
+                merged.append(item)
+    return tuple(merged)
+
+
+def _format_pointer(kind: str, output_name: str, path: str | None = None) -> str:
+    if path is None or not path.strip():
+        return f"{kind}:{output_name}"
+    return f"{kind}:{output_name}@{_normalize_path(path)}"
+
+
+def _pointer_state(pointer: str) -> str | None:
+    prefix, _, _ = pointer.partition(":")
+    if prefix in POINTER_STATES:
+        return prefix
+    return None
+
+
+def _normalize_path(path: str) -> str:
+    return path.replace("\\", "/")
+
+
+def _dedupe_preserve_order(values: Iterable[str]) -> tuple[str, ...]:
+    seen: set[str] = set()
+    ordered: list[str] = []
+    for value in values:
+        if value in seen:
+            continue
+        seen.add(value)
+        ordered.append(value)
+    return tuple(ordered)
 
 
 def _escape_markdown(text: str) -> str:

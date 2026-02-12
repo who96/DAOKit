@@ -7,6 +7,7 @@ from .criteria_registry import (
 )
 from .diagnostics_mapper import (
     build_release_diagnostics_report,
+    check_evidence_pointer_consistency,
     render_criteria_map_json,
     render_criteria_map_markdown,
     write_criteria_mapping_outputs,
@@ -17,6 +18,7 @@ __all__ = [
     "RELEASE_CRITERIA_REGISTRY_NAME",
     "RELEASE_CRITERIA_REGISTRY_VERSION",
     "build_release_diagnostics_report",
+    "check_evidence_pointer_consistency",
     "render_criteria_map_json",
     "render_criteria_map_markdown",
     "write_criteria_mapping_outputs",
