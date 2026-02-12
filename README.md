@@ -12,6 +12,8 @@ DAOKit is an open-source agent engineering kit for backend engineers who need st
 Latest release snapshot and merged acceptance report:
 - `docs/reports/final-run/RELEASE_SNAPSHOT.md`
 - `docs/reports/FINAL_ACCEPTANCE.md`
+- `docs/reports/final-run/evidence/` (tracked evidence bundle)
+- `docs/reports/final-run/evidence_manifest.sha256` (integrity hashes)
 
 ## What DAOKit Provides
 
@@ -19,6 +21,8 @@ Latest release snapshot and merged acceptance report:
 - State-first execution model (`state/` ledger is source of truth)
 - Core-rotation continuity via handoff package + successor takeover
 - Extension points for function-calling tools, MCP tools, skills, and lifecycle hooks
+
+Note: `state/` is runtime-generated and intentionally not versioned. Release-level audit reproducibility is anchored by `docs/reports/final-run/` plus the tracked evidence bundle and hash manifest above.
 
 ## Quick Start
 

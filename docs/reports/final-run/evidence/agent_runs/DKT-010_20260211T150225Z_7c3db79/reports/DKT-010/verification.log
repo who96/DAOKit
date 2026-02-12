@@ -1,0 +1,67 @@
+=== COMMAND ENTRY 1 START ===
+Command: make test-skills-hooks
+--- OUTPUT START ---
+make: *** No rule to make target `test-skills-hooks'.  Stop.
+--- OUTPUT END ---
+Exit Code: 2
+=== COMMAND ENTRY 1 END ===
+
+Coverage Mapping:
+- Baseline command 'make test-skills-hooks' is unavailable in this repo (see COMMAND ENTRY 1).
+- Equivalent coverage command group validates the same scope:
+  * skills discovery/loading: tests/skills/test_loader.py
+  * hooks lifecycle/idempotency/timeout/rollback + skill integration: tests/hooks/test_runtime.py
+
+=== COMMAND ENTRY 2 START ===
+Command: PYTHONPATH=src python3 -m unittest discover -s tests/skills -p 'test_*.py' -v
+--- OUTPUT START ---
+test_duplicate_skill_names_are_rejected (test_loader.SkillLoaderTests.test_duplicate_skill_names_are_rejected) ... ok
+test_invalid_manifest_is_rejected (test_loader.SkillLoaderTests.test_invalid_manifest_is_rejected) ... ok
+test_skills_can_be_discovered_and_loaded (test_loader.SkillLoaderTests.test_skills_can_be_discovered_and_loaded) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.004s
+
+OK
+--- OUTPUT END ---
+Exit Code: 0
+=== COMMAND ENTRY 2 END ===
+
+=== COMMAND ENTRY 3 START ===
+Command: PYTHONPATH=src python3 -m unittest discover -s tests/hooks -p 'test_*.py' -v
+--- OUTPUT START ---
+test_can_register_hooks_from_loaded_skill (test_runtime.HookRuntimeTests.test_can_register_hooks_from_loaded_skill) ... ok
+test_hook_failure_rolls_back_ledger_state (test_runtime.HookRuntimeTests.test_hook_failure_rolls_back_ledger_state) ... ok
+test_hooks_run_at_all_lifecycle_points (test_runtime.HookRuntimeTests.test_hooks_run_at_all_lifecycle_points) ... ok
+test_idempotency_key_prevents_duplicate_execution (test_runtime.HookRuntimeTests.test_idempotency_key_prevents_duplicate_execution) ... ok
+test_timeout_budget_is_enforced (test_runtime.HookRuntimeTests.test_timeout_budget_is_enforced) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 0.037s
+
+OK
+--- OUTPUT END ---
+Exit Code: 0
+=== COMMAND ENTRY 3 END ===
+
+=== COMMAND ENTRY 4 START ===
+Command: make test
+--- OUTPUT START ---
+PYTHONPATH=src python3 -m unittest discover -s tests -p 'test_*.py' -v
+test_cli_init_returns_error_for_invalid_root (test_init.InitCommandTests.test_cli_init_returns_error_for_invalid_root) ... ok
+test_cli_init_returns_error_when_required_directory_is_file (test_init.InitCommandTests.test_cli_init_returns_error_when_required_directory_is_file) ... ok
+test_cli_init_returns_error_when_state_file_path_is_directory (test_init.InitCommandTests.test_cli_init_returns_error_when_state_file_path_is_directory) ... ok
+test_cli_init_supports_custom_root (test_init.InitCommandTests.test_cli_init_supports_custom_root) ... ok
+test_initialize_repository_creates_required_layout (test_init.InitCommandTests.test_initialize_repository_creates_required_layout) ... ok
+test_initialize_repository_is_idempotent (test_init.InitCommandTests.test_initialize_repository_is_idempotent) ... ok
+test_initialize_repository_rejects_directory_path_conflict (test_init.InitCommandTests.test_initialize_repository_rejects_directory_path_conflict) ... ok
+test_initialize_repository_rejects_state_file_path_conflict (test_init.InitCommandTests.test_initialize_repository_rejects_state_file_path_conflict) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.009s
+
+OK
+--- OUTPUT END ---
+Exit Code: 0
+=== COMMAND ENTRY 4 END ===
+

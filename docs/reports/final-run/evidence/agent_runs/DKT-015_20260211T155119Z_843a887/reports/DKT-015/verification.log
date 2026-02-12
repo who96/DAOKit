@@ -1,0 +1,67 @@
+DKT-015 Verification Log
+Generated At: 2026-02-11T16:01:00Z
+
+Baseline Requirement: make test-handoff
+Status: Missing Make target. Used equivalent verification chain and mapped coverage below.
+
+Coverage Mapping (Equivalent Chain)
+- AC1 (After rotation orchestrator resumes correct step)
+  Covered by: tests.reliability.test_handoff_package.CoreRotationHandoffTests.test_hooks_chain_pre_compact_then_session_start
+- AC2 (Accepted steps are not re-executed by default)
+  Covered by: tests.reliability.test_handoff_package.CoreRotationHandoffTests.test_rotation_resumes_correct_step_and_skips_accepted_by_default
+- AC3 (Pending and failed steps remain resumable)
+  Covered by: tests.reliability.test_handoff_package.CoreRotationHandoffTests.test_pending_and_failed_steps_remain_resumable
+- Regression coverage for affected runtime surfaces
+  Covered by: tests.hooks.test_runtime (all tests), tests.reliability.test_heartbeat_daemon, tests.reliability.test_lease_succession
+
+=== COMMAND ENTRY 1 START ===
+Command: make test-handoff
+Exit Code: 2
+Output:
+make: *** No rule to make target `test-handoff'.  Stop.
+=== COMMAND ENTRY 1 END ===
+
+=== COMMAND ENTRY 2 START ===
+Command: PYTHONPATH=src python3 -m unittest tests.reliability.test_handoff_package -v
+Exit Code: 0
+Output:
+Ran 4 tests in 0.003s
+OK
+=== COMMAND ENTRY 2 END ===
+
+=== COMMAND ENTRY 3 START ===
+Command: PYTHONPATH=src python3 -m unittest tests.hooks.test_runtime -v
+Exit Code: 0
+Output:
+Ran 5 tests in 0.043s
+OK
+=== COMMAND ENTRY 3 END ===
+
+=== COMMAND ENTRY 4 START ===
+Command: PYTHONPATH=src python3 -m unittest tests.reliability.test_heartbeat_daemon tests.reliability.test_lease_succession tests.reliability.test_handoff_package -v
+Exit Code: 0
+Output:
+Ran 11 tests in 0.012s
+OK
+=== COMMAND ENTRY 4 END ===
+
+=== COMMAND ENTRY 5 START ===
+Command: python3 -m compileall src/reliability/handoff src/hooks/handoff.py tests/reliability/test_handoff_package.py
+Exit Code: 0
+Output:
+Listing 'src/reliability/handoff'...
+=== COMMAND ENTRY 5 END ===
+
+=== COMMAND ENTRY 6 START ===
+Command: codex exec "Please perform a code review for task DKT-015 in /Users/huluobo/workSpace/DAOKit. Scope of intended changes: src/reliability/handoff/, src/hooks/, tests/reliability/. Focus on bugs, behavioral regressions, edge cases, schema/contract risks, and missing tests. Provide findings ordered by severity with file references, then residual risks."
+Exit Code: 0
+Output:
+Codex review attempt interrupted by local MCP startup failures; no actionable review findings returned.
+=== COMMAND ENTRY 6 END ===
+
+=== COMMAND ENTRY 7 START ===
+Command: codex review --uncommitted -c 'mcp_servers={}'
+Exit Code: 0
+Output:
+Review was interrupted. Please re-run /review and wait for it to complete.
+=== COMMAND ENTRY 7 END ===

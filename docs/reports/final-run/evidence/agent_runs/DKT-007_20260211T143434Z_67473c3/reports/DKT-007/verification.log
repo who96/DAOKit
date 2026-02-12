@@ -1,0 +1,61 @@
+# DKT-007 Verification Log
+
+Verification baseline requested: make test-audit
+Coverage mapping when baseline missing:
+- Equivalent A: PYTHONPATH=src python3 -m unittest discover -s tests/audit -p 'test_*.py' -v
+  Covers DKT-007 acceptance checks (out-of-scope rejection, in-scope pass, violating-file reporting).
+- Equivalent B: PYTHONPATH=src python3 -m unittest tests.acceptance.test_engine -v
+  Covers acceptance-engine regression safety after scope-audit integration.
+- Equivalent C: python3 -m compileall src/audit src/acceptance tests/audit
+  Covers syntax/import integrity of modified modules.
+
+=== COMMAND ENTRY 1 START ===
+Command: make test-audit
+--- OUTPUT START ---
+make: *** No rule to make target `test-audit'.  Stop.
+--- OUTPUT END ---
+Exit Code: 2
+=== COMMAND ENTRY 1 END ===
+
+=== COMMAND ENTRY 2 START ===
+Command: PYTHONPATH=src python3 -m unittest discover -s tests/audit -p 'test_*.py' -v
+--- OUTPUT START ---
+test_acceptance_engine_rejects_out_of_scope_changes (test_scope_guard.AcceptanceEngineScopeAuditTests.test_acceptance_engine_rejects_out_of_scope_changes) ... ok
+test_audit_output_lists_violating_files (test_scope_guard.ScopeGuardTests.test_audit_output_lists_violating_files) ... ok
+test_in_scope_edits_pass (test_scope_guard.ScopeGuardTests.test_in_scope_edits_pass) ... ok
+test_out_of_scope_edit_causes_rejection (test_scope_guard.ScopeGuardTests.test_out_of_scope_edit_causes_rejection) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.002s
+
+OK
+--- OUTPUT END ---
+Exit Code: 0
+=== COMMAND ENTRY 2 END ===
+
+=== COMMAND ENTRY 3 START ===
+Command: PYTHONPATH=src python3 -m unittest tests.acceptance.test_engine -v
+--- OUTPUT START ---
+test_expected_output_path_cannot_escape_evidence_root (tests.acceptance.test_engine.AcceptanceEngineTests.test_expected_output_path_cannot_escape_evidence_root) ... ok
+test_missing_evidence_yields_deterministic_failure (tests.acceptance.test_engine.AcceptanceEngineTests.test_missing_evidence_yields_deterministic_failure) ... ok
+test_passing_steps_produce_acceptance_proof_records (tests.acceptance.test_engine.AcceptanceEngineTests.test_passing_steps_produce_acceptance_proof_records) ... ok
+test_rework_payload_references_exact_failed_criteria (tests.acceptance.test_engine.AcceptanceEngineTests.test_rework_payload_references_exact_failed_criteria) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.004s
+
+OK
+--- OUTPUT END ---
+Exit Code: 0
+=== COMMAND ENTRY 3 END ===
+
+=== COMMAND ENTRY 4 START ===
+Command: python3 -m compileall src/audit src/acceptance tests/audit
+--- OUTPUT START ---
+Listing 'src/audit'...
+Listing 'src/acceptance'...
+Listing 'tests/audit'...
+--- OUTPUT END ---
+Exit Code: 0
+=== COMMAND ENTRY 4 END ===
+

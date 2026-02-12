@@ -1,0 +1,424 @@
+DKT-016 Verification Log
+Generated at: 2026-02-11T16:13:42Z
+
+Baseline target requested: make test-cli
+If unavailable, equivalent verification chain is executed per contract.
+
+=== COMMAND ENTRY 1 START ===
+Command: make test-cli
+--- OUTPUT START ---
+make: *** No rule to make target `test-cli'.  Stop.
+--- OUTPUT END ---
+Exit Code: 2
+=== COMMAND ENTRY 1 END ===
+
+=== COMMAND ENTRY 2 START ===
+Command: PYTHONPATH=src python3 -m unittest discover -s tests/cli -p 'test_*.py' -v
+--- OUTPUT START ---
+test_check_fails_with_diagnostic_when_state_is_invalid_json (test_workflow.CliWorkflowTests.test_check_fails_with_diagnostic_when_state_is_invalid_json) ... ok
+test_end_to_end_cli_only_scenario (test_workflow.CliWorkflowTests.test_end_to_end_cli_only_scenario) ... ok
+test_takeover_recovers_from_forced_interruption (test_workflow.CliWorkflowTests.test_takeover_recovers_from_forced_interruption) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.598s
+
+OK
+--- OUTPUT END ---
+Exit Code: 0
+=== COMMAND ENTRY 2 END ===
+
+=== COMMAND ENTRY 3 START ===
+Command: PYTHONPATH=src python3 -m compileall src/cli tests/cli
+--- OUTPUT START ---
+Listing 'src/cli'...
+Listing 'tests/cli'...
+--- OUTPUT END ---
+Exit Code: 0
+=== COMMAND ENTRY 3 END ===
+
+=== COMMAND ENTRY 4 START ===
+Command: PYTHONPATH=src examples/cli/quickstart.sh '/var/folders/h4/wxnfr19d7rz755vf3nxx43_h0000gn/T/tmp.B3q3xfnJxQ'
+--- OUTPUT START ---
+Initialized DAOKit skeleton at: /private/var/folders/h4/wxnfr19d7rz755vf3nxx43_h0000gn/T/tmp.B3q3xfnJxQ
+Created:
+  + src
+  + contracts
+  + state
+  + artifacts
+  + docs
+  + tests
+  + examples
+  + state/pipeline_state.json
+  + state/heartbeat_status.json
+  + state/process_leases.json
+  + state/events.jsonl
+task_id=DKT-016 run_id=RUN-CLI-E2E status=DONE current_step=S1
+{
+  "pipeline_state": {
+    "schema_version": "1.0.0",
+    "task_id": "DKT-016",
+    "run_id": "RUN-CLI-E2E",
+    "goal": "Exercise CLI only workflow",
+    "status": "DONE",
+    "current_step": "S1",
+    "steps": [
+      {
+        "id": "S1",
+        "title": "Implement orchestrator state machine",
+        "category": "implementation",
+        "goal": "Exercise CLI only workflow",
+        "actions": [
+          "Implement nodes extract/plan/dispatch/verify/transition",
+          "Persist state snapshots between node transitions",
+          "Add transition guards for forbidden jumps"
+        ],
+        "acceptance_criteria": [
+          "Graph runs happy path end-to-end",
+          "Illegal transition attempts fail with explicit diagnostics",
+          "State is recoverable after process restart"
+        ],
+        "expected_outputs": [
+          "report.md",
+          "verification.log",
+          "audit-summary.md"
+        ],
+        "dependencies": [
+          "DKT-002"
+        ],
+        "retrieval_policy": {
+          "planning": {
+            "enabled": true,
+            "top_k": 3,
+            "min_relevance_score": 0.2,
+            "allow_global_fallback": true
+          },
+          "troubleshooting": {
+            "enabled": true,
+            "top_k": 3,
+            "min_relevance_score": 0.2,
+            "allow_global_fallback": true
+          }
+        }
+      }
+    ],
+    "role_lifecycle": {
+      "orchestrator": "transition_complete",
+      "analysis": "prepared",
+      "planning_retrieval": "0_sources",
+      "acceptance": "passed",
+      "troubleshooting_retrieval": "0_sources"
+    },
+    "succession": {
+      "enabled": true,
+      "last_takeover_at": null
+    },
+    "updated_at": "2026-02-11T16:13:43.152900+00:00"
+  },
+  "heartbeat_status": {
+    "schema_version": "1.0.0",
+    "status": "IDLE",
+    "last_heartbeat_at": null,
+    "reason_code": null,
+    "updated_at": "2026-02-11T16:13:43.105773+00:00"
+  },
+  "leases": [
+    {
+      "lane": "default",
+      "step_id": "S1",
+      "task_id": "DKT-016",
+      "run_id": "RUN-CLI-E2E",
+      "thread_id": "cli-50236",
+      "pid": 50236,
+      "lease_token": "lease_REDACTED",
+      "expiry": "2026-02-11T16:33:43.151743+00:00",
+      "status": "RELEASED",
+      "last_heartbeat_at": "2026-02-11T16:13:43.151743+00:00",
+      "created_at": "2026-02-11T16:13:43.151743+00:00",
+      "updated_at": "2026-02-11T16:13:43.153059+00:00"
+    }
+  ],
+  "handoff_package": null
+}
+2026-02-11T16:13:43.152068+00:00 SYSTEM step=- severity=INFO
+2026-02-11T16:13:43.152353+00:00 SYSTEM step=- severity=INFO
+2026-02-11T16:13:43.152578+00:00 SYSTEM step=S1 severity=INFO
+2026-02-11T16:13:43.152795+00:00 SYSTEM step=S1 severity=INFO
+2026-02-11T16:13:43.153002+00:00 SYSTEM step=S1 severity=INFO
+{
+  "schema_version": "1.0.0",
+  "task_id": "DKT-016",
+  "run_id": "RUN-CLI-E2E",
+  "current_step": "S1",
+  "open_acceptance_items": [
+    {
+      "step_id": "S1",
+      "criterion": "Graph runs happy path end-to-end"
+    },
+    {
+      "step_id": "S1",
+      "criterion": "Illegal transition attempts fail with explicit diagnostics"
+    },
+    {
+      "step_id": "S1",
+      "criterion": "State is recoverable after process restart"
+    }
+  ],
+  "evidence_paths": [
+    "report.md",
+    "verification.log",
+    "audit-summary.md"
+  ],
+  "next_action": "resume",
+  "resumable_step_ids": [
+    "S1"
+  ],
+  "skipped_step_ids": [],
+  "step_status": {
+    "accepted": [],
+    "failed": [],
+    "pending": [
+      "S1"
+    ]
+  },
+  "created_at": "2026-02-11T16:13:43.324787+00:00",
+  "package_hash": "8809878f6f4fcc80562f5d85882829607ac0955ec9a06cfa02924752c0222afb"
+}
+Health check: PASS
+pipeline_status=DONE
+heartbeat=IDLE silence_seconds=0
+lease_count=1
+--- OUTPUT END ---
+Exit Code: 0
+=== COMMAND ENTRY 4 END ===
+
+=== COMMAND ENTRY 5 START ===
+Command: PYTHONPATH=src examples/cli/recovery.sh '/var/folders/h4/wxnfr19d7rz755vf3nxx43_h0000gn/T/tmp.sqis3uPgF4'
+--- OUTPUT START ---
+E_RUN_INTERRUPTED: simulated interruption, lease left ACTIVE for takeover
+{
+  "task_id": "DKT-016",
+  "run_id": "RUN-CLI-INT",
+  "takeover_at": "2026-02-11T16:13:43.474250+00:00",
+  "adopted_step_ids": [
+    "S1"
+  ],
+  "failed_step_ids": []
+}
+{
+  "pipeline_state": {
+    "schema_version": "1.0.0",
+    "task_id": "DKT-016",
+    "run_id": "RUN-CLI-INT",
+    "goal": "Interruption recovery",
+    "status": "PLANNING",
+    "current_step": null,
+    "steps": [
+      {
+        "id": "S1",
+        "title": "Implement orchestrator state machine",
+        "category": "implementation",
+        "goal": "Interruption recovery",
+        "actions": [
+          "Implement nodes extract/plan/dispatch/verify/transition",
+          "Persist state snapshots between node transitions",
+          "Add transition guards for forbidden jumps"
+        ],
+        "acceptance_criteria": [
+          "Graph runs happy path end-to-end",
+          "Illegal transition attempts fail with explicit diagnostics",
+          "State is recoverable after process restart"
+        ],
+        "expected_outputs": [
+          "report.md",
+          "verification.log",
+          "audit-summary.md"
+        ],
+        "dependencies": [
+          "DKT-002"
+        ],
+        "retrieval_policy": {
+          "planning": {
+            "enabled": true,
+            "top_k": 3,
+            "min_relevance_score": 0.2,
+            "allow_global_fallback": true
+          },
+          "troubleshooting": {
+            "enabled": true,
+            "top_k": 3,
+            "min_relevance_score": 0.2,
+            "allow_global_fallback": true
+          }
+        }
+      }
+    ],
+    "role_lifecycle": {
+      "orchestrator": "idle"
+    },
+    "succession": {
+      "enabled": true,
+      "last_takeover_at": "2026-02-11T16:13:43.474250+00:00"
+    },
+    "updated_at": "2026-02-11T16:13:43.474714+00:00"
+  },
+  "heartbeat_status": {
+    "schema_version": "1.0.0",
+    "status": "IDLE",
+    "last_heartbeat_at": null,
+    "reason_code": null,
+    "updated_at": "2026-02-11T16:13:43.426033+00:00"
+  },
+  "leases": [
+    {
+      "lane": "default",
+      "step_id": "S1",
+      "task_id": "DKT-016",
+      "run_id": "RUN-CLI-INT",
+      "thread_id": "thread-recover",
+      "pid": 50243,
+      "lease_token": "lease_REDACTED",
+      "expiry": "2026-02-11T16:33:43.426573+00:00",
+      "status": "ACTIVE",
+      "last_heartbeat_at": "2026-02-11T16:13:43.474250+00:00",
+      "created_at": "2026-02-11T16:13:43.426573+00:00",
+      "updated_at": "2026-02-11T16:13:43.474250+00:00"
+    }
+  ],
+  "handoff_package": null
+}
+2026-02-11T16:13:43.474856+00:00 SUCCESSION_ACCEPTED step=- severity=INFO
+2026-02-11T16:13:43.474918+00:00 LEASE_ADOPTED step=S1 severity=INFO
+{
+  "schema_version": "1.0.0",
+  "task_id": "DKT-016",
+  "run_id": "RUN-CLI-INT",
+  "current_step": "S1",
+  "open_acceptance_items": [
+    {
+      "step_id": "S1",
+      "criterion": "Graph runs happy path end-to-end"
+    },
+    {
+      "step_id": "S1",
+      "criterion": "Illegal transition attempts fail with explicit diagnostics"
+    },
+    {
+      "step_id": "S1",
+      "criterion": "State is recoverable after process restart"
+    }
+  ],
+  "evidence_paths": [
+    "report.md",
+    "verification.log",
+    "audit-summary.md"
+  ],
+  "next_action": "resume",
+  "resumable_step_ids": [
+    "S1"
+  ],
+  "skipped_step_ids": [],
+  "step_status": {
+    "accepted": [],
+    "failed": [],
+    "pending": [
+      "S1"
+    ]
+  },
+  "created_at": "2026-02-11T16:13:43.611765+00:00",
+  "package_hash": "54eb7a9794a4d278c2cb90437536110ac60ce1204c469c0cbcd026f457a26d06"
+}
+--- OUTPUT END ---
+Exit Code: 0
+=== COMMAND ENTRY 5 END ===
+
+=== COMMAND ENTRY 6 START ===
+Command: rg -n 'init|check|run|status|replay|takeover|handoff' docs/cli-quickstart.md runbooks/operator-cli-recovery.md docs/error-catalog.md
+--- OUTPUT START ---
+docs/error-catalog.md:8:  - Meaning: repository initialization hit path conflict or invalid target.
+docs/error-catalog.md:10:  - Action: fix conflicting path, rerun `python -m cli init --root <path>`.
+docs/error-catalog.md:16:  - Typical cause: `init` not run in selected root.
+docs/error-catalog.md:17:  - Action: run `python -m cli init --root <path>` and retry `check`.
+docs/error-catalog.md:21:  - Typical cause: interrupted manual edits or file truncation.
+docs/error-catalog.md:22:  - Action: restore file from VCS or valid backup, then rerun `check`.
+docs/error-catalog.md:27:  - Action: repair heartbeat JSON fields and rerun.
+docs/error-catalog.md:32:  - Meaning: run command could not complete workflow execution.
+docs/error-catalog.md:33:  - Typical cause: lease registration failed or runtime exception.
+docs/error-catalog.md:34:  - Action: inspect stderr, run `status`, then rerun with corrected inputs.
+docs/error-catalog.md:39:  - Action: execute `takeover` to adopt active leases.
+docs/error-catalog.md:44:  - Meaning: status command could not read ledger or lease records.
+docs/error-catalog.md:46:  - Action: repair state file, rerun status.
+docs/error-catalog.md:49:  - Meaning: events/snapshots replay input is missing or malformed.
+docs/error-catalog.md:51:  - Action: repair log line or replay from snapshots.
+docs/error-catalog.md:55:  - Typical cause: missing `task_id`/`run_id`, invalid successor pid, or corrupted lease registry.
+docs/error-catalog.md:56:  - Action: provide explicit `--task-id` + `--run-id`, inspect `state/process_leases.json`.
+docs/error-catalog.md:59:  - Meaning: handoff package creation/apply failed.
+docs/error-catalog.md:60:  - Typical cause: ledger lacks required fields (`task_id`, `run_id`) or package mismatch.
+docs/error-catalog.md:61:  - Action: ensure active run state, then rerun `handoff --create` or fix package path.
+docs/error-catalog.md:65:  - Action: inspect with `status`, then continue via `run`, `takeover`, or `handoff --apply`.
+docs/cli-quickstart.md:3:This guide shows first-run onboarding for the DAOKit CLI workflow.
+docs/cli-quickstart.md:19:- `init`
+docs/cli-quickstart.md:20:- `check`
+docs/cli-quickstart.md:21:- `run`
+docs/cli-quickstart.md:22:- `status`
+docs/cli-quickstart.md:23:- `replay`
+docs/cli-quickstart.md:24:- `takeover`
+docs/cli-quickstart.md:25:- `handoff`
+docs/cli-quickstart.md:32:python -m cli init --root .
+docs/cli-quickstart.md:35:2. Start a workflow run:
+docs/cli-quickstart.md:38:python -m cli run \
+docs/cli-quickstart.md:41:  --run-id RUN-CLI-E2E \
+docs/cli-quickstart.md:48:python -m cli status --root . --task-id DKT-016 --run-id RUN-CLI-E2E --json
+docs/cli-quickstart.md:54:python -m cli replay --root . --source events --limit 10
+docs/cli-quickstart.md:57:5. Generate handoff package:
+docs/cli-quickstart.md:60:python -m cli handoff --root . --create
+docs/cli-quickstart.md:66:python -m cli check --root .
+docs/cli-quickstart.md:74:python -m cli run \
+docs/cli-quickstart.md:77:  --run-id RUN-CLI-INT \
+docs/cli-quickstart.md:82:2. Adopt running leases as successor:
+docs/cli-quickstart.md:85:python -m cli takeover \
+docs/cli-quickstart.md:88:  --run-id RUN-CLI-INT \
+docs/cli-quickstart.md:95:python -m cli status --root . --task-id DKT-016 --run-id RUN-CLI-INT --json
+docs/cli-quickstart.md:98:For full operator playbook, see `runbooks/operator-cli-recovery.md`.
+runbooks/operator-cli-recovery.md:3:This runbook is for operators recovering DAOKit runs without GUI tooling.
+runbooks/operator-cli-recovery.md:7:Use this when a run was interrupted and you need deterministic recovery from CLI only.
+runbooks/operator-cli-recovery.md:11:Run before any takeover:
+runbooks/operator-cli-recovery.md:14:python -m cli check --root .
+runbooks/operator-cli-recovery.md:15:python -m cli status --root . --json
+runbooks/operator-cli-recovery.md:21:- target run has active or recently active lease records
+runbooks/operator-cli-recovery.md:22:- `task_id` and `run_id` are known
+runbooks/operator-cli-recovery.md:29:python -m cli run \
+runbooks/operator-cli-recovery.md:32:  --run-id RUN-CLI-INT \
+runbooks/operator-cli-recovery.md:42:python -m cli takeover \
+runbooks/operator-cli-recovery.md:45:  --run-id RUN-CLI-INT \
+runbooks/operator-cli-recovery.md:54:python -m cli status --root . --task-id DKT-016 --run-id RUN-CLI-INT --json
+runbooks/operator-cli-recovery.md:55:python -m cli replay --root . --source events --limit 20
+runbooks/operator-cli-recovery.md:60:- `succession.last_takeover_at` is populated
+runbooks/operator-cli-recovery.md:61:- replay shows `SUCCESSION_ACCEPTED`
+runbooks/operator-cli-recovery.md:63:### 4) Create handoff package for core rotation
+runbooks/operator-cli-recovery.md:66:python -m cli handoff --root . --create
+runbooks/operator-cli-recovery.md:72:python -m cli handoff --root . --apply
+runbooks/operator-cli-recovery.md:77:- `check` returns `E_CHECK_LAYOUT_MISSING`
+runbooks/operator-cli-recovery.md:78:  - Cause: root not initialized.
+runbooks/operator-cli-recovery.md:79:  - Fix: run `python -m cli init --root .`.
+runbooks/operator-cli-recovery.md:81:- `takeover` returns `E_TAKEOVER_FAILED: run id is required`
+runbooks/operator-cli-recovery.md:82:  - Cause: run metadata missing in ledger.
+runbooks/operator-cli-recovery.md:83:  - Fix: pass explicit `--task-id` and `--run-id`.
+runbooks/operator-cli-recovery.md:85:- `handoff --apply` returns package mismatch
+runbooks/operator-cli-recovery.md:86:  - Cause: package belongs to different task/run.
+runbooks/operator-cli-recovery.md:87:  - Fix: choose matching package path or rerun `handoff --create` on current ledger.
+runbooks/operator-cli-recovery.md:89:- `replay` fails with invalid JSON line
+runbooks/operator-cli-recovery.md:91:  - Fix: repair malformed JSON line and rerun.
+--- OUTPUT END ---
+Exit Code: 0
+=== COMMAND ENTRY 6 END ===
+
+Coverage Mapping:
+- make test-cli failed because target is not defined in Makefile.
+- Equivalent Command Entry 2 validates CLI behavior via tests/cli/test_workflow.py:
+  * CLI-only end-to-end path: init -> run -> status -> replay -> handoff -> check.
+  * Forced interruption and takeover recovery path.
+  * check command diagnostics on malformed state JSON.
+- Equivalent Command Entry 3 validates Python compilation for new CLI/tests modules.
+- Equivalent Command Entry 4 validates operator quickstart script in examples/cli/quickstart.sh.
+- Equivalent Command Entry 5 validates operator recovery script in examples/cli/recovery.sh.
+- Equivalent Command Entry 6 verifies onboarding/troubleshooting docs include all required commands.

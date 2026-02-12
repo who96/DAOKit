@@ -1,0 +1,85 @@
+=== COMMAND ENTRY 1 START ===
+Command: make test-planner
+make: *** No rule to make target `test-planner'.  Stop.
+Exit Code: 2
+=== COMMAND ENTRY 1 END ===
+
+=== COMMAND ENTRY 2 START ===
+Command: PYTHONPATH=src python3 -m unittest discover -s tests/planner -p 'test_*.py' -v
+test_compiler_handles_deep_acyclic_dependency_chains (test_compiler.StrictPlanCompilerTests.test_compiler_handles_deep_acyclic_dependency_chains) ... ok
+test_compiler_output_is_dispatch_consumable (test_compiler.StrictPlanCompilerTests.test_compiler_output_is_dispatch_consumable) ... ok
+test_compiler_output_is_stable_for_same_input (test_compiler.StrictPlanCompilerTests.test_compiler_output_is_stable_for_same_input) ... ok
+test_compiler_rejects_dependency_cycles (test_compiler.StrictPlanCompilerTests.test_compiler_rejects_dependency_cycles) ... ok
+test_compiler_rejects_duplicate_expected_outputs_across_steps (test_compiler.StrictPlanCompilerTests.test_compiler_rejects_duplicate_expected_outputs_across_steps) ... ok
+test_compiler_rejects_duplicate_step_identifiers (test_compiler.StrictPlanCompilerTests.test_compiler_rejects_duplicate_step_identifiers) ... ok
+test_compiler_rejects_missing_required_fields (test_compiler.StrictPlanCompilerTests.test_compiler_rejects_missing_required_fields) ... ok
+test_compiler_rejects_path_alias_output_conflicts (test_compiler.StrictPlanCompilerTests.test_compiler_rejects_path_alias_output_conflicts) ... ok
+test_compiler_rejects_under_specified_step_lists (test_compiler.StrictPlanCompilerTests.test_compiler_rejects_under_specified_step_lists) ... ok
+test_compiler_rejects_unknown_dependencies (test_compiler.StrictPlanCompilerTests.test_compiler_rejects_unknown_dependencies) ... ok
+
+----------------------------------------------------------------------
+Ran 10 tests in 0.014s
+
+OK
+Exit Code: 0
+=== COMMAND ENTRY 2 END ===
+
+=== COMMAND ENTRY 3 START ===
+Command: PYTHONPATH=src python3 -m unittest tests/planner/test_compiler.py -v
+test_compiler_handles_deep_acyclic_dependency_chains (tests.planner.test_compiler.StrictPlanCompilerTests.test_compiler_handles_deep_acyclic_dependency_chains) ... ok
+test_compiler_output_is_dispatch_consumable (tests.planner.test_compiler.StrictPlanCompilerTests.test_compiler_output_is_dispatch_consumable) ... ok
+test_compiler_output_is_stable_for_same_input (tests.planner.test_compiler.StrictPlanCompilerTests.test_compiler_output_is_stable_for_same_input) ... ok
+test_compiler_rejects_dependency_cycles (tests.planner.test_compiler.StrictPlanCompilerTests.test_compiler_rejects_dependency_cycles) ... ok
+test_compiler_rejects_duplicate_expected_outputs_across_steps (tests.planner.test_compiler.StrictPlanCompilerTests.test_compiler_rejects_duplicate_expected_outputs_across_steps) ... ok
+test_compiler_rejects_duplicate_step_identifiers (tests.planner.test_compiler.StrictPlanCompilerTests.test_compiler_rejects_duplicate_step_identifiers) ... ok
+test_compiler_rejects_missing_required_fields (tests.planner.test_compiler.StrictPlanCompilerTests.test_compiler_rejects_missing_required_fields) ... ok
+test_compiler_rejects_path_alias_output_conflicts (tests.planner.test_compiler.StrictPlanCompilerTests.test_compiler_rejects_path_alias_output_conflicts) ... ok
+test_compiler_rejects_under_specified_step_lists (tests.planner.test_compiler.StrictPlanCompilerTests.test_compiler_rejects_under_specified_step_lists) ... ok
+test_compiler_rejects_unknown_dependencies (tests.planner.test_compiler.StrictPlanCompilerTests.test_compiler_rejects_unknown_dependencies) ... ok
+
+----------------------------------------------------------------------
+Ran 10 tests in 0.014s
+
+OK
+Exit Code: 0
+=== COMMAND ENTRY 3 END ===
+
+=== COMMAND ENTRY 4 START ===
+Command: python3 -m compileall src/planner src/contracts tests/planner
+Listing 'src/planner'...
+Listing 'src/contracts'...
+Listing 'tests/planner'...
+Exit Code: 0
+=== COMMAND ENTRY 4 END ===
+
+=== COMMAND ENTRY 5 START ===
+Command: make test
+PYTHONPATH=src python3 -m unittest discover -s tests -p 'test_*.py' -v
+test_cli_init_returns_error_for_invalid_root (test_init.InitCommandTests.test_cli_init_returns_error_for_invalid_root) ... ok
+test_cli_init_returns_error_when_required_directory_is_file (test_init.InitCommandTests.test_cli_init_returns_error_when_required_directory_is_file) ... ok
+test_cli_init_returns_error_when_state_file_path_is_directory (test_init.InitCommandTests.test_cli_init_returns_error_when_state_file_path_is_directory) ... ok
+test_cli_init_supports_custom_root (test_init.InitCommandTests.test_cli_init_supports_custom_root) ... ok
+test_initialize_repository_creates_required_layout (test_init.InitCommandTests.test_initialize_repository_creates_required_layout) ... ok
+test_initialize_repository_is_idempotent (test_init.InitCommandTests.test_initialize_repository_is_idempotent) ... ok
+test_initialize_repository_rejects_directory_path_conflict (test_init.InitCommandTests.test_initialize_repository_rejects_directory_path_conflict) ... ok
+test_initialize_repository_rejects_state_file_path_conflict (test_init.InitCommandTests.test_initialize_repository_rejects_state_file_path_conflict) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.009s
+
+OK
+Exit Code: 0
+=== COMMAND ENTRY 5 END ===
+
+Coverage Mapping:
+- Baseline verification `make test-planner` is unavailable in current Makefile (command entry 1).
+- Equivalent coverage chain:
+  - Entry 2 validates DKT-004 behavior via planner test suite:
+    - malformed/under-specified rejection
+    - deterministic stable output
+    - duplicate/contradiction checks
+    - dispatch-consumable output shape
+    - deep acyclic dependency handling
+  - Entry 3 re-runs the same planner suite through explicit module path for command-path parity.
+  - Entry 4 compiles changed scope (`src/planner`, `src/contracts`, `tests/planner`) to validate syntax/import integrity.
+  - Entry 5 runs repository baseline suite to confirm no regressions in existing default tests.

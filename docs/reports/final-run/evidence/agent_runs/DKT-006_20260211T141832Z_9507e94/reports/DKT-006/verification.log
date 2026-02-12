@@ -1,0 +1,52 @@
+# DKT-006 Verification Log
+Timestamp (UTC): 2026-02-11T14:32:59Z
+
+Verification baseline: make test-acceptance
+Coverage mapping note: baseline target is missing in Makefile, so equivalent coverage commands were used:
+- `PYTHONPATH=src python3 -m unittest discover -s tests/acceptance -p 'test_*.py' -v`
+- `PYTHONPATH=src python3 -m unittest discover -s tests/contracts -p 'test_*.py' -v`
+- `PYTHONPATH=src python3 -m compileall src/acceptance src/contracts tests/acceptance`
+
+=== COMMAND ENTRY 1 START ===
+Command: make test-acceptance
+make: *** No rule to make target `test-acceptance'.  Stop.
+Exit Code: 2
+=== COMMAND ENTRY 1 END ===
+
+=== COMMAND ENTRY 2 START ===
+Command: PYTHONPATH=src python3 -m unittest discover -s tests/acceptance -p 'test_*.py' -v
+test_expected_output_path_cannot_escape_evidence_root (test_engine.AcceptanceEngineTests.test_expected_output_path_cannot_escape_evidence_root) ... ok
+test_missing_evidence_yields_deterministic_failure (test_engine.AcceptanceEngineTests.test_missing_evidence_yields_deterministic_failure) ... ok
+test_passing_steps_produce_acceptance_proof_records (test_engine.AcceptanceEngineTests.test_passing_steps_produce_acceptance_proof_records) ... ok
+test_rework_payload_references_exact_failed_criteria (test_engine.AcceptanceEngineTests.test_rework_payload_references_exact_failed_criteria) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.003s
+
+OK
+Exit Code: 0
+=== COMMAND ENTRY 2 END ===
+
+=== COMMAND ENTRY 3 START ===
+Command: PYTHONPATH=src python3 -m unittest discover -s tests/contracts -p 'test_*.py' -v
+test_datetime_requires_full_timestamp_with_timezone (test_validator.ContractValidatorTests.test_datetime_requires_full_timestamp_with_timezone) ... ok
+test_heartbeat_legacy_payload_without_threshold_fields_passes (test_validator.ContractValidatorTests.test_heartbeat_legacy_payload_without_threshold_fields_passes) ... ok
+test_heartbeat_stale_threshold_must_not_be_less_than_warning (test_validator.ContractValidatorTests.test_heartbeat_stale_threshold_must_not_be_less_than_warning) ... ok
+test_invalid_payload_samples_are_rejected (test_validator.ContractValidatorTests.test_invalid_payload_samples_are_rejected) ... ok
+test_schema_files_document_field_semantics (test_validator.ContractValidatorTests.test_schema_files_document_field_semantics) ... ok
+test_valid_payload_samples_pass (test_validator.ContractValidatorTests.test_valid_payload_samples_pass) ... ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.001s
+
+OK
+Exit Code: 0
+=== COMMAND ENTRY 3 END ===
+
+=== COMMAND ENTRY 4 START ===
+Command: PYTHONPATH=src python3 -m compileall src/acceptance src/contracts tests/acceptance
+Listing 'src/acceptance'...
+Listing 'src/contracts'...
+Listing 'tests/acceptance'...
+Exit Code: 0
+=== COMMAND ENTRY 4 END ===

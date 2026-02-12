@@ -26,10 +26,12 @@ This index maps DKT-001 through DKT-018 to run IDs, ledger source, execution tra
 ## Notes
 - `INITIAL_BATCH_FAILED` means the first batch ledger failed for that task.
 - `RECOVERED_ACCEPTED_WITH_EVIDENCE` means artifacts prove completion despite initial batch failure status.
-- Artifact paths in the TSV are repository-relative and reference local runtime outputs under `.artifacts/`.
+- Artifact paths in the TSV are repository-relative and point to repository-tracked evidence copies under `docs/reports/final-run/evidence/`.
+- Integrity hashes for all copied evidence files are recorded in `docs/reports/final-run/evidence_manifest.sha256`.
 
 ## Paths
 - `docs/reports/final-run/pre_batch_results.tsv`
 - `docs/reports/final-run/batch_results.tsv`
 - `docs/reports/final-run/batch_resume_from_dkt003_results.tsv`
 - `docs/reports/final-run/run_evidence_index.tsv`
+- `docs/reports/final-run/evidence_manifest.sha256`

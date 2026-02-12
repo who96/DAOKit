@@ -1,0 +1,33 @@
+# DKT-005 Verification Log
+Timestamp (UTC): 2026-02-11T14:16:16Z
+
+Verification baseline: make test-dispatch
+Coverage mapping note: baseline target is missing in Makefile, so equivalent coverage command is used to run all dispatch tests under tests/dispatch/.
+
+=== COMMAND ENTRY 1 START ===
+Command: make test-dispatch
+make: *** No rule to make target `test-dispatch'.  Stop.
+Exit Code: 2
+=== COMMAND ENTRY 1 END ===
+
+=== COMMAND ENTRY 2 START ===
+Command: PYTHONPATH=src python3 -m unittest discover -s tests/dispatch -p 'test_*.py' -v
+test_create_and_resume_execute_in_dry_run (test_shim_adapter.ShimDispatchAdapterTests.test_create_and_resume_execute_in_dry_run) ... ok
+test_every_call_writes_request_output_and_error_artifacts (test_shim_adapter.ShimDispatchAdapterTests.test_every_call_writes_request_output_and_error_artifacts) ... ok
+test_thread_and_run_correlation_stable_across_retries (test_shim_adapter.ShimDispatchAdapterTests.test_thread_and_run_correlation_stable_across_retries) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.010s
+
+OK
+Exit Code: 0
+=== COMMAND ENTRY 2 END ===
+
+=== COMMAND ENTRY 3 START ===
+Command: PYTHONPATH=src python3 -m compileall src/dispatch src/artifacts tests/dispatch
+Listing 'src/dispatch'...
+Listing 'src/artifacts'...
+Listing 'tests/dispatch'...
+Exit Code: 0
+=== COMMAND ENTRY 3 END ===
+

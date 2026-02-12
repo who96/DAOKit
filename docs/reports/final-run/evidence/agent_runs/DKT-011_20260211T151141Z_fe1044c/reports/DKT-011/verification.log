@@ -1,0 +1,49 @@
+DKT-011 Verification Log
+Date: 2026-02-11
+
+Baseline Command: make test-rag-ingest
+Status: Missing Make target in this repository.
+Coverage Mapping:
+- Baseline intent "validate RAG ingestion pipeline" is covered by:
+  1) PYTHONPATH=src python3 -m unittest discover -s tests/rag -p 'test_*.py' -v
+     - Covers indexing/searchability, task_id/run_id filter retrieval, deterministic rebuild.
+  2) PYTHONPATH=src python3 -m compileall src/rag tests/rag
+     - Covers importability/syntax integrity of added modules.
+
+=== COMMAND ENTRY 1 START ===
+Command: make test-rag-ingest
+Working Directory: /Users/huluobo/workSpace/DAOKit
+--- OUTPUT START ---
+make: *** No rule to make target `test-rag-ingest'.  Stop.
+--- OUTPUT END ---
+Exit Code: 2
+=== COMMAND ENTRY 1 END ===
+
+=== COMMAND ENTRY 2 START ===
+Command: PYTHONPATH=src python3 -m unittest discover -s tests/rag -p 'test_*.py' -v
+Working Directory: /Users/huluobo/workSpace/DAOKit
+--- OUTPUT START ---
+test_index_rebuild_is_deterministic (test_ingestion_pipeline.RagIngestionPipelineTests.test_index_rebuild_is_deterministic) ... ok
+test_new_documents_are_indexed_and_searchable (test_ingestion_pipeline.RagIngestionPipelineTests.test_new_documents_are_indexed_and_searchable) ... ok
+test_retrieval_supports_task_and_run_filters (test_ingestion_pipeline.RagIngestionPipelineTests.test_retrieval_supports_task_and_run_filters) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.004s
+
+OK
+--- OUTPUT END ---
+Exit Code: 0
+=== COMMAND ENTRY 2 END ===
+
+=== COMMAND ENTRY 3 START ===
+Command: PYTHONPATH=src python3 -m compileall src/rag tests/rag
+Working Directory: /Users/huluobo/workSpace/DAOKit
+--- OUTPUT START ---
+Listing 'src/rag'...
+Listing 'src/rag/index'...
+Listing 'src/rag/ingest'...
+Listing 'tests/rag'...
+--- OUTPUT END ---
+Exit Code: 0
+=== COMMAND ENTRY 3 END ===
+

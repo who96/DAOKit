@@ -1,0 +1,1006 @@
+=== COMMAND ENTRY 1 START ===
+Command: make release-check
+Working Directory: /Users/huluobo/workSpace/DAOKit
+Timestamp: 2026-02-11T16:29:58Z
+--- OUTPUT START ---
+make: *** No rule to make target `release-check'.  Stop.
+--- OUTPUT END ---
+Exit Code: 2
+=== COMMAND ENTRY 1 END ===
+
+=== COMMAND ENTRY 2 START ===
+Command: make lint
+Working Directory: /Users/huluobo/workSpace/DAOKit
+Timestamp: 2026-02-11T16:29:58Z
+--- OUTPUT START ---
+python3 -m compileall src tests
+Listing 'src'...
+Listing 'src/acceptance'...
+Listing 'src/artifacts'...
+Listing 'src/audit'...
+Listing 'src/cli'...
+Listing 'src/contracts'...
+Listing 'src/daokit'...
+Listing 'src/dispatch'...
+Listing 'src/hooks'...
+Listing 'src/orchestrator'...
+Listing 'src/planner'...
+Listing 'src/rag'...
+Listing 'src/rag/index'...
+Listing 'src/rag/ingest'...
+Listing 'src/rag/retrieval'...
+Listing 'src/reliability'...
+Listing 'src/reliability/handoff'...
+Listing 'src/reliability/heartbeat'...
+Listing 'src/reliability/lease'...
+Listing 'src/reliability/succession'...
+Listing 'src/skills'...
+Listing 'src/state'...
+Listing 'src/tools'...
+Listing 'src/tools/common'...
+Listing 'src/tools/function_calling'...
+Listing 'src/tools/mcp'...
+Listing 'tests'...
+Listing 'tests/acceptance'...
+Listing 'tests/audit'...
+Listing 'tests/cli'...
+Listing 'tests/contracts'...
+Listing 'tests/contracts/samples'...
+Listing 'tests/dispatch'...
+Listing 'tests/e2e'...
+Listing 'tests/hooks'...
+Listing 'tests/orchestrator'...
+Listing 'tests/planner'...
+Listing 'tests/rag'...
+Listing 'tests/reliability'...
+Listing 'tests/skills'...
+Listing 'tests/tools'...
+--- OUTPUT END ---
+Exit Code: 0
+=== COMMAND ENTRY 2 END ===
+
+=== COMMAND ENTRY 3 START ===
+Command: make test
+Working Directory: /Users/huluobo/workSpace/DAOKit
+Timestamp: 2026-02-11T16:29:58Z
+--- OUTPUT START ---
+PYTHONPATH=src python3 -m unittest discover -s tests -p 'test_*.py' -v
+test_cli_init_returns_error_for_invalid_root (test_init.InitCommandTests) ... ok
+test_cli_init_returns_error_when_required_directory_is_file (test_init.InitCommandTests) ... ok
+test_cli_init_returns_error_when_state_file_path_is_directory (test_init.InitCommandTests) ... ok
+test_cli_init_supports_custom_root (test_init.InitCommandTests) ... ok
+test_initialize_repository_creates_required_layout (test_init.InitCommandTests) ... ok
+test_initialize_repository_is_idempotent (test_init.InitCommandTests) ... ok
+test_initialize_repository_rejects_directory_path_conflict (test_init.InitCommandTests) ... ok
+test_initialize_repository_rejects_state_file_path_conflict (test_init.InitCommandTests) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.014s
+
+OK
+--- OUTPUT END ---
+Exit Code: 0
+=== COMMAND ENTRY 3 END ===
+
+=== COMMAND ENTRY 4 START ===
+Command: tmpdir=$(mktemp -d) && bash examples/cli/quickstart.sh "$tmpdir" && rm -rf "$tmpdir"
+Working Directory: /Users/huluobo/workSpace/DAOKit
+Timestamp: 2026-02-11T16:29:58Z
+--- OUTPUT START ---
+Initialized DAOKit skeleton at: /private/var/folders/h4/wxnfr19d7rz755vf3nxx43_h0000gn/T/tmp.cmJbq3OH8b
+Created:
+  + src
+  + contracts
+  + state
+  + artifacts
+  + docs
+  + tests
+  + examples
+  + state/pipeline_state.json
+  + state/heartbeat_status.json
+  + state/process_leases.json
+  + state/events.jsonl
+task_id=DKT-018-DEMO run_id=RUN-CLI-E2E status=DONE current_step=S1
+{
+  "pipeline_state": {
+    "schema_version": "1.0.0",
+    "task_id": "DKT-018-DEMO",
+    "run_id": "RUN-CLI-E2E",
+    "goal": "Exercise CLI only workflow",
+    "status": "DONE",
+    "current_step": "S1",
+    "steps": [
+      {
+        "id": "S1",
+        "title": "Implement orchestrator state machine",
+        "category": "implementation",
+        "goal": "Exercise CLI only workflow",
+        "actions": [
+          "Implement nodes extract/plan/dispatch/verify/transition",
+          "Persist state snapshots between node transitions",
+          "Add transition guards for forbidden jumps"
+        ],
+        "acceptance_criteria": [
+          "Graph runs happy path end-to-end",
+          "Illegal transition attempts fail with explicit diagnostics",
+          "State is recoverable after process restart"
+        ],
+        "expected_outputs": [
+          "report.md",
+          "verification.log",
+          "audit-summary.md"
+        ],
+        "dependencies": [
+          "DKT-002"
+        ],
+        "retrieval_policy": {
+          "planning": {
+            "enabled": true,
+            "top_k": 3,
+            "min_relevance_score": 0.2,
+            "allow_global_fallback": true
+          },
+          "troubleshooting": {
+            "enabled": true,
+            "top_k": 3,
+            "min_relevance_score": 0.2,
+            "allow_global_fallback": true
+          }
+        }
+      }
+    ],
+    "role_lifecycle": {
+      "orchestrator": "transition_complete",
+      "analysis": "prepared",
+      "planning_retrieval": "0_sources",
+      "acceptance": "passed",
+      "troubleshooting_retrieval": "0_sources"
+    },
+    "succession": {
+      "enabled": true,
+      "last_takeover_at": null
+    },
+    "updated_at": "2026-02-11T16:29:58.324832+00:00"
+  },
+  "heartbeat_status": {
+    "schema_version": "1.0.0",
+    "status": "IDLE",
+    "last_heartbeat_at": null,
+    "reason_code": null,
+    "updated_at": "2026-02-11T16:29:58.269489+00:00"
+  },
+  "leases": [
+    {
+      "lane": "default",
+      "step_id": "S1",
+      "task_id": "DKT-018-DEMO",
+      "run_id": "RUN-CLI-E2E",
+      "thread_id": "cli-54940",
+      "pid": 54940,
+      "lease_token": "lease_REDACTED",
+      "expiry": "2026-02-11T16:49:58.323441+00:00",
+      "status": "RELEASED",
+      "last_heartbeat_at": "2026-02-11T16:29:58.323441+00:00",
+      "created_at": "2026-02-11T16:29:58.323441+00:00",
+      "updated_at": "2026-02-11T16:29:58.325023+00:00"
+    }
+  ],
+  "handoff_package": null
+}
+2026-02-11T16:29:58.323920+00:00 SYSTEM step=- severity=INFO
+2026-02-11T16:29:58.324208+00:00 SYSTEM step=- severity=INFO
+2026-02-11T16:29:58.324474+00:00 SYSTEM step=S1 severity=INFO
+2026-02-11T16:29:58.324717+00:00 SYSTEM step=S1 severity=INFO
+2026-02-11T16:29:58.324956+00:00 SYSTEM step=S1 severity=INFO
+{
+  "schema_version": "1.0.0",
+  "task_id": "DKT-018-DEMO",
+  "run_id": "RUN-CLI-E2E",
+  "current_step": "S1",
+  "open_acceptance_items": [
+    {
+      "step_id": "S1",
+      "criterion": "Graph runs happy path end-to-end"
+    },
+    {
+      "step_id": "S1",
+      "criterion": "Illegal transition attempts fail with explicit diagnostics"
+    },
+    {
+      "step_id": "S1",
+      "criterion": "State is recoverable after process restart"
+    }
+  ],
+  "evidence_paths": [
+    "report.md",
+    "verification.log",
+    "audit-summary.md"
+  ],
+  "next_action": "resume",
+  "resumable_step_ids": [
+    "S1"
+  ],
+  "skipped_step_ids": [],
+  "step_status": {
+    "accepted": [],
+    "failed": [],
+    "pending": [
+      "S1"
+    ]
+  },
+  "created_at": "2026-02-11T16:29:58.482499+00:00",
+  "package_hash": "2a75ef8c9d64278b53a0ef062fd64772fbe52f7e12e6d4693c872e1967d919df"
+}
+Health check: PASS
+pipeline_status=DONE
+heartbeat=IDLE silence_seconds=0
+lease_count=1
+--- OUTPUT END ---
+Exit Code: 0
+=== COMMAND ENTRY 4 END ===
+
+=== COMMAND ENTRY 5 START ===
+Command: tmpdir=$(mktemp -d) && bash examples/cli/core_rotation_continuity.sh "$tmpdir" && rm -rf "$tmpdir"
+Working Directory: /Users/huluobo/workSpace/DAOKit
+Timestamp: 2026-02-11T16:29:58Z
+--- OUTPUT START ---
+Initialized DAOKit skeleton at: /private/var/folders/h4/wxnfr19d7rz755vf3nxx43_h0000gn/T/tmp.89dxOBy0SM
+Created:
+  + src
+  + contracts
+  + state
+  + artifacts
+  + docs
+  + tests
+  + examples
+  + state/pipeline_state.json
+  + state/heartbeat_status.json
+  + state/process_leases.json
+  + state/events.jsonl
+E_RUN_INTERRUPTED: simulated interruption, lease left ACTIVE for takeover
+{
+  "task_id": "DKT-018-DEMO",
+  "run_id": "RUN-CORE-ROTATION",
+  "takeover_at": "2026-02-11T16:29:58.711088+00:00",
+  "adopted_step_ids": [
+    "S1"
+  ],
+  "failed_step_ids": []
+}
+{
+  "pipeline_state": {
+    "schema_version": "1.0.0",
+    "task_id": "DKT-018-DEMO",
+    "run_id": "RUN-CORE-ROTATION",
+    "goal": "Core rotation continuity demo",
+    "status": "PLANNING",
+    "current_step": null,
+    "steps": [
+      {
+        "id": "S1",
+        "title": "Implement orchestrator state machine",
+        "category": "implementation",
+        "goal": "Core rotation continuity demo",
+        "actions": [
+          "Implement nodes extract/plan/dispatch/verify/transition",
+          "Persist state snapshots between node transitions",
+          "Add transition guards for forbidden jumps"
+        ],
+        "acceptance_criteria": [
+          "Graph runs happy path end-to-end",
+          "Illegal transition attempts fail with explicit diagnostics",
+          "State is recoverable after process restart"
+        ],
+        "expected_outputs": [
+          "report.md",
+          "verification.log",
+          "audit-summary.md"
+        ],
+        "dependencies": [
+          "DKT-002"
+        ],
+        "retrieval_policy": {
+          "planning": {
+            "enabled": true,
+            "top_k": 3,
+            "min_relevance_score": 0.2,
+            "allow_global_fallback": true
+          },
+          "troubleshooting": {
+            "enabled": true,
+            "top_k": 3,
+            "min_relevance_score": 0.2,
+            "allow_global_fallback": true
+          }
+        }
+      }
+    ],
+    "role_lifecycle": {
+      "orchestrator": "idle"
+    },
+    "succession": {
+      "enabled": true,
+      "last_takeover_at": "2026-02-11T16:29:58.711088+00:00"
+    },
+    "updated_at": "2026-02-11T16:29:58.711672+00:00"
+  },
+  "heartbeat_status": {
+    "schema_version": "1.0.0",
+    "status": "IDLE",
+    "last_heartbeat_at": null,
+    "reason_code": null,
+    "updated_at": "2026-02-11T16:29:58.607591+00:00"
+  },
+  "leases": [
+    {
+      "lane": "default",
+      "step_id": "S1",
+      "task_id": "DKT-018-DEMO",
+      "run_id": "RUN-CORE-ROTATION",
+      "thread_id": "thread-rotation",
+      "pid": 77777,
+      "lease_token": "lease_REDACTED",
+      "expiry": "2026-02-11T16:49:58.660109+00:00",
+      "status": "ACTIVE",
+      "last_heartbeat_at": "2026-02-11T16:29:58.711088+00:00",
+      "created_at": "2026-02-11T16:29:58.660109+00:00",
+      "updated_at": "2026-02-11T16:29:58.711088+00:00"
+    }
+  ],
+  "handoff_package": null
+}
+{
+  "schema_version": "1.0.0",
+  "task_id": "DKT-018-DEMO",
+  "run_id": "RUN-CORE-ROTATION",
+  "current_step": "S1",
+  "open_acceptance_items": [
+    {
+      "step_id": "S1",
+      "criterion": "Graph runs happy path end-to-end"
+    },
+    {
+      "step_id": "S1",
+      "criterion": "Illegal transition attempts fail with explicit diagnostics"
+    },
+    {
+      "step_id": "S1",
+      "criterion": "State is recoverable after process restart"
+    }
+  ],
+  "evidence_paths": [
+    "report.md",
+    "verification.log",
+    "audit-summary.md"
+  ],
+  "next_action": "resume",
+  "resumable_step_ids": [
+    "S1"
+  ],
+  "skipped_step_ids": [],
+  "step_status": {
+    "accepted": [],
+    "failed": [],
+    "pending": [
+      "S1"
+    ]
+  },
+  "created_at": "2026-02-11T16:29:58.815449+00:00",
+  "package_hash": "6226b9df92e0cb8b8356b729f693964acd1e8a5dc16fda0d525888f42592ff9d"
+}
+{
+  "task_id": "DKT-018-DEMO",
+  "run_id": "RUN-CORE-ROTATION",
+  "resume_step_id": "S1",
+  "resumable_step_ids": [
+    "S1"
+  ],
+  "skipped_step_ids": [],
+  "open_acceptance_items": [
+    {
+      "step_id": "S1",
+      "criterion": "Graph runs happy path end-to-end"
+    },
+    {
+      "step_id": "S1",
+      "criterion": "Illegal transition attempts fail with explicit diagnostics"
+    },
+    {
+      "step_id": "S1",
+      "criterion": "State is recoverable after process restart"
+    }
+  ],
+  "next_action": "resume",
+  "package_path": "/private/var/folders/h4/wxnfr19d7rz755vf3nxx43_h0000gn/T/tmp.89dxOBy0SM/state/handoff_package.json",
+  "loaded_at": "2026-02-11T16:29:58.867564+00:00"
+}
+2026-02-11T16:29:58.711887+00:00 SUCCESSION_ACCEPTED step=- severity=INFO
+2026-02-11T16:29:58.711956+00:00 LEASE_ADOPTED step=S1 severity=INFO
+Core rotation continuity demo completed for DKT-018-DEMO/RUN-CORE-ROTATION
+--- OUTPUT END ---
+Exit Code: 0
+=== COMMAND ENTRY 5 END ===
+
+=== COMMAND ENTRY 6 START ===
+Command: tmpdir=$(mktemp -d) && bash examples/cli/backend_to_agent_path.sh "$tmpdir" && rm -rf "$tmpdir"
+Working Directory: /Users/huluobo/workSpace/DAOKit
+Timestamp: 2026-02-11T16:29:58Z
+--- OUTPUT START ---
+Initialized DAOKit skeleton at: /private/var/folders/h4/wxnfr19d7rz755vf3nxx43_h0000gn/T/tmp.HX6ji6zJkW
+Created:
+  + src
+  + contracts
+  + state
+  + artifacts
+  + docs
+  + tests
+  + examples
+  + state/pipeline_state.json
+  + state/heartbeat_status.json
+  + state/process_leases.json
+  + state/events.jsonl
+task_id=DKT-018-DEMO run_id=RUN-CLI-E2E status=DONE current_step=S1
+{
+  "pipeline_state": {
+    "schema_version": "1.0.0",
+    "task_id": "DKT-018-DEMO",
+    "run_id": "RUN-CLI-E2E",
+    "goal": "Exercise CLI only workflow",
+    "status": "DONE",
+    "current_step": "S1",
+    "steps": [
+      {
+        "id": "S1",
+        "title": "Implement orchestrator state machine",
+        "category": "implementation",
+        "goal": "Exercise CLI only workflow",
+        "actions": [
+          "Implement nodes extract/plan/dispatch/verify/transition",
+          "Persist state snapshots between node transitions",
+          "Add transition guards for forbidden jumps"
+        ],
+        "acceptance_criteria": [
+          "Graph runs happy path end-to-end",
+          "Illegal transition attempts fail with explicit diagnostics",
+          "State is recoverable after process restart"
+        ],
+        "expected_outputs": [
+          "report.md",
+          "verification.log",
+          "audit-summary.md"
+        ],
+        "dependencies": [
+          "DKT-002"
+        ],
+        "retrieval_policy": {
+          "planning": {
+            "enabled": true,
+            "top_k": 3,
+            "min_relevance_score": 0.2,
+            "allow_global_fallback": true
+          },
+          "troubleshooting": {
+            "enabled": true,
+            "top_k": 3,
+            "min_relevance_score": 0.2,
+            "allow_global_fallback": true
+          }
+        }
+      }
+    ],
+    "role_lifecycle": {
+      "orchestrator": "transition_complete",
+      "analysis": "prepared",
+      "planning_retrieval": "0_sources",
+      "acceptance": "passed",
+      "troubleshooting_retrieval": "0_sources"
+    },
+    "succession": {
+      "enabled": true,
+      "last_takeover_at": null
+    },
+    "updated_at": "2026-02-11T16:29:59.047581+00:00"
+  },
+  "heartbeat_status": {
+    "schema_version": "1.0.0",
+    "status": "IDLE",
+    "last_heartbeat_at": null,
+    "reason_code": null,
+    "updated_at": "2026-02-11T16:29:58.992924+00:00"
+  },
+  "leases": [
+    {
+      "lane": "default",
+      "step_id": "S1",
+      "task_id": "DKT-018-DEMO",
+      "run_id": "RUN-CLI-E2E",
+      "thread_id": "cli-54983",
+      "pid": 54983,
+      "lease_token": "lease_REDACTED",
+      "expiry": "2026-02-11T16:49:59.046018+00:00",
+      "status": "RELEASED",
+      "last_heartbeat_at": "2026-02-11T16:29:59.046018+00:00",
+      "created_at": "2026-02-11T16:29:59.046018+00:00",
+      "updated_at": "2026-02-11T16:29:59.047782+00:00"
+    }
+  ],
+  "handoff_package": null
+}
+2026-02-11T16:29:59.046562+00:00 SYSTEM step=- severity=INFO
+2026-02-11T16:29:59.046891+00:00 SYSTEM step=- severity=INFO
+2026-02-11T16:29:59.047169+00:00 SYSTEM step=S1 severity=INFO
+2026-02-11T16:29:59.047448+00:00 SYSTEM step=S1 severity=INFO
+2026-02-11T16:29:59.047705+00:00 SYSTEM step=S1 severity=INFO
+{
+  "schema_version": "1.0.0",
+  "task_id": "DKT-018-DEMO",
+  "run_id": "RUN-CLI-E2E",
+  "current_step": "S1",
+  "open_acceptance_items": [
+    {
+      "step_id": "S1",
+      "criterion": "Graph runs happy path end-to-end"
+    },
+    {
+      "step_id": "S1",
+      "criterion": "Illegal transition attempts fail with explicit diagnostics"
+    },
+    {
+      "step_id": "S1",
+      "criterion": "State is recoverable after process restart"
+    }
+  ],
+  "evidence_paths": [
+    "report.md",
+    "verification.log",
+    "audit-summary.md"
+  ],
+  "next_action": "resume",
+  "resumable_step_ids": [
+    "S1"
+  ],
+  "skipped_step_ids": [],
+  "step_status": {
+    "accepted": [],
+    "failed": [],
+    "pending": [
+      "S1"
+    ]
+  },
+  "created_at": "2026-02-11T16:29:59.203622+00:00",
+  "package_hash": "09d303f8d7a5348a1c4471bb346fb770fe4c50898df92a5cbe46b9acb00931df"
+}
+Health check: PASS
+pipeline_status=DONE
+heartbeat=IDLE silence_seconds=0
+lease_count=1
+Initialized DAOKit skeleton at: /private/var/folders/h4/wxnfr19d7rz755vf3nxx43_h0000gn/T/tmp.HX6ji6zJkW
+Unchanged:
+  = src
+  = contracts
+  = state
+  = artifacts
+  = docs
+  = tests
+  = examples
+  = state/pipeline_state.json
+  = state/heartbeat_status.json
+  = state/process_leases.json
+  = state/events.jsonl
+E_RUN_INTERRUPTED: simulated interruption, lease left ACTIVE for takeover
+{
+  "task_id": "DKT-018-DEMO",
+  "run_id": "RUN-CLI-INT",
+  "takeover_at": "2026-02-11T16:29:59.422010+00:00",
+  "adopted_step_ids": [
+    "S1"
+  ],
+  "failed_step_ids": []
+}
+{
+  "pipeline_state": {
+    "schema_version": "1.0.0",
+    "task_id": "DKT-018-DEMO",
+    "run_id": "RUN-CLI-INT",
+    "goal": "Exercise CLI only workflow",
+    "status": "DONE",
+    "current_step": "S1",
+    "steps": [
+      {
+        "id": "S1",
+        "title": "Implement orchestrator state machine",
+        "category": "implementation",
+        "goal": "Exercise CLI only workflow",
+        "actions": [
+          "Implement nodes extract/plan/dispatch/verify/transition",
+          "Persist state snapshots between node transitions",
+          "Add transition guards for forbidden jumps"
+        ],
+        "acceptance_criteria": [
+          "Graph runs happy path end-to-end",
+          "Illegal transition attempts fail with explicit diagnostics",
+          "State is recoverable after process restart"
+        ],
+        "expected_outputs": [
+          "report.md",
+          "verification.log",
+          "audit-summary.md"
+        ],
+        "dependencies": [
+          "DKT-002"
+        ],
+        "retrieval_policy": {
+          "planning": {
+            "enabled": true,
+            "top_k": 3,
+            "min_relevance_score": 0.2,
+            "allow_global_fallback": true
+          },
+          "troubleshooting": {
+            "enabled": true,
+            "top_k": 3,
+            "min_relevance_score": 0.2,
+            "allow_global_fallback": true
+          }
+        }
+      }
+    ],
+    "role_lifecycle": {
+      "orchestrator": "transition_complete",
+      "analysis": "prepared",
+      "planning_retrieval": "0_sources",
+      "acceptance": "passed",
+      "troubleshooting_retrieval": "0_sources"
+    },
+    "succession": {
+      "enabled": true,
+      "last_takeover_at": "2026-02-11T16:29:59.422010+00:00"
+    },
+    "updated_at": "2026-02-11T16:29:59.422593+00:00"
+  },
+  "heartbeat_status": {
+    "schema_version": "1.0.0",
+    "status": "IDLE",
+    "last_heartbeat_at": null,
+    "reason_code": null,
+    "updated_at": "2026-02-11T16:29:58.992924+00:00"
+  },
+  "leases": [
+    {
+      "lane": "default",
+      "step_id": "S1",
+      "task_id": "DKT-018-DEMO",
+      "run_id": "RUN-CLI-INT",
+      "thread_id": "thread-recover",
+      "pid": 54996,
+      "lease_token": "lease_REDACTED",
+      "expiry": "2026-02-11T16:49:59.368536+00:00",
+      "status": "ACTIVE",
+      "last_heartbeat_at": "2026-02-11T16:29:59.422010+00:00",
+      "created_at": "2026-02-11T16:29:59.368536+00:00",
+      "updated_at": "2026-02-11T16:29:59.422010+00:00"
+    }
+  ],
+  "handoff_package": {
+    "schema_version": "1.0.0",
+    "task_id": "DKT-018-DEMO",
+    "run_id": "RUN-CLI-E2E",
+    "current_step": "S1",
+    "open_acceptance_items": [
+      {
+        "step_id": "S1",
+        "criterion": "Graph runs happy path end-to-end"
+      },
+      {
+        "step_id": "S1",
+        "criterion": "Illegal transition attempts fail with explicit diagnostics"
+      },
+      {
+        "step_id": "S1",
+        "criterion": "State is recoverable after process restart"
+      }
+    ],
+    "evidence_paths": [
+      "report.md",
+      "verification.log",
+      "audit-summary.md"
+    ],
+    "next_action": "resume",
+    "resumable_step_ids": [
+      "S1"
+    ],
+    "skipped_step_ids": [],
+    "step_status": {
+      "accepted": [],
+      "failed": [],
+      "pending": [
+        "S1"
+      ]
+    },
+    "created_at": "2026-02-11T16:29:59.203622+00:00",
+    "package_hash": "09d303f8d7a5348a1c4471bb346fb770fe4c50898df92a5cbe46b9acb00931df"
+  }
+}
+2026-02-11T16:29:59.046562+00:00 SYSTEM step=- severity=INFO
+2026-02-11T16:29:59.046891+00:00 SYSTEM step=- severity=INFO
+2026-02-11T16:29:59.047169+00:00 SYSTEM step=S1 severity=INFO
+2026-02-11T16:29:59.047448+00:00 SYSTEM step=S1 severity=INFO
+2026-02-11T16:29:59.047705+00:00 SYSTEM step=S1 severity=INFO
+2026-02-11T16:29:59.422771+00:00 SUCCESSION_ACCEPTED step=- severity=INFO
+2026-02-11T16:29:59.422827+00:00 LEASE_ADOPTED step=S1 severity=INFO
+{
+  "schema_version": "1.0.0",
+  "task_id": "DKT-018-DEMO",
+  "run_id": "RUN-CLI-INT",
+  "current_step": "S1",
+  "open_acceptance_items": [
+    {
+      "step_id": "S1",
+      "criterion": "Graph runs happy path end-to-end"
+    },
+    {
+      "step_id": "S1",
+      "criterion": "Illegal transition attempts fail with explicit diagnostics"
+    },
+    {
+      "step_id": "S1",
+      "criterion": "State is recoverable after process restart"
+    }
+  ],
+  "evidence_paths": [
+    "report.md",
+    "verification.log",
+    "audit-summary.md"
+  ],
+  "next_action": "resume",
+  "resumable_step_ids": [
+    "S1"
+  ],
+  "skipped_step_ids": [],
+  "step_status": {
+    "accepted": [],
+    "failed": [],
+    "pending": [
+      "S1"
+    ]
+  },
+  "created_at": "2026-02-11T16:29:59.578883+00:00",
+  "package_hash": "352468a2d8a9a980ab9fd2b260b9294b0addbd645145fd652744231837a997a4"
+}
+Initialized DAOKit skeleton at: /private/var/folders/h4/wxnfr19d7rz755vf3nxx43_h0000gn/T/tmp.HX6ji6zJkW
+Unchanged:
+  = src
+  = contracts
+  = state
+  = artifacts
+  = docs
+  = tests
+  = examples
+  = state/pipeline_state.json
+  = state/heartbeat_status.json
+  = state/process_leases.json
+  = state/events.jsonl
+E_RUN_INTERRUPTED: simulated interruption, lease left ACTIVE for takeover
+{
+  "task_id": "DKT-018-DEMO",
+  "run_id": "RUN-CORE-ROTATION",
+  "takeover_at": "2026-02-11T16:29:59.743309+00:00",
+  "adopted_step_ids": [
+    "S1"
+  ],
+  "failed_step_ids": []
+}
+{
+  "pipeline_state": {
+    "schema_version": "1.0.0",
+    "task_id": "DKT-018-DEMO",
+    "run_id": "RUN-CORE-ROTATION",
+    "goal": "Exercise CLI only workflow",
+    "status": "DONE",
+    "current_step": "S1",
+    "steps": [
+      {
+        "id": "S1",
+        "title": "Implement orchestrator state machine",
+        "category": "implementation",
+        "goal": "Exercise CLI only workflow",
+        "actions": [
+          "Implement nodes extract/plan/dispatch/verify/transition",
+          "Persist state snapshots between node transitions",
+          "Add transition guards for forbidden jumps"
+        ],
+        "acceptance_criteria": [
+          "Graph runs happy path end-to-end",
+          "Illegal transition attempts fail with explicit diagnostics",
+          "State is recoverable after process restart"
+        ],
+        "expected_outputs": [
+          "report.md",
+          "verification.log",
+          "audit-summary.md"
+        ],
+        "dependencies": [
+          "DKT-002"
+        ],
+        "retrieval_policy": {
+          "planning": {
+            "enabled": true,
+            "top_k": 3,
+            "min_relevance_score": 0.2,
+            "allow_global_fallback": true
+          },
+          "troubleshooting": {
+            "enabled": true,
+            "top_k": 3,
+            "min_relevance_score": 0.2,
+            "allow_global_fallback": true
+          }
+        }
+      }
+    ],
+    "role_lifecycle": {
+      "orchestrator": "transition_complete",
+      "analysis": "prepared",
+      "planning_retrieval": "0_sources",
+      "acceptance": "passed",
+      "troubleshooting_retrieval": "0_sources"
+    },
+    "succession": {
+      "enabled": true,
+      "last_takeover_at": "2026-02-11T16:29:59.743309+00:00"
+    },
+    "updated_at": "2026-02-11T16:29:59.744107+00:00"
+  },
+  "heartbeat_status": {
+    "schema_version": "1.0.0",
+    "status": "IDLE",
+    "last_heartbeat_at": null,
+    "reason_code": null,
+    "updated_at": "2026-02-11T16:29:58.992924+00:00"
+  },
+  "leases": [
+    {
+      "lane": "default",
+      "step_id": "S1",
+      "task_id": "DKT-018-DEMO",
+      "run_id": "RUN-CORE-ROTATION",
+      "thread_id": "thread-rotation",
+      "pid": 77777,
+      "lease_token": "lease_REDACTED",
+      "expiry": "2026-02-11T16:49:59.690951+00:00",
+      "status": "ACTIVE",
+      "last_heartbeat_at": "2026-02-11T16:29:59.743309+00:00",
+      "created_at": "2026-02-11T16:29:59.690951+00:00",
+      "updated_at": "2026-02-11T16:29:59.743309+00:00"
+    }
+  ],
+  "handoff_package": {
+    "schema_version": "1.0.0",
+    "task_id": "DKT-018-DEMO",
+    "run_id": "RUN-CLI-INT",
+    "current_step": "S1",
+    "open_acceptance_items": [
+      {
+        "step_id": "S1",
+        "criterion": "Graph runs happy path end-to-end"
+      },
+      {
+        "step_id": "S1",
+        "criterion": "Illegal transition attempts fail with explicit diagnostics"
+      },
+      {
+        "step_id": "S1",
+        "criterion": "State is recoverable after process restart"
+      }
+    ],
+    "evidence_paths": [
+      "report.md",
+      "verification.log",
+      "audit-summary.md"
+    ],
+    "next_action": "resume",
+    "resumable_step_ids": [
+      "S1"
+    ],
+    "skipped_step_ids": [],
+    "step_status": {
+      "accepted": [],
+      "failed": [],
+      "pending": [
+        "S1"
+      ]
+    },
+    "created_at": "2026-02-11T16:29:59.578883+00:00",
+    "package_hash": "352468a2d8a9a980ab9fd2b260b9294b0addbd645145fd652744231837a997a4"
+  }
+}
+{
+  "schema_version": "1.0.0",
+  "task_id": "DKT-018-DEMO",
+  "run_id": "RUN-CORE-ROTATION",
+  "current_step": "S1",
+  "open_acceptance_items": [
+    {
+      "step_id": "S1",
+      "criterion": "Graph runs happy path end-to-end"
+    },
+    {
+      "step_id": "S1",
+      "criterion": "Illegal transition attempts fail with explicit diagnostics"
+    },
+    {
+      "step_id": "S1",
+      "criterion": "State is recoverable after process restart"
+    }
+  ],
+  "evidence_paths": [
+    "report.md",
+    "verification.log",
+    "audit-summary.md"
+  ],
+  "next_action": "resume",
+  "resumable_step_ids": [
+    "S1"
+  ],
+  "skipped_step_ids": [],
+  "step_status": {
+    "accepted": [],
+    "failed": [],
+    "pending": [
+      "S1"
+    ]
+  },
+  "created_at": "2026-02-11T16:29:59.849197+00:00",
+  "package_hash": "be7b558dc6d7e230b90e3f567054243971e680d86c28ca50ef6d469c990338e8"
+}
+{
+  "task_id": "DKT-018-DEMO",
+  "run_id": "RUN-CORE-ROTATION",
+  "resume_step_id": "S1",
+  "resumable_step_ids": [
+    "S1"
+  ],
+  "skipped_step_ids": [],
+  "open_acceptance_items": [
+    {
+      "step_id": "S1",
+      "criterion": "Graph runs happy path end-to-end"
+    },
+    {
+      "step_id": "S1",
+      "criterion": "Illegal transition attempts fail with explicit diagnostics"
+    },
+    {
+      "step_id": "S1",
+      "criterion": "State is recoverable after process restart"
+    }
+  ],
+  "next_action": "resume",
+  "package_path": "/private/var/folders/h4/wxnfr19d7rz755vf3nxx43_h0000gn/T/tmp.HX6ji6zJkW/state/handoff_package.json",
+  "loaded_at": "2026-02-11T16:29:59.901133+00:00"
+}
+2026-02-11T16:29:59.046562+00:00 SYSTEM step=- severity=INFO
+2026-02-11T16:29:59.046891+00:00 SYSTEM step=- severity=INFO
+2026-02-11T16:29:59.047169+00:00 SYSTEM step=S1 severity=INFO
+2026-02-11T16:29:59.047448+00:00 SYSTEM step=S1 severity=INFO
+2026-02-11T16:29:59.047705+00:00 SYSTEM step=S1 severity=INFO
+2026-02-11T16:29:59.422771+00:00 SUCCESSION_ACCEPTED step=- severity=INFO
+2026-02-11T16:29:59.422827+00:00 LEASE_ADOPTED step=S1 severity=INFO
+2026-02-11T16:29:59.744400+00:00 SUCCESSION_ACCEPTED step=- severity=INFO
+2026-02-11T16:29:59.744466+00:00 LEASE_ADOPTED step=S1 severity=INFO
+Core rotation continuity demo completed for DKT-018-DEMO/RUN-CORE-ROTATION
+Backend-to-agent transition path completed.
+--- OUTPUT END ---
+Exit Code: 0
+=== COMMAND ENTRY 6 END ===
+
+=== COVERAGE MAPPING START ===
+Baseline Command: make release-check
+Observed: Makefile does not define target 'release-check' (see COMMAND ENTRY 1).
+Equivalent Verification Chain:
+- COMMAND ENTRY 2 (make lint): syntax/import integrity for src/tests.
+- COMMAND ENTRY 3 (make test): unit/integration behavior coverage.
+- COMMAND ENTRY 4 (quickstart demo): clone-to-run documented happy path viability.
+- COMMAND ENTRY 5 (core rotation continuity demo): interruption -> takeover -> handoff continuity.
+- COMMAND ENTRY 6 (backend-to-agent path): full onboarding sequence for transition workflow docs.
+=== COVERAGE MAPPING END ===

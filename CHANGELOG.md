@@ -10,7 +10,7 @@ The format is based on Keep a Changelog principles.
 - v1.1 roadmap execution (tooling and verification hardening)
 - v1.2 roadmap execution (reliability and operator experience)
 
-## [1.0.0] - 2026-02-11
+## [1.0.0-rc1] - 2026-02-12
 
 Initial open-source release package for portfolio-grade agent engineering.
 
@@ -25,4 +25,4 @@ Initial open-source release package for portfolio-grade agent engineering.
 - Demo workflows validated through CLI scripts under `examples/cli/`.
 
 ### Notes
-- Recommended release tag for this milestone: `v1.0.0`.
+- Release tag for this snapshot: `v1.0.0-rc1`.

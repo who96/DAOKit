@@ -1,0 +1,79 @@
+=== COMMAND ENTRY 1 START ===
+Command: make test-tools-mcp
+Timestamp: 2026-02-11T15:00:27Z
+make: *** No rule to make target `test-tools-mcp'.  Stop.
+Exit Code: 2
+=== COMMAND ENTRY 1 END ===
+
+=== COMMAND ENTRY 2 START ===
+Command: PYTHONPATH=src python3 -m unittest tests/tools/test_mcp_adapter.py -v
+Timestamp: 2026-02-11T15:00:27Z
+test_failed_calls_return_actionable_errors (tests.tools.test_mcp_adapter.McpAdapterTests.test_failed_calls_return_actionable_errors) ... ok
+test_tools_can_be_listed_and_invoked (tests.tools.test_mcp_adapter.McpAdapterTests.test_tools_can_be_listed_and_invoked) ... ok
+test_trace_is_persisted_for_each_attempt (tests.tools.test_mcp_adapter.McpAdapterTests.test_trace_is_persisted_for_each_attempt) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.001s
+
+OK
+Exit Code: 0
+=== COMMAND ENTRY 2 END ===
+
+=== COMMAND ENTRY 3 START ===
+Command: PYTHONPATH=src python3 -m unittest tests/tools/test_function_calling_adapter.py -v
+Timestamp: 2026-02-11T15:00:28Z
+test_invalid_args_rejected_before_execution (tests.tools.test_function_calling_adapter.FunctionCallingAdapterTests.test_invalid_args_rejected_before_execution) ... ok
+test_invocation_logs_include_request_result_and_status (tests.tools.test_function_calling_adapter.FunctionCallingAdapterTests.test_invocation_logs_include_request_result_and_status) ... ok
+test_timeout_is_handled_and_recorded (tests.tools.test_function_calling_adapter.FunctionCallingAdapterTests.test_timeout_is_handled_and_recorded) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.055s
+
+OK
+Exit Code: 0
+=== COMMAND ENTRY 3 END ===
+
+=== COMMAND ENTRY 4 START ===
+Command: PYTHONPATH=src python3 -m unittest discover -s tests/tools -p 'test_*.py' -v
+Timestamp: 2026-02-11T15:00:28Z
+test_invalid_args_rejected_before_execution (test_function_calling_adapter.FunctionCallingAdapterTests.test_invalid_args_rejected_before_execution) ... ok
+test_invocation_logs_include_request_result_and_status (test_function_calling_adapter.FunctionCallingAdapterTests.test_invocation_logs_include_request_result_and_status) ... ok
+test_timeout_is_handled_and_recorded (test_function_calling_adapter.FunctionCallingAdapterTests.test_timeout_is_handled_and_recorded) ... ok
+test_failed_calls_return_actionable_errors (test_mcp_adapter.McpAdapterTests.test_failed_calls_return_actionable_errors) ... ok
+test_tools_can_be_listed_and_invoked (test_mcp_adapter.McpAdapterTests.test_tools_can_be_listed_and_invoked) ... ok
+test_trace_is_persisted_for_each_attempt (test_mcp_adapter.McpAdapterTests.test_trace_is_persisted_for_each_attempt) ... ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.055s
+
+OK
+Exit Code: 0
+=== COMMAND ENTRY 4 END ===
+
+Coverage Mapping:
+- Baseline command `make test-tools-mcp` is unavailable in this repository (Makefile has only init/lint/test targets).
+- Equivalent command chain used:
+  1) `PYTHONPATH=src python3 -m unittest tests/tools/test_mcp_adapter.py -v` -> validates DKT-009 MCP acceptance behavior directly.
+  2) `PYTHONPATH=src python3 -m unittest tests/tools/test_function_calling_adapter.py -v` -> checks existing tooling adapter regression in same subsystem.
+  3) `PYTHONPATH=src python3 -m unittest discover -s tests/tools -p 'test_*.py' -v` -> full tools test suite confirmation.
+=== COMMAND ENTRY 5 START ===
+Command: PYTHONPATH=src python3 -m unittest discover -s tests -p 'test_*.py' -v
+Timestamp: 2026-02-11T15:00:45Z
+test_cli_init_returns_error_for_invalid_root (test_init.InitCommandTests.test_cli_init_returns_error_for_invalid_root) ... ok
+test_cli_init_returns_error_when_required_directory_is_file (test_init.InitCommandTests.test_cli_init_returns_error_when_required_directory_is_file) ... ok
+test_cli_init_returns_error_when_state_file_path_is_directory (test_init.InitCommandTests.test_cli_init_returns_error_when_state_file_path_is_directory) ... ok
+test_cli_init_supports_custom_root (test_init.InitCommandTests.test_cli_init_supports_custom_root) ... ok
+test_initialize_repository_creates_required_layout (test_init.InitCommandTests.test_initialize_repository_creates_required_layout) ... ok
+test_initialize_repository_is_idempotent (test_init.InitCommandTests.test_initialize_repository_is_idempotent) ... ok
+test_initialize_repository_rejects_directory_path_conflict (test_init.InitCommandTests.test_initialize_repository_rejects_directory_path_conflict) ... ok
+test_initialize_repository_rejects_state_file_path_conflict (test_init.InitCommandTests.test_initialize_repository_rejects_state_file_path_conflict) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.010s
+
+OK
+Exit Code: 0
+=== COMMAND ENTRY 5 END ===
+
+Coverage Mapping Update:
+- Additional sanity command `PYTHONPATH=src python3 -m unittest discover -s tests -p 'test_*.py' -v` confirms repository-level test suite remains green after MCP adapter changes.

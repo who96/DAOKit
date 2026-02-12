@@ -1,0 +1,68 @@
+=== COMMAND ENTRY 1 START ===
+Command: make test-orchestrator
+make: *** No rule to make target `test-orchestrator'.  Stop.
+Exit Code: 2
+=== COMMAND ENTRY 1 END ===
+
+=== COMMAND ENTRY 2 START ===
+Command: PYTHONPATH=src python3 -m unittest discover -s tests/orchestrator -p 'test_*.py' -v
+test_happy_path_runs_end_to_end (test_state_machine.OrchestratorStateMachineTests) ... ok
+test_illegal_transition_reports_explicit_diagnostics (test_state_machine.OrchestratorStateMachineTests) ... ok
+test_state_is_recoverable_after_process_restart (test_state_machine.OrchestratorStateMachineTests) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.007s
+
+OK
+Exit Code: 0
+=== COMMAND ENTRY 2 END ===
+
+=== COMMAND ENTRY 3 START ===
+Command: python3 -m compileall src/orchestrator src/state tests/orchestrator
+Listing 'src/orchestrator'...
+Listing 'src/state'...
+Listing 'tests/orchestrator'...
+Exit Code: 0
+=== COMMAND ENTRY 3 END ===
+
+=== COMMAND ENTRY 4 START ===
+Command: PYTHONPATH=src python3 -m unittest tests/orchestrator/test_state_machine.py -v
+test_happy_path_runs_end_to_end (tests.orchestrator.test_state_machine.OrchestratorStateMachineTests) ... ok
+test_illegal_transition_reports_explicit_diagnostics (tests.orchestrator.test_state_machine.OrchestratorStateMachineTests) ... ok
+test_state_is_recoverable_after_process_restart (tests.orchestrator.test_state_machine.OrchestratorStateMachineTests) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.006s
+
+OK
+Exit Code: 0
+=== COMMAND ENTRY 4 END ===
+
+=== COMMAND ENTRY 5 START ===
+Command: make test
+PYTHONPATH=src python3 -m unittest discover -s tests -p 'test_*.py' -v
+test_cli_init_returns_error_for_invalid_root (test_init.InitCommandTests) ... ok
+test_cli_init_returns_error_when_required_directory_is_file (test_init.InitCommandTests) ... ok
+test_cli_init_returns_error_when_state_file_path_is_directory (test_init.InitCommandTests) ... ok
+test_cli_init_supports_custom_root (test_init.InitCommandTests) ... ok
+test_initialize_repository_creates_required_layout (test_init.InitCommandTests) ... ok
+test_initialize_repository_is_idempotent (test_init.InitCommandTests) ... ok
+test_initialize_repository_rejects_directory_path_conflict (test_init.InitCommandTests) ... ok
+test_initialize_repository_rejects_state_file_path_conflict (test_init.InitCommandTests) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.012s
+
+OK
+Exit Code: 0
+=== COMMAND ENTRY 5 END ===
+
+Coverage Mapping:
+- Baseline command make target is unavailable in current Makefile (entry 1).
+- Entry 2 validates DKT-003 acceptance behavior via orchestrator-scoped tests:
+  - happy path end-to-end
+  - illegal transition diagnostics
+  - restart recovery
+- Entry 3 ensures module syntax/bytecode compilation for all changed scope files.
+- Entry 4 re-runs the same orchestrator suite through explicit module path as redundancy.
+- Entry 5 runs the repository baseline suite; note that this suite does not auto-discover tests/orchestrator in current layout.

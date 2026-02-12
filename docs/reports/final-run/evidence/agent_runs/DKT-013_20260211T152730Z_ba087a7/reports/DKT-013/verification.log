@@ -1,0 +1,55 @@
+=== COMMAND ENTRY 1 START ===
+Command: make test-heartbeat
+Timestamp (UTC): 2026-02-11T15:35:08Z
+make: *** No rule to make target `test-heartbeat'.  Stop.
+Exit Code: 2
+=== COMMAND ENTRY 1 END ===
+
+=== COMMAND ENTRY 2 START ===
+Command: PYTHONPATH=src python3 -m unittest tests.reliability.test_heartbeat_daemon -v
+Timestamp (UTC): 2026-02-11T15:35:08Z
+test_duplicate_stale_alerts_are_suppressed_in_same_streak (tests.reliability.test_heartbeat_daemon.HeartbeatDaemonTests.test_duplicate_stale_alerts_are_suppressed_in_same_streak) ... ok
+test_execution_with_output_remains_active (tests.reliability.test_heartbeat_daemon.HeartbeatDaemonTests.test_execution_with_output_remains_active) ... ok
+test_silence_crossing_threshold_becomes_stale_with_reason (tests.reliability.test_heartbeat_daemon.HeartbeatDaemonTests.test_silence_crossing_threshold_becomes_stale_with_reason) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.005s
+
+OK
+Exit Code: 0
+=== COMMAND ENTRY 2 END ===
+
+=== COMMAND ENTRY 3 START ===
+Command: PYTHONPATH=src python3 -m unittest tests.orchestrator.test_state_machine tests.orchestrator.test_retrieval_policy -v
+Timestamp (UTC): 2026-02-11T15:35:08Z
+test_happy_path_runs_end_to_end (tests.orchestrator.test_state_machine.OrchestratorStateMachineTests.test_happy_path_runs_end_to_end) ... ok
+test_illegal_transition_reports_explicit_diagnostics (tests.orchestrator.test_state_machine.OrchestratorStateMachineTests.test_illegal_transition_reports_explicit_diagnostics) ... ok
+test_state_is_recoverable_after_process_restart (tests.orchestrator.test_state_machine.OrchestratorStateMachineTests.test_state_is_recoverable_after_process_restart) ... ok
+test_disabling_retrieval_does_not_break_core_flow (tests.orchestrator.test_retrieval_policy.OrchestratorRetrievalPolicyTests.test_disabling_retrieval_does_not_break_core_flow) ... ok
+test_orchestrator_retrieval_returns_sources_and_scores (tests.orchestrator.test_retrieval_policy.OrchestratorRetrievalPolicyTests.test_orchestrator_retrieval_returns_sources_and_scores) ... ok
+test_retrieval_only_calls_do_not_mutate_ledger (tests.orchestrator.test_retrieval_policy.OrchestratorRetrievalPolicyTests.test_retrieval_only_calls_do_not_mutate_ledger) ... ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.013s
+
+OK
+Exit Code: 0
+=== COMMAND ENTRY 3 END ===
+
+=== COMMAND ENTRY 4 START ===
+Command: python3 -m compileall src/reliability/heartbeat src/state tests/reliability
+Timestamp (UTC): 2026-02-11T15:35:08Z
+Listing 'src/reliability/heartbeat'...
+Listing 'src/state'...
+Listing 'tests/reliability'...
+Exit Code: 0
+=== COMMAND ENTRY 4 END ===
+
+Coverage Mapping:
+- Baseline 'make test-heartbeat' is unavailable in Makefile (see COMMAND ENTRY 1).
+- Equivalent acceptance coverage is COMMAND ENTRY 2: tests.reliability.test_heartbeat_daemon
+  - test_execution_with_output_remains_active => Active execution with output remains ACTIVE.
+  - test_silence_crossing_threshold_becomes_stale_with_reason => Silence crossing threshold becomes STALE with reason code.
+  - test_duplicate_stale_alerts_are_suppressed_in_same_streak => Duplicate stale alerts suppressed in same streak.
+- Regression coverage for state-store side effects is COMMAND ENTRY 3 (orchestrator suites).
+- Syntax/import sanity for changed scope is COMMAND ENTRY 4 (compileall).

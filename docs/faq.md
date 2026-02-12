@@ -6,7 +6,9 @@ DAOKit gives backend engineers a strict, auditable way to run multi-agent workfl
 
 ## Is chat history the source of truth?
 
-No. Ledger state files under `state/` are the source of truth. Chat history is context only.
+No. Ledger state files under `state/` are the source of truth during runtime. Chat history is context only.
+
+`state/` is runtime-generated and intentionally not versioned; release-level acceptance reproducibility is provided by `docs/reports/final-run/`, the tracked evidence bundle, and `evidence_manifest.sha256`.
 
 ## How does DAOKit handle long-running continuity?
 

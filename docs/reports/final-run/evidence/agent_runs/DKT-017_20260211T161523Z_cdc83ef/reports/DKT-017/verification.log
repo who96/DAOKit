@@ -1,0 +1,50 @@
+=== COMMAND ENTRY 1 START ===
+Command: make test-e2e-stress
+Exit Code: 2
+Stdout:
+<empty>
+Stderr:
+make: *** No rule to make target `test-e2e-stress'.  Stop.
+Coverage Mapping:
+- Baseline command unavailable in current Makefile.
+- Equivalent verification is executed by COMMAND ENTRY 2 and COMMAND ENTRY 3.
+=== COMMAND ENTRY 1 END ===
+
+=== COMMAND ENTRY 2 START ===
+Command: PYTHONPATH=src python3 scripts/chaos/e2e_stress_hardening.py --scenario-root .artifacts/agent_runs/DKT-017_20260211T161523Z_cdc83ef/reports/DKT-017/stress_sandbox --output-json .artifacts/agent_runs/DKT-017_20260211T161523Z_cdc83ef/reports/DKT-017/stress-summary.json
+Exit Code: 0
+Key Output:
+- task_id=DKT-017, run_id=RUN-E2E-STRESS
+- checks.recovered_without_manual_json_repair=true
+- checks.succession_takeover_executed=true
+- checks.rework_loop_executed=true
+- checks.forced_stale_interval_2h_plus=true (silence_seconds=7500)
+- checks.final_state_event_log_consistent_replayable=true
+=== COMMAND ENTRY 2 END ===
+
+=== COMMAND ENTRY 3 START ===
+Command: PYTHONPATH=src python3 -m unittest discover -s tests/e2e -p 'test_*.py' -v
+Exit Code: 0
+Stdout:
+test_stress_scenario_covers_recovery_takeover_rework_and_replay (test_e2e_stress.EndToEndStressTests.test_stress_scenario_covers_recovery_takeover_rework_and_replay) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.313s
+
+OK
+=== COMMAND ENTRY 3 END ===
+
+=== COVERAGE EQUIVALENCE SUMMARY ===
+Baseline: make test-e2e-stress (missing)
+Equivalent Chain:
+1) scripts/chaos/e2e_stress_hardening.py
+   - Executes forced stale interval (>2h simulated silence) and verifies deduplicated stale escalation.
+   - Triggers succession takeover after simulated interruption.
+   - Executes one rework loop (first acceptance fail -> second pass).
+   - Validates state JSON integrity, event log consistency, and replayability.
+2) tests/e2e/test_e2e_stress.py
+   - Re-runs the scenario end-to-end and asserts all acceptance-critical checks.
+Coverage Mapping:
+- AC1 System recovers without manual JSON repair -> scenario checks.recovered_without_manual_json_repair
+- AC2 Every completed step links valid evidence artifacts -> scenario checks.completed_step_links_valid_evidence
+- AC3 Final state and event log consistent and replayable -> scenario checks.final_state_event_log_consistent_replayable

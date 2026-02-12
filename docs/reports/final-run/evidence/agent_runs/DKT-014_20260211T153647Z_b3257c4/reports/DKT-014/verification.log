@@ -1,0 +1,104 @@
+DAOKit Verification Log
+Task ID: DKT-014
+Run ID: DKT-014_20260211T153647Z_b3257c4
+Step ID: S1
+Timestamp (UTC): 2026-02-11T15:47:00Z
+
+=== COMMAND ENTRY 1 START ===
+Command: make test-lease-succession
+Working Directory: /Users/huluobo/workSpace/DAOKit
+Exit Code: 2
+Output:
+make: *** No rule to make target `test-lease-succession'.  Stop.
+=== COMMAND ENTRY 1 END ===
+
+Baseline Mapping:
+- Baseline command `make test-lease-succession` is unavailable in current Makefile.
+- Equivalent replacement command is COMMAND ENTRY 2.
+
+=== COMMAND ENTRY 2 START ===
+Command: PYTHONPATH=src python3 -m unittest tests/reliability/test_lease_succession.py -v
+Working Directory: /Users/huluobo/workSpace/DAOKit
+Exit Code: 0
+Output:
+test_expired_leases_cannot_be_adopted (tests.reliability.test_lease_succession.LeaseSuccessionTests.test_expired_leases_cannot_be_adopted) ... ok
+test_lease_register_heartbeat_renew_release_lifecycle (tests.reliability.test_lease_succession.LeaseSuccessionTests.test_lease_register_heartbeat_renew_release_lifecycle) ... ok
+test_non_adopted_running_steps_marked_failed (tests.reliability.test_lease_succession.LeaseSuccessionTests.test_non_adopted_running_steps_marked_failed) ... ok
+test_valid_running_leases_transferred_to_successor (tests.reliability.test_lease_succession.LeaseSuccessionTests.test_valid_running_leases_transferred_to_successor) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.008s
+
+OK
+=== COMMAND ENTRY 2 END ===
+
+=== COMMAND ENTRY 3 START ===
+Command: PYTHONPATH=src python3 -m unittest discover -s tests/reliability -p 'test_*.py' -v
+Working Directory: /Users/huluobo/workSpace/DAOKit
+Exit Code: 0
+Output:
+test_duplicate_stale_alerts_are_suppressed_in_same_streak (test_heartbeat_daemon.HeartbeatDaemonTests.test_duplicate_stale_alerts_are_suppressed_in_same_streak) ... ok
+test_execution_with_output_remains_active (test_heartbeat_daemon.HeartbeatDaemonTests.test_execution_with_output_remains_active) ... ok
+test_silence_crossing_threshold_becomes_stale_with_reason (test_heartbeat_daemon.HeartbeatDaemonTests.test_silence_crossing_threshold_becomes_stale_with_reason) ... ok
+test_expired_leases_cannot_be_adopted (test_lease_succession.LeaseSuccessionTests.test_expired_leases_cannot_be_adopted) ... ok
+test_lease_register_heartbeat_renew_release_lifecycle (test_lease_succession.LeaseSuccessionTests.test_lease_register_heartbeat_renew_release_lifecycle) ... ok
+test_non_adopted_running_steps_marked_failed (test_lease_succession.LeaseSuccessionTests.test_non_adopted_running_steps_marked_failed) ... ok
+test_valid_running_leases_transferred_to_successor (test_lease_succession.LeaseSuccessionTests.test_valid_running_leases_transferred_to_successor) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.011s
+
+OK
+=== COMMAND ENTRY 3 END ===
+
+=== COMMAND ENTRY 4 START ===
+Command: python3 -m compileall src/reliability/lease src/reliability/succession tests/reliability/test_lease_succession.py
+Working Directory: /Users/huluobo/workSpace/DAOKit
+Exit Code: 0
+Output:
+Listing 'src/reliability/lease'...
+Listing 'src/reliability/succession'...
+=== COMMAND ENTRY 4 END ===
+
+Acceptance Coverage Mapping:
+- AC1 Expired leases cannot be adopted:
+  Covered by `test_expired_leases_cannot_be_adopted` in COMMAND ENTRY 2/3.
+- AC2 Valid running leases transferred to successor:
+  Covered by `test_valid_running_leases_transferred_to_successor` in COMMAND ENTRY 2/3.
+- AC3 Non-adopted running steps marked failed:
+  Covered by `test_non_adopted_running_steps_marked_failed` in COMMAND ENTRY 2/3.
+
+=== COMMAND ENTRY 5 START ===
+Command: PYTHONPATH=src python3 -m unittest discover -s tests/reliability -p 'test_*.py' -v
+Working Directory: /Users/huluobo/workSpace/DAOKit
+Exit Code: 0
+Output:
+test_duplicate_stale_alerts_are_suppressed_in_same_streak (test_heartbeat_daemon.HeartbeatDaemonTests.test_duplicate_stale_alerts_are_suppressed_in_same_streak) ... ok
+test_execution_with_output_remains_active (test_heartbeat_daemon.HeartbeatDaemonTests.test_execution_with_output_remains_active) ... ok
+test_silence_crossing_threshold_becomes_stale_with_reason (test_heartbeat_daemon.HeartbeatDaemonTests.test_silence_crossing_threshold_becomes_stale_with_reason) ... ok
+test_expired_leases_cannot_be_adopted (test_lease_succession.LeaseSuccessionTests.test_expired_leases_cannot_be_adopted) ... ok
+test_lease_register_heartbeat_renew_release_lifecycle (test_lease_succession.LeaseSuccessionTests.test_lease_register_heartbeat_renew_release_lifecycle) ... ok
+test_non_adopted_running_steps_marked_failed (test_lease_succession.LeaseSuccessionTests.test_non_adopted_running_steps_marked_failed) ... ok
+test_valid_running_leases_transferred_to_successor (test_lease_succession.LeaseSuccessionTests.test_valid_running_leases_transferred_to_successor) ... ok
+
+----------------------------------------------------------------------
+Ran 7 tests in 0.011s
+
+OK
+=== COMMAND ENTRY 5 END ===
+
+=== COMMAND ENTRY 6 START ===
+Command: PYTHONPATH=src python3 -m unittest tests/reliability/test_lease_succession.py -v
+Working Directory: /Users/huluobo/workSpace/DAOKit
+Exit Code: 0
+Output:
+test_expired_leases_cannot_be_adopted (tests.reliability.test_lease_succession.LeaseSuccessionTests.test_expired_leases_cannot_be_adopted) ... ok
+test_lease_register_heartbeat_renew_release_lifecycle (tests.reliability.test_lease_succession.LeaseSuccessionTests.test_lease_register_heartbeat_renew_release_lifecycle) ... ok
+test_non_adopted_running_steps_marked_failed (tests.reliability.test_lease_succession.LeaseSuccessionTests.test_non_adopted_running_steps_marked_failed) ... ok
+test_valid_running_leases_transferred_to_successor (tests.reliability.test_lease_succession.LeaseSuccessionTests.test_valid_running_leases_transferred_to_successor) ... ok
+
+----------------------------------------------------------------------
+Ran 4 tests in 0.007s
+
+OK
+=== COMMAND ENTRY 6 END ===

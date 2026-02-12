@@ -1,0 +1,57 @@
+=== COMMAND ENTRY 1 START ===
+Command: make test-rag-policy
+Timestamp (UTC): 2026-02-11T15:26:09Z
+make: *** No rule to make target `test-rag-policy'.  Stop.
+Exit Code: 2
+=== COMMAND ENTRY 1 END ===
+
+=== COMMAND ENTRY 2 START ===
+Command: PYTHONPATH=src python3 -m unittest tests.rag.test_retrieval_policy tests.orchestrator.test_retrieval_policy -v
+Timestamp (UTC): 2026-02-11T15:26:09Z
+test_confidence_threshold_filters_low_relevance_hits (tests.rag.test_retrieval_policy.RetrievalPolicyTests.test_confidence_threshold_filters_low_relevance_hits) ... ok
+test_disabled_policy_returns_empty_results (tests.rag.test_retrieval_policy.RetrievalPolicyTests.test_disabled_policy_returns_empty_results) ... ok
+test_retrieval_includes_sources_and_relevance_scores (tests.rag.test_retrieval_policy.RetrievalPolicyTests.test_retrieval_includes_sources_and_relevance_scores) ... ok
+test_disabling_retrieval_does_not_break_core_flow (tests.orchestrator.test_retrieval_policy.OrchestratorRetrievalPolicyTests.test_disabling_retrieval_does_not_break_core_flow) ... ok
+test_orchestrator_retrieval_returns_sources_and_scores (tests.orchestrator.test_retrieval_policy.OrchestratorRetrievalPolicyTests.test_orchestrator_retrieval_returns_sources_and_scores) ... ok
+test_retrieval_only_calls_do_not_mutate_ledger (tests.orchestrator.test_retrieval_policy.OrchestratorRetrievalPolicyTests.test_retrieval_only_calls_do_not_mutate_ledger) ... ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.011s
+
+OK
+Exit Code: 0
+=== COMMAND ENTRY 2 END ===
+
+=== COMMAND ENTRY 3 START ===
+Command: PYTHONPATH=src python3 -m unittest tests.rag.test_ingestion_pipeline tests.orchestrator.test_state_machine -v
+Timestamp (UTC): 2026-02-11T15:26:09Z
+test_index_rebuild_is_deterministic (tests.rag.test_ingestion_pipeline.RagIngestionPipelineTests.test_index_rebuild_is_deterministic) ... ok
+test_new_documents_are_indexed_and_searchable (tests.rag.test_ingestion_pipeline.RagIngestionPipelineTests.test_new_documents_are_indexed_and_searchable) ... ok
+test_retrieval_supports_task_and_run_filters (tests.rag.test_ingestion_pipeline.RagIngestionPipelineTests.test_retrieval_supports_task_and_run_filters) ... ok
+test_happy_path_runs_end_to_end (tests.orchestrator.test_state_machine.OrchestratorStateMachineTests.test_happy_path_runs_end_to_end) ... ok
+test_illegal_transition_reports_explicit_diagnostics (tests.orchestrator.test_state_machine.OrchestratorStateMachineTests.test_illegal_transition_reports_explicit_diagnostics) ... ok
+test_state_is_recoverable_after_process_restart (tests.orchestrator.test_state_machine.OrchestratorStateMachineTests.test_state_is_recoverable_after_process_restart) ... ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.009s
+
+OK
+Exit Code: 0
+=== COMMAND ENTRY 3 END ===
+
+=== COMMAND ENTRY 4 START ===
+Command: python3 -m compileall src/rag/retrieval src/orchestrator tests/rag tests/orchestrator
+Timestamp (UTC): 2026-02-11T15:26:09Z
+Listing 'src/rag/retrieval'...
+Listing 'src/orchestrator'...
+Listing 'tests/rag'...
+Listing 'tests/orchestrator'...
+Exit Code: 0
+=== COMMAND ENTRY 4 END ===
+
+Coverage Mapping:
+- Baseline 'make test-rag-policy' is unavailable in Makefile (see COMMAND ENTRY 1).
+- Equivalent policy coverage uses COMMAND ENTRY 2: tests.rag.test_retrieval_policy + tests.orchestrator.test_retrieval_policy.
+  - Maps to acceptance: sources+relevance scores, disable switch, and ledger immutability under retrieval-only operations.
+- Regression safety coverage uses COMMAND ENTRY 3: existing ingestion + state machine suites.
+- Static import/syntax sanity uses COMMAND ENTRY 4.

@@ -1,0 +1,113 @@
+# DKT-002 Verification Log
+run_id: DKT-002_20260211T124625Z_367c80d
+step_id: S1
+generated_at_utc: 2026-02-11T13:11:43Z
+
+=== COMMAND ENTRY 1 START ===
+entry_index: 1
+cmd: make test-contracts && make ci-check
+shell_echo: $ make test-contracts && make ci-check
+started_at_utc: 2026-02-11T13:11:43Z
+output_begin: true
+make: *** No rule to make target `test-contracts'.  Stop.
+output_end: true
+exit_code: 2
+ended_at_utc: 2026-02-11T13:11:43Z
+=== COMMAND ENTRY 1 END ===
+
+baseline_status: unavailable_or_failed
+baseline_note: make targets not present; running closest equivalent commands.
+
+=== COMMAND ENTRY 2 START ===
+entry_index: 2
+cmd: PYTHONPATH=src python3 -m unittest discover -s tests/contracts -p 'test_*.py' -v
+shell_echo: $ PYTHONPATH=src python3 -m unittest discover -s tests/contracts -p 'test_*.py' -v
+started_at_utc: 2026-02-11T13:11:43Z
+output_begin: true
+test_datetime_requires_full_timestamp_with_timezone (test_validator.ContractValidatorTests.test_datetime_requires_full_timestamp_with_timezone) ... ok
+test_heartbeat_legacy_payload_without_threshold_fields_passes (test_validator.ContractValidatorTests.test_heartbeat_legacy_payload_without_threshold_fields_passes) ... ok
+test_heartbeat_stale_threshold_must_not_be_less_than_warning (test_validator.ContractValidatorTests.test_heartbeat_stale_threshold_must_not_be_less_than_warning) ... ok
+test_invalid_payload_samples_are_rejected (test_validator.ContractValidatorTests.test_invalid_payload_samples_are_rejected) ... ok
+test_schema_files_document_field_semantics (test_validator.ContractValidatorTests.test_schema_files_document_field_semantics) ... ok
+test_valid_payload_samples_pass (test_validator.ContractValidatorTests.test_valid_payload_samples_pass) ... ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.002s
+
+OK
+output_end: true
+exit_code: 0
+ended_at_utc: 2026-02-11T13:11:43Z
+=== COMMAND ENTRY 2 END ===
+
+=== COMMAND ENTRY 3 START ===
+entry_index: 3
+cmd: make lint && make test
+shell_echo: $ make lint && make test
+started_at_utc: 2026-02-11T13:11:43Z
+output_begin: true
+python3 -m compileall src tests
+Listing 'src'...
+Listing 'src/contracts'...
+Listing 'src/daokit'...
+Listing 'tests'...
+Listing 'tests/contracts'...
+Listing 'tests/contracts/samples'...
+PYTHONPATH=src python3 -m unittest discover -s tests -p 'test_*.py' -v
+test_cli_init_returns_error_for_invalid_root (test_init.InitCommandTests.test_cli_init_returns_error_for_invalid_root) ... ok
+test_cli_init_returns_error_when_required_directory_is_file (test_init.InitCommandTests.test_cli_init_returns_error_when_required_directory_is_file) ... ok
+test_cli_init_returns_error_when_state_file_path_is_directory (test_init.InitCommandTests.test_cli_init_returns_error_when_state_file_path_is_directory) ... ok
+test_cli_init_supports_custom_root (test_init.InitCommandTests.test_cli_init_supports_custom_root) ... ok
+test_initialize_repository_creates_required_layout (test_init.InitCommandTests.test_initialize_repository_creates_required_layout) ... ok
+test_initialize_repository_is_idempotent (test_init.InitCommandTests.test_initialize_repository_is_idempotent) ... ok
+test_initialize_repository_rejects_directory_path_conflict (test_init.InitCommandTests.test_initialize_repository_rejects_directory_path_conflict) ... ok
+test_initialize_repository_rejects_state_file_path_conflict (test_init.InitCommandTests.test_initialize_repository_rejects_state_file_path_conflict) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.009s
+
+OK
+output_end: true
+exit_code: 0
+ended_at_utc: 2026-02-11T13:11:43Z
+=== COMMAND ENTRY 3 END ===
+
+=== COMMAND ENTRY 4 START ===
+entry_index: 4
+cmd: PYTHONPATH=src python3 -m contracts.validator --schema pipeline_state --payload tests/contracts/samples/pipeline_state.valid.json
+shell_echo: $ PYTHONPATH=src python3 -m contracts.validator --schema pipeline_state --payload tests/contracts/samples/pipeline_state.valid.json
+started_at_utc: 2026-02-11T13:11:43Z
+output_begin: true
+VALID: pipeline_state <- tests/contracts/samples/pipeline_state.valid.json
+output_end: true
+exit_code: 0
+ended_at_utc: 2026-02-11T13:11:43Z
+=== COMMAND ENTRY 4 END ===
+
+=== COMMAND ENTRY 5 START ===
+entry_index: 5
+cmd: PYTHONPATH=src python3 -m contracts.validator --schema pipeline_state --payload tests/contracts/samples/pipeline_state.invalid.json
+shell_echo: $ PYTHONPATH=src python3 -m contracts.validator --schema pipeline_state --payload tests/contracts/samples/pipeline_state.invalid.json
+started_at_utc: 2026-02-11T13:11:43Z
+output_begin: true
+INVALID: $.schema_version must equal constant value '1.0.0'
+output_end: true
+exit_code: 1
+ended_at_utc: 2026-02-11T13:11:43Z
+=== COMMAND ENTRY 5 END ===
+invalid_sample_expectation: PASS (invalid sample rejected as expected)
+
+=== COMMAND ENTRY 6 START ===
+entry_index: 6
+cmd: PYTHONPATH=src python3 -m contracts.validator --schema heartbeat_status --payload state/heartbeat_status.json
+shell_echo: $ PYTHONPATH=src python3 -m contracts.validator --schema heartbeat_status --payload state/heartbeat_status.json
+started_at_utc: 2026-02-11T13:11:43Z
+output_begin: true
+VALID: heartbeat_status <- state/heartbeat_status.json
+output_end: true
+exit_code: 0
+ended_at_utc: 2026-02-11T13:11:43Z
+=== COMMAND ENTRY 6 END ===
+
+command_entry_count: 6
+verification_status: PASS

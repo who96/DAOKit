@@ -1,0 +1,71 @@
+# DKT-008 Verification Log
+
+Requested baseline: make test-tools-fc
+Baseline status: missing in Makefile (no target).
+Equivalent verification mapping:
+- `PYTHONPATH=src python3 -m unittest discover -s tests/tools -p 'test_*.py' -v`
+  Coverage: DKT-008 acceptance criteria for argument validation, timeout handling, invocation logging.
+- `make test`
+  Coverage: regression sanity for existing test suite.
+- `python3 -m compileall src/tools tests/tools`
+  Coverage: syntax validity for changed scope.
+
+=== COMMAND ENTRY 1 START ===
+Command: make test-tools-fc
+Working Directory: /Users/huluobo/workSpace/DAOKit
+Timestamp (UTC): 2026-02-11T14:51:41Z
+Output:
+make: *** No rule to make target `test-tools-fc'.  Stop.
+Exit Code: 2
+=== COMMAND ENTRY 1 END ===
+
+=== COMMAND ENTRY 2 START ===
+Command: PYTHONPATH=src python3 -m unittest discover -s tests/tools -p 'test_*.py' -v
+Working Directory: /Users/huluobo/workSpace/DAOKit
+Timestamp (UTC): 2026-02-11T14:51:41Z
+Output:
+test_invalid_args_rejected_before_execution (test_function_calling_adapter.FunctionCallingAdapterTests.test_invalid_args_rejected_before_execution) ... ok
+test_invocation_logs_include_request_result_and_status (test_function_calling_adapter.FunctionCallingAdapterTests.test_invocation_logs_include_request_result_and_status) ... ok
+test_timeout_is_handled_and_recorded (test_function_calling_adapter.FunctionCallingAdapterTests.test_timeout_is_handled_and_recorded) ... ok
+
+----------------------------------------------------------------------
+Ran 3 tests in 0.053s
+
+OK
+Exit Code: 0
+=== COMMAND ENTRY 2 END ===
+
+=== COMMAND ENTRY 3 START ===
+Command: make test
+Working Directory: /Users/huluobo/workSpace/DAOKit
+Timestamp (UTC): 2026-02-11T14:51:41Z
+Output:
+PYTHONPATH=src python3 -m unittest discover -s tests -p 'test_*.py' -v
+test_cli_init_returns_error_for_invalid_root (test_init.InitCommandTests.test_cli_init_returns_error_for_invalid_root) ... ok
+test_cli_init_returns_error_when_required_directory_is_file (test_init.InitCommandTests.test_cli_init_returns_error_when_required_directory_is_file) ... ok
+test_cli_init_returns_error_when_state_file_path_is_directory (test_init.InitCommandTests.test_cli_init_returns_error_when_state_file_path_is_directory) ... ok
+test_cli_init_supports_custom_root (test_init.InitCommandTests.test_cli_init_supports_custom_root) ... ok
+test_initialize_repository_creates_required_layout (test_init.InitCommandTests.test_initialize_repository_creates_required_layout) ... ok
+test_initialize_repository_is_idempotent (test_init.InitCommandTests.test_initialize_repository_is_idempotent) ... ok
+test_initialize_repository_rejects_directory_path_conflict (test_init.InitCommandTests.test_initialize_repository_rejects_directory_path_conflict) ... ok
+test_initialize_repository_rejects_state_file_path_conflict (test_init.InitCommandTests.test_initialize_repository_rejects_state_file_path_conflict) ... ok
+
+----------------------------------------------------------------------
+Ran 8 tests in 0.009s
+
+OK
+Exit Code: 0
+=== COMMAND ENTRY 3 END ===
+
+=== COMMAND ENTRY 4 START ===
+Command: python3 -m compileall src/tools tests/tools
+Working Directory: /Users/huluobo/workSpace/DAOKit
+Timestamp (UTC): 2026-02-11T14:51:41Z
+Output:
+Listing 'src/tools'...
+Listing 'src/tools/common'...
+Listing 'src/tools/function_calling'...
+Listing 'tests/tools'...
+Exit Code: 0
+=== COMMAND ENTRY 4 END ===
+

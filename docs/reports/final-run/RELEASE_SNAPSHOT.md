@@ -20,7 +20,9 @@
 - `docs/reports/final-run/batch_resume_from_dkt003_results.tsv`
 - `docs/reports/final-run/run_evidence_index.tsv`
 - `docs/reports/final-run/run_evidence_index.md`
+- `docs/reports/final-run/evidence/` (repository-tracked evidence bundle)
+- `docs/reports/final-run/evidence_manifest.sha256`
 - `docs/reports/FINAL_ACCEPTANCE.md`
 
-## Release Tag Recommendation
-- Suggested tag name: `v1.0.0-rc1`
+## Release Tag
+- `v1.0.0-rc1`

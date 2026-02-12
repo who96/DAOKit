@@ -39,6 +39,8 @@
 - Initial batch ledger: `docs/reports/final-run/batch_results.tsv`
 - Resume batch ledger: `docs/reports/final-run/batch_resume_from_dkt003_results.tsv`
 - Evidence index: `docs/reports/final-run/run_evidence_index.tsv`
+- Evidence bundle: `docs/reports/final-run/evidence/`
+- Evidence integrity manifest: `docs/reports/final-run/evidence_manifest.sha256`
 
 ## Manual Spot Checks
 - DKT-016: evidence trio present and readable.
