@@ -64,6 +64,7 @@ PYTHONPATH=src python3 -m cli check --root .
 
 - [编排一致性演示](examples/cli/quickstart.sh)
 - [Observer-relay 协作恢复链演示](examples/cli/observer_relay_recovery_chain.sh)
+- [Integrated 模式可靠性恢复链演示](examples/cli/integrated_reliability_recovery_chain.sh)
 - [恢复演示](examples/cli/recovery.sh)
 - [核心轮换连续性演示](examples/cli/core_rotation_continuity.sh)
 - [后端到 Agent 迁移路径](examples/cli/backend_to_agent_path.sh)
@@ -73,6 +74,7 @@ PYTHONPATH=src python3 -m cli check --root .
 ```bash
 bash examples/cli/quickstart.sh .
 bash examples/cli/observer_relay_recovery_chain.sh .
+bash examples/cli/integrated_reliability_recovery_chain.sh .artifacts/readme_demo/integrated .artifacts/readme_demo/integrated/integrated-reliability-summary.json
 bash examples/cli/recovery.sh .
 bash examples/cli/core_rotation_continuity.sh .
 bash examples/cli/backend_to_agent_path.sh .
@@ -86,6 +88,10 @@ bash examples/cli/backend_to_agent_path.sh .
 - [后端到 Agent 工作流](docs/backend-to-agent-workflows.md)
 - [多 Agent 协作工作流（English）](docs/workflows/multi-agent-collaboration.en.md)
 - [多 Agent 协作工作流（中文）](docs/workflows/multi-agent-collaboration.zh-CN.md)
+- [LangChain + LangGraph + RAG 协作机制（English）](docs/workflows/langchain-langgraph-rag-cooperation.en.md)
+- [LangChain + LangGraph + RAG 协作机制（中文）](docs/workflows/langchain-langgraph-rag-cooperation.zh-CN.md)
+- [Codex 集成运行手册（English）](docs/workflows/codex-integration-runbook.en.md)
+- [Codex 集成运行手册（中文）](docs/workflows/codex-integration-runbook.zh-CN.md)
 - [Observer-relay 可行性报告](docs/observer-relay-feasibility.md)
 - [Observer-relay 角色与压缩策略](docs/observer-relay-persona-and-compaction.md)
 - [Observer-relay 优化计划](docs/observer-relay-optimization-plan.md)

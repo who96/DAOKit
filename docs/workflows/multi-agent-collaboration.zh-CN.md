@@ -104,7 +104,10 @@ flowchart LR
 ## 7. 相关文档
 
 - [架构总览](../architecture.md)
+- [LangChain + LangGraph + RAG 协作机制（中文）](langchain-langgraph-rag-cooperation.zh-CN.md)
+- [Codex 集成运行手册（中文）](codex-integration-runbook.zh-CN.md)
 - [CLI 快速上手](../cli-quickstart.md)
 - [后端到 Agent 工作流](../backend-to-agent-workflows.md)
 - [可运行 Observer-relay 恢复链 CLI 示例](../../examples/cli/observer_relay_recovery_chain.sh)
+- [可运行 Integrated 可靠性恢复链 CLI 示例](../../examples/cli/integrated_reliability_recovery_chain.sh)
 - [English version of this workflow](multi-agent-collaboration.en.md)

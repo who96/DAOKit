@@ -9,6 +9,15 @@ This guide provides a practical migration path from backend engineering habits t
 
 These paired docs define the health-check decision branch plus the handoff -> clear -> restore recovery chain used by the transition drills below.
 
+## LangChain + LangGraph + RAG + Codex Reference (Bilingual)
+
+- English: `docs/workflows/langchain-langgraph-rag-cooperation.en.md`
+- 中文: `docs/workflows/langchain-langgraph-rag-cooperation.zh-CN.md`
+- Runbook (EN): `docs/workflows/codex-integration-runbook.en.md`
+- 运行手册（中文）: `docs/workflows/codex-integration-runbook.zh-CN.md`
+
+These docs explain runtime responsibility boundaries and provide reproducible backend command flows tied to finalized evidence artifacts.
+
 ## Workflow A: Deterministic First Run
 
 Goal: build confidence in state and acceptance contracts.
@@ -78,3 +87,18 @@ Outcome:
 
 - Replays deterministic run, recovery, and continuity patterns in one path.
 - Suitable for onboarding backend contributors in under one hour.
+
+## Workflow F: Integrated Runtime Reliability Drill (Codex Runbook Path)
+
+Goal: reproduce the integrated-mode reliability path used for finalized LangGraph + Codex evidence.
+
+```bash
+bash examples/cli/integrated_reliability_recovery_chain.sh \
+  .artifacts/manual_runs/codex_integration_demo/scenario \
+  .artifacts/manual_runs/codex_integration_demo/integrated-reliability-summary.json
+```
+
+Outcome:
+
+- Exercises integrated runtime recovery chain with deterministic stale/takeover/handoff flow.
+- Produces machine-readable checkpoints used by the Codex integration runbook.

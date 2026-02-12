@@ -105,7 +105,10 @@ flowchart LR
 ## 7. Related Documents
 
 - [Architecture overview](../architecture.md)
+- [LangChain + LangGraph + RAG cooperation (English)](langchain-langgraph-rag-cooperation.en.md)
+- [Codex integration runbook (English)](codex-integration-runbook.en.md)
 - [CLI quickstart](../cli-quickstart.md)
 - [Backend-to-agent workflows](../backend-to-agent-workflows.md)
 - [Runnable observer-relay recovery-chain CLI example](../../examples/cli/observer_relay_recovery_chain.sh)
+- [Runnable integrated reliability recovery-chain CLI example](../../examples/cli/integrated_reliability_recovery_chain.sh)
 - [Chinese version of this workflow](multi-agent-collaboration.zh-CN.md)
