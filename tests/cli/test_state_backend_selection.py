@@ -49,7 +49,33 @@ class StateBackendSelectionCliTests(unittest.TestCase):
             self.assertEqual(state_payload.get("task_id"), "DKT-069")
             self.assertEqual(state_payload.get("run_id"), "RUN-SQLITE-CLI")
 
+    def test_run_supports_integrated_engine_with_sqlite_state_backend(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            initialize_repository(root)
+            settings_path = root / "state" / "runtime_settings.json"
+            settings_path.write_text(
+                json.dumps(
+                    {"runtime": {"mode": "integrated", "state_backend": "sqlite"}},
+                    indent=2,
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            args = self._run_args(root)
+            exit_code = _cmd_run(args)
+
+            self.assertEqual(exit_code, 0)
+            self.assertTrue((root / "state" / "state.sqlite3").is_file())
+
+            state_payload = json.loads(
+                (root / "state" / "pipeline_state.json").read_text(encoding="utf-8")
+            )
+            self.assertEqual(state_payload.get("status"), "DONE")
+            self.assertEqual(state_payload.get("task_id"), "DKT-069")
+            self.assertEqual(state_payload.get("run_id"), "RUN-SQLITE-CLI")
+
 
 if __name__ == "__main__":
     unittest.main()
-
