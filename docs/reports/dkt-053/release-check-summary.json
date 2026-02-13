@@ -1,0 +1,32 @@
+{
+  "commands": [
+    {
+      "command": "make lint",
+      "exit_code": 0,
+      "index": 1,
+      "status": "passed"
+    },
+    {
+      "command": "make test",
+      "exit_code": 0,
+      "index": 2,
+      "status": "passed"
+    },
+    {
+      "command": "make release-check",
+      "exit_code": 0,
+      "index": 3,
+      "status": "passed"
+    }
+  ],
+  "deterministic_sequence": [
+    "make lint",
+    "make test",
+    "make release-check"
+  ],
+  "failed_command": null,
+  "schema_version": "1.0.0",
+  "status": "passed",
+  "verification_log": "docs/reports/dkt-053/verification.log",
+  "workflow": "release-check"
+}
