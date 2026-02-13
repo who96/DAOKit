@@ -6,6 +6,7 @@ import unittest
 from rag.index.providers import (
     EmbeddingProvider,
     EmbeddingProviderConfig,
+    LOCAL_TOKEN_SIGNATURE_BACKEND,
     build_embedding_provider,
     local_embedding_candidates,
     optional_api_embedding_candidates,
@@ -111,6 +112,39 @@ class EmbeddingProviderTests(unittest.TestCase):
         )
         self.assertIn(provider.name, set(local_embedding_candidates()))
         self.assertEqual(provider.dimensions, 24)
+
+    def test_local_token_signature_provider_vector_signature_is_stable(self) -> None:
+        provider = build_embedding_provider(
+            EmbeddingProviderConfig(
+                mode="production",
+                backend=LOCAL_TOKEN_SIGNATURE_BACKEND,
+                dimensions=16,
+            )
+        )
+        vector = provider.embed_texts(
+            ["Production retrieval should use provider-backed vectors, not hash fixtures."]
+        )[0]
+        self.assertEqual(
+            vector,
+            (
+                0.83732383,
+                0.34919116,
+                0.09311764,
+                0.14549632,
+                0.0,
+                0.0,
+                0.29797645,
+                0.0,
+                0.03724706,
+                0.01396765,
+                0.13094668,
+                0.14549632,
+                0.11639705,
+                0.0,
+                0.0,
+                0.06983823,
+            ),
+        )
 
 
 if __name__ == "__main__":
