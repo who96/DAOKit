@@ -362,6 +362,17 @@ class OrchestratorRuntime:
         working_state["role_lifecycle"]["route:last_reason"] = route.reason
         working_state["role_lifecycle"]["route:last_predicate"] = route.predicate_name
         working_state["role_lifecycle"]["route:last_target"] = route.target.value
+        route_trace = self._append_route_trace(
+            role_lifecycle=working_state["role_lifecycle"],
+            route_id=route.route_id,
+        )
+        route_trace_index = len(route_trace) - 1
+        correlation_id = self._resolve_route_correlation_id(state=working_state)
+        route_trace_id = self._resolve_route_trace_id(state=working_state)
+        working_state["role_lifecycle"]["route:trace_id"] = route_trace_id
+        working_state["role_lifecycle"]["route:trace_index"] = str(route_trace_index)
+        if correlation_id is not None:
+            working_state["role_lifecycle"]["route:correlation_id"] = correlation_id
 
         saved = self.state_store.save_state(
             working_state,
@@ -382,6 +393,10 @@ class OrchestratorRuntime:
                 "route_id": route.route_id,
                 "route_reason": route.reason,
                 "route_predicate": route.predicate_name,
+                "correlation_id": correlation_id,
+                "branch_trace_id": route_trace_id,
+                "branch_trace_index": route_trace_index,
+                "branch_trace": route_trace,
             },
             dedup_key=None,
         )
@@ -400,6 +415,10 @@ class OrchestratorRuntime:
         message = str(error)
         if "Action:" in message:
             actionable_hint = f"Action: {message.split('Action:', maxsplit=1)[1].strip()}"
+        route_trace = self._read_route_trace_from_state(state)
+        route_trace_id = self._resolve_route_trace_id(state=state)
+        correlation_id = self._resolve_route_correlation_id(state=state)
+        route_trace_index = max(len(route_trace) - 1, 0)
 
         payload: dict[str, Any] = {
             "diagnostic_type": str(diagnostics.get("diagnostic_type") or "route_guard_failure"),
@@ -415,6 +434,10 @@ class OrchestratorRuntime:
             ],
             "message": message,
             "actionable_hint": actionable_hint,
+            "correlation_id": correlation_id,
+            "branch_trace_id": route_trace_id,
+            "branch_trace_index": route_trace_index,
+            "branch_trace": route_trace,
         }
 
         self.state_store.append_event(
@@ -693,6 +716,84 @@ class OrchestratorRuntime:
         active_step: str,
     ) -> str:
         return f"corr:{self.task_id}:{self.run_id}:{active_step}"
+
+    def _resolve_route_trace_id(self, *, state: Mapping[str, Any]) -> str:
+        active_step = self._normalize_optional_string(state.get("current_step")) or self.step_id
+        return f"trace:{self.task_id}:{self.run_id}:{active_step}"
+
+    def _resolve_route_correlation_id(self, *, state: Mapping[str, Any]) -> str | None:
+        role_lifecycle = state.get("role_lifecycle")
+        if isinstance(role_lifecycle, Mapping):
+            dispatch_correlation_id = self._normalize_optional_string(
+                role_lifecycle.get("dispatch_correlation_id")
+            )
+            if dispatch_correlation_id is not None:
+                return dispatch_correlation_id
+
+            route_correlation_id = self._normalize_optional_string(
+                role_lifecycle.get("route:correlation_id")
+            )
+            if route_correlation_id is not None:
+                return route_correlation_id
+
+        active_step = self._normalize_optional_string(state.get("current_step")) or self.step_id
+        return self._resolve_dispatch_correlation_id(active_step=active_step)
+
+    def _append_route_trace(
+        self,
+        *,
+        role_lifecycle: dict[str, Any],
+        route_id: str,
+    ) -> list[str]:
+        existing_trace = self._read_route_trace(
+            role_lifecycle.get("route:trace"),
+        )
+        existing_trace.append(route_id)
+        role_lifecycle["route:trace"] = json.dumps(
+            existing_trace,
+            ensure_ascii=True,
+            separators=(",", ":"),
+        )
+        return existing_trace
+
+    def _read_route_trace_from_state(self, state: Mapping[str, Any]) -> list[str]:
+        role_lifecycle = state.get("role_lifecycle")
+        if not isinstance(role_lifecycle, Mapping):
+            return []
+        return self._read_route_trace(role_lifecycle.get("route:trace"))
+
+    def _read_route_trace(self, value: Any) -> list[str]:
+        if isinstance(value, str):
+            normalized = value.strip()
+            if not normalized:
+                return []
+
+            try:
+                parsed = json.loads(normalized)
+            except json.JSONDecodeError:
+                parsed = None
+
+            if isinstance(parsed, list):
+                return [
+                    item.strip()
+                    for item in parsed
+                    if isinstance(item, str) and item.strip()
+                ]
+
+            return [
+                item.strip()
+                for item in normalized.split(",")
+                if item.strip()
+            ]
+
+        if isinstance(value, list):
+            return [
+                item.strip()
+                for item in value
+                if isinstance(item, str) and item.strip()
+            ]
+
+        return []
 
     def _parse_invocation_counter(self, value: Any) -> int:
         if isinstance(value, int):

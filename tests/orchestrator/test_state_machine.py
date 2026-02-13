@@ -318,6 +318,10 @@ class OrchestratorStateMachineTests(unittest.TestCase):
             self.assertEqual(payload["attempted_target"], "DONE")
             self.assertEqual(payload["route_reason"], "acceptance_not_failed_finalize")
             self.assertIn("Action:", payload["actionable_hint"])
+            self.assertEqual(payload["correlation_id"], "corr:DKT-003:RUN-001:S1")
+            self.assertEqual(payload["branch_trace_id"], "trace:DKT-003:RUN-001:S1")
+            self.assertEqual(int(payload["branch_trace_index"]), 0)
+            self.assertEqual(payload["branch_trace"], [])
 
     def test_state_is_recoverable_after_process_restart(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
