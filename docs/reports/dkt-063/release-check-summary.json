@@ -1,0 +1,25 @@
+{
+  "commands": [
+    {
+      "command": "make lint",
+      "exit_code": 0,
+      "index": 1,
+      "status": "passed"
+    },
+    {
+      "command": "make test",
+      "exit_code": 0,
+      "index": 2,
+      "status": "passed"
+    }
+  ],
+  "deterministic_sequence": [
+    "make lint",
+    "make test"
+  ],
+  "failed_command": null,
+  "schema_version": "1.0.0",
+  "status": "passed",
+  "verification_log": "/Users/huluobo/workSpace/DAOKit/.worktrees/dkt-063/.artifacts/agent_runs/DKT-063_20260213T125046Z_qv24vh6/baseline/release-check-verification.log",
+  "workflow": "release-check"
+}

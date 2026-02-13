@@ -1,0 +1,54 @@
+{
+  "schema_version": "1.0.0",
+  "task_id": "DKT-063",
+  "run_id": "DKT-063_20260213T125046Z_qv24vh6",
+  "deliverables": {
+    "DKT-057": {
+      "commit": "533240048aeca0bad67840b48aa1b6d1828ad8cc",
+      "evidence": [
+        "src/reliability/scenarios/text_input_minimal_flow.py",
+        "tests/test_text_input_minimal_flow.py",
+        "docs/reports/dkt-063/scenario-proof-summary.json"
+      ]
+    },
+    "DKT-058": {
+      "commit": "c532ed95611f0f4c33f22e84b55c08f087fa2b9a",
+      "evidence": [
+        "src/reliability/scenarios/text_input_minimal_flow.py",
+        "docs/reports/dkt-063/scenario-proof-summary.json"
+      ]
+    },
+    "DKT-059": {
+      "commit": "46e921894579aba0a40d30016bad0411b4a315c6",
+      "evidence": [
+        "src/rag/index/providers.py",
+        "tests/contracts/test_schema_compatibility_guardrails.py",
+        "docs/reports/dkt-063/verification.log"
+      ]
+    },
+    "DKT-060": {
+      "commit": "6c156a5086fa59cda9fbbaa6622474c7de71622b",
+      "evidence": [
+        "src/rag/index/store.py",
+        "src/rag/index/providers.py",
+        "docs/reports/dkt-063/verification.log"
+      ]
+    },
+    "DKT-061": {
+      "commit": "2a7073a672f561d1e3b5e4c22d37c79fe3efa3de",
+      "evidence": [
+        "docs/reports/dkt-061/benchmark/retrieval-benchmark-metrics.json",
+        "docs/reports/dkt-061/benchmark/retrieval-benchmark-report.md",
+        "docs/reports/dkt-061/report.md"
+      ]
+    },
+    "DKT-062": {
+      "commit": "8c446a2ccaa84190bb6a4ef71c7833c873c2934f",
+      "evidence": [
+        "docs/reports/dkt-062/report.md",
+        "docs/reports/dkt-062/release-check-summary.json",
+        "docs/reports/dkt-063/embedding-decision-summary.json"
+      ]
+    }
+  }
+}

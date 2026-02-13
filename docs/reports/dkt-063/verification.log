@@ -1,0 +1,371 @@
+=== COMMAND ENTRY 1 START ===
+Command: make lint
+Working Directory: /Users/huluobo/workSpace/DAOKit/.worktrees/dkt-063
+--- OUTPUT START ---
+python3 -m compileall src tests
+Listing 'src'...
+Listing 'src/acceptance'...
+Listing 'src/artifacts'...
+Listing 'src/audit'...
+Listing 'src/cli'...
+Listing 'src/contracts'...
+Listing 'src/daokit'...
+Listing 'src/dispatch'...
+Listing 'src/hooks'...
+Listing 'src/orchestrator'...
+Listing 'src/planner'...
+Listing 'src/rag'...
+Listing 'src/rag/evaluation'...
+Listing 'src/rag/evaluation/datasets'...
+Listing 'src/rag/index'...
+Listing 'src/rag/ingest'...
+Listing 'src/rag/retrieval'...
+Listing 'src/reliability'...
+Listing 'src/reliability/handoff'...
+Listing 'src/reliability/heartbeat'...
+Listing 'src/reliability/lease'...
+Listing 'src/reliability/scenarios'...
+Listing 'src/reliability/succession'...
+Listing 'src/reports'...
+Listing 'src/skills'...
+Listing 'src/state'...
+Listing 'src/tools'...
+Listing 'src/tools/common'...
+Listing 'src/tools/function_calling'...
+Listing 'src/tools/langchain'...
+Listing 'src/tools/mcp'...
+Listing 'src/verification'...
+Listing 'tests'...
+Listing 'tests/acceptance'...
+Listing 'tests/audit'...
+Listing 'tests/ci'...
+Listing 'tests/cli'...
+Listing 'tests/contracts'...
+Listing 'tests/contracts/samples'...
+Listing 'tests/dispatch'...
+Listing 'tests/e2e'...
+Listing 'tests/hooks'...
+Listing 'tests/orchestrator'...
+Listing 'tests/planner'...
+Listing 'tests/rag'...
+Listing 'tests/reliability'...
+Listing 'tests/reports'...
+Listing 'tests/skills'...
+Listing 'tests/templates'...
+Listing 'tests/tools'...
+Listing 'tests/verification'...
+--- OUTPUT END ---
+Exit Code: 0
+=== COMMAND ENTRY 1 END ===
+
+=== COMMAND ENTRY 2 START ===
+Command: make test
+Working Directory: /Users/huluobo/workSpace/DAOKit/.worktrees/dkt-063
+--- OUTPUT START ---
+PYTHONPATH=src python3 -m unittest discover -s tests -p 'test_*.py' -v
+test_codex_integration_runbooks_reference_hardening_gate (ci.test_v11_hardening_gate_contract.V11HardeningGateContractTests) ... ok
+test_makefile_exposes_hardening_gate_targets (ci.test_v11_hardening_gate_contract.V11HardeningGateContractTests) ... ok
+test_release_check_runbook_matches_ci_gate_sequence (ci.test_v11_hardening_gate_contract.V11HardeningGateContractTests) ... ok
+test_workflow_runs_criterion_mapped_gate_order (ci.test_v11_hardening_gate_contract.V11HardeningGateContractTests) ... ok
+test_contributor_doc_includes_deterministic_release_checklist (templates.test_skill_manifest_template.SkillManifestTemplateTests) ... ok
+test_contributor_doc_includes_failure_examples (templates.test_skill_manifest_template.SkillManifestTemplateTests) ... ok
+test_template_hooks_use_supported_events (templates.test_skill_manifest_template.SkillManifestTemplateTests) ... ok
+test_template_is_accepted_by_loader_contract (templates.test_skill_manifest_template.SkillManifestTemplateTests) ... ok
+test_template_is_valid_json_with_required_metadata (templates.test_skill_manifest_template.SkillManifestTemplateTests) ... ok
+test_adapter_scaffold_is_immediately_runnable (templates.test_tool_adapter_template.ToolAdapterTemplateContractTests) ... ok
+test_contributor_checklist_maps_acceptance_and_evidence (templates.test_tool_adapter_template.ToolAdapterTemplateContractTests) ... ok
+test_readme_links_template_to_release_check (templates.test_tool_adapter_template.ToolAdapterTemplateContractTests) ... ok
+test_template_assets_exist (templates.test_tool_adapter_template.ToolAdapterTemplateContractTests) ... ok
+test_cli_init_returns_error_for_invalid_root (test_init.InitCommandTests) ... ok
+test_cli_init_returns_error_when_required_directory_is_file (test_init.InitCommandTests) ... ok
+test_cli_init_returns_error_when_state_file_path_is_directory (test_init.InitCommandTests) ... ok
+test_cli_init_supports_custom_root (test_init.InitCommandTests) ... ok
+test_initialize_repository_creates_required_layout (test_init.InitCommandTests) ... ok
+test_initialize_repository_is_idempotent (test_init.InitCommandTests) ... ok
+test_initialize_repository_rejects_directory_path_conflict (test_init.InitCommandTests) ... ok
+test_initialize_repository_rejects_state_file_path_conflict (test_init.InitCommandTests) ... ok
+test_run_release_check_fails_fast_after_first_failure (test_release_check.ReleaseCheckTests) ... ok
+test_run_release_check_writes_markerized_log_and_summary (test_release_check.ReleaseCheckTests) ... ok
+test_flow_completes_without_external_api_dependency (test_text_input_minimal_flow.TextInputMinimalFlowScenarioTests) ... ok
+test_real_dispatch_path_is_invoked_and_auditable (test_text_input_minimal_flow.TextInputMinimalFlowScenarioTests) ... ok
+test_repeated_runs_keep_process_path_and_artifact_structure_signatures_stable (test_text_input_minimal_flow.TextInputMinimalFlowScenarioTests) ... ok
+
+----------------------------------------------------------------------
+Ran 26 tests in 0.913s
+
+OK
+--- OUTPUT END ---
+Exit Code: 0
+=== COMMAND ENTRY 2 END ===
+
+=== COMMAND ENTRY 3 START ===
+Command: RELEASE_CHECK_LOG="/Users/huluobo/workSpace/DAOKit/.worktrees/dkt-063/.artifacts/agent_runs/DKT-063_20260213T125046Z_qv24vh6/baseline/release-check-verification.log" RELEASE_CHECK_SUMMARY="/Users/huluobo/workSpace/DAOKit/.worktrees/dkt-063/.artifacts/agent_runs/DKT-063_20260213T125046Z_qv24vh6/baseline/release-check-summary.json" make release-check
+Working Directory: /Users/huluobo/workSpace/DAOKit/.worktrees/dkt-063
+--- OUTPUT START ---
+PYTHONPATH=src python3 -m cli.release_check \
+		--verification-log "/Users/huluobo/workSpace/DAOKit/.worktrees/dkt-063/.artifacts/agent_runs/DKT-063_20260213T125046Z_qv24vh6/baseline/release-check-verification.log" \
+		--summary-json "/Users/huluobo/workSpace/DAOKit/.worktrees/dkt-063/.artifacts/agent_runs/DKT-063_20260213T125046Z_qv24vh6/baseline/release-check-summary.json" \
+		--working-directory "/Users/huluobo/workSpace/DAOKit/.worktrees/dkt-063"
+--- OUTPUT END ---
+Exit Code: 0
+=== COMMAND ENTRY 3 END ===
+
+=== COMMAND ENTRY 4 START ===
+Command: PYTHONPATH=src python3 -m unittest tests/contracts/test_schema_compatibility_guardrails.py tests/contracts/test_release_evidence_anchors.py tests/cli/test_parser_compatibility.py -v
+Working Directory: /Users/huluobo/workSpace/DAOKit/.worktrees/dkt-063
+--- OUTPUT START ---
+test_critical_enums_are_frozen (tests.contracts.test_schema_compatibility_guardrails.SchemaCompatibilityGuardrailsTests) ... ok
+test_schema_version_is_pinned_to_1_0_0 (tests.contracts.test_schema_compatibility_guardrails.SchemaCompatibilityGuardrailsTests) ... ok
+test_validator_rejects_schema_version_drift (tests.contracts.test_schema_compatibility_guardrails.SchemaCompatibilityGuardrailsTests) ... ok
+test_validator_rejects_unknown_event_type_enum_values (tests.contracts.test_schema_compatibility_guardrails.SchemaCompatibilityGuardrailsTests) ... ok
+test_final_acceptance_mentions_v1_rc1_anchor (tests.contracts.test_release_evidence_anchors.ReleaseEvidenceAnchorTests) ... ok
+test_final_run_anchor_paths_exist (tests.contracts.test_release_evidence_anchors.ReleaseEvidenceAnchorTests) ... ok
+test_run_evidence_index_header_is_stable (tests.contracts.test_release_evidence_anchors.ReleaseEvidenceAnchorTests) ... ok
+test_bundle_argument_names_are_stable (tests.cli.test_parser_compatibility.CliParserCompatibilityTests) ... ok
+test_cli_argument_names_and_destinations_remain_unchanged (tests.cli.test_parser_compatibility.CliParserCompatibilityTests) ... ok
+test_cli_command_names_remain_unchanged (tests.cli.test_parser_compatibility.CliParserCompatibilityTests) ... ok
+test_prog_name_is_frozen (tests.cli.test_parser_compatibility.CliParserCompatibilityTests) ... ok
+
+----------------------------------------------------------------------
+Ran 11 tests in 0.005s
+
+OK
+--- OUTPUT END ---
+Exit Code: 0
+=== COMMAND ENTRY 4 END ===
+
+=== COMMAND ENTRY 5 START ===
+Command: PYTHONPATH=src python3 scripts/check_criteria_linkage.py --criteria-map docs/reports/criteria-map.json --summary-json /Users/huluobo/workSpace/DAOKit/.worktrees/dkt-063/.artifacts/agent_runs/DKT-063_20260213T125046Z_qv24vh6/baseline/criteria-linkage-check.json
+Working Directory: /Users/huluobo/workSpace/DAOKit/.worktrees/dkt-063
+--- OUTPUT START ---
+[PASS] criteria linkage check passed (6 criteria)
+Summary written to: /Users/huluobo/workSpace/DAOKit/.worktrees/dkt-063/.artifacts/agent_runs/DKT-063_20260213T125046Z_qv24vh6/baseline/criteria-linkage-check.json
+--- OUTPUT END ---
+Exit Code: 0
+=== COMMAND ENTRY 5 END ===
+
+=== COMMAND ENTRY 6 START ===
+Command: rg -n "LangGraph|legacy.*maintenance|CLI.*argument|schema_version=1\.0\.0|v1\.0\.0-rc1|docs/reports/final-run/" specs/006-v1-3-real-workload-proof/requirements.md specs/006-v1-3-real-workload-proof/design.md specs/006-v1-3-real-workload-proof/tasks.md v1.3规划.md docs/roadmap.md specs/006-v1-3-real-workload-proof/guardrail-charter-acceptance-matrix.md
+Working Directory: /Users/huluobo/workSpace/DAOKit/.worktrees/dkt-063
+--- OUTPUT START ---
+specs/006-v1-3-real-workload-proof/requirements.md:28:- Deep LangGraph capabilities (conditional routing/checkpoint/resume) in this version.
+specs/006-v1-3-real-workload-proof/requirements.md:61:- FR-RUN-001: Runtime default remains LangGraph.
+specs/006-v1-3-real-workload-proof/requirements.md:63:- FR-COMP-001: Public CLI command/argument names must remain unchanged unless migration is approved.
+specs/006-v1-3-real-workload-proof/requirements.md:64:- FR-COMP-002: Contract semantics must remain compatible with `schema_version=1.0.0`.
+specs/006-v1-3-real-workload-proof/requirements.md:65:- FR-COMP-003: `v1.0.0-rc1` anchor and `docs/reports/final-run/` topology must remain unchanged.
+specs/006-v1-3-real-workload-proof/requirements.md:82:1. No public CLI argument rename/removal without approved migration.
+specs/006-v1-3-real-workload-proof/requirements.md:83:2. No semantic break to `schema_version=1.0.0` contracts.
+specs/006-v1-3-real-workload-proof/requirements.md:84:3. No break to `v1.0.0-rc1` anchor semantics and `docs/reports/final-run/` structure.
+specs/006-v1-3-real-workload-proof/requirements.md:96:4. Runtime policy remains LangGraph default with legacy runtime maintenance-only.
+specs/006-v1-3-real-workload-proof/requirements.md:99:   - `schema_version=1.0.0` semantics,
+specs/006-v1-3-real-workload-proof/requirements.md:100:   - `v1.0.0-rc1` anchor semantics,
+specs/006-v1-3-real-workload-proof/requirements.md:101:   - `docs/reports/final-run/` evidence topology.
+docs/roadmap.md:14:- Keep v1.1 rollout assets LangGraph-only (no orchestration-engine switching surface).
+docs/roadmap.md:30:- Keep v1.2 rollout and recovery assets LangGraph-only (no orchestration-engine switching surface).
+docs/roadmap.md:31:- Preserve non-breaking constraints for CLI parameters, `schema_version=1.0.0`, `v1.0.0-rc1`, and `docs/reports/final-run/` evidence topology.
+docs/roadmap.md:47:- Preserve non-breaking constraints for CLI parameters, `schema_version=1.0.0`, `v1.0.0-rc1`, and `docs/reports/final-run/` evidence topology.
+docs/roadmap.md:48:- Keep runtime policy as LangGraph default with legacy runtime maintenance-only.
+docs/roadmap.md:60:- Execute architecture-deepening work deferred from v1.3: P2 (LangGraph conditional routing + checkpoint/resume) and P3 (SQLite backend).
+docs/roadmap.md:67:- LangGraph deep integration evidence and backend consistency report.
+specs/006-v1-3-real-workload-proof/tasks.md:12:3. Confirm runtime policy: LangGraph default, legacy maintenance-only.
+specs/006-v1-3-real-workload-proof/tasks.md:13:4. Confirm compatibility invariants remain unchanged and auditable (`schema_version=1.0.0`, CLI public args, `v1.0.0-rc1`, `docs/reports/final-run/` topology).
+specs/006-v1-3-real-workload-proof/tasks.md:19:3. Compatibility/runtime constraints are unchanged and auditable: CLI public args unchanged, `schema_version=1.0.0` semantics preserved, `v1.0.0-rc1` and `docs/reports/final-run/` topology preserved, LangGraph default + legacy maintenance-only.
+v1.3规划.md:25:   - `schema_version=1.0.0` 语义不变；
+v1.3规划.md:26:   - `v1.0.0-rc1` 与 `docs/reports/final-run/` 结构不变；
+v1.3规划.md:27:   - LangGraph 默认，legacy 仅维护不扩展。
+v1.3规划.md:35:3. 架构升级项后置：P2（LangGraph 深化）与 P3（SQLite 后端）进入 v1.4。
+v1.3规划.md:70:- LangGraph 并行分支、人审节点、checkpoint 深化（放 v1.4/v1.5）。
+v1.3规划.md:92:### P2：LangGraph 深化（v1.4 只做两项）
+v1.3规划.md:109:1. Wave 0：规格冻结（LangGraph 深化边界 + 后端一致性标准）。
+v1.3规划.md:116:- LangGraph 深化能力落地与恢复证据。
+v1.3规划.md:122:2. 不破坏 `schema_version=1.0.0` 契约兼容语义。
+v1.3规划.md:123:3. 不破坏 `v1.0.0-rc1` 发布锚点与 `docs/reports/final-run/` 证据结构。
+v1.3规划.md:124:4. 运行时策略：默认使用 LangGraph runtime；legacy runtime 进入维护模式（保留可用，不新增功能）。
+v1.3规划.md:143:风险 3：LangGraph 深化和后端改造相互干扰。  
+specs/006-v1-3-real-workload-proof/guardrail-charter-acceptance-matrix.md:13:- `docs/reports/final-run/v1.2-final-verification-packet.md`
+specs/006-v1-3-real-workload-proof/guardrail-charter-acceptance-matrix.md:14:- `docs/reports/final-run/v1.2-release-readiness-summary.md`
+specs/006-v1-3-real-workload-proof/guardrail-charter-acceptance-matrix.md:16:These anchors remain the compatibility baseline for CLI surface, `schema_version=1.0.0`, and final-run evidence topology.
+specs/006-v1-3-real-workload-proof/guardrail-charter-acceptance-matrix.md:26:- P2 LangGraph deep integration (conditional routing/checkpoint/resume).
+specs/006-v1-3-real-workload-proof/guardrail-charter-acceptance-matrix.md:40:| GR-RUN-001 | Runtime default remains LangGraph. | Runtime policy checks in requirements/design/roadmap. | `requirements.md`, `design.md`, `docs/roadmap.md` |
+specs/006-v1-3-real-workload-proof/guardrail-charter-acceptance-matrix.md:43:| GR-COMP-002 | `schema_version=1.0.0` semantics remain intact. | Contract guardrail checks + baseline verification. | `requirements.md`, `tasks.md`, verification artifacts |
+specs/006-v1-3-real-workload-proof/guardrail-charter-acceptance-matrix.md:44:| GR-COMP-003 | `v1.0.0-rc1` anchor semantics remain intact. | Release-anchor continuity checks in acceptance artifacts. | `requirements.md`, `tasks.md`, `docs/reports/final-run/` |
+specs/006-v1-3-real-workload-proof/guardrail-charter-acceptance-matrix.md:45:| GR-COMP-004 | `docs/reports/final-run/` topology remains stable. | Topology existence checks via release-check and path assertions. | `docs/reports/final-run/` |
+specs/006-v1-3-real-workload-proof/guardrail-charter-acceptance-matrix.md:54:| AC-DKT-056-03 | Compatibility/runtime invariants remain unchanged and auditable (CLI args, `schema_version=1.0.0`, `v1.0.0-rc1`, `docs/reports/final-run/`, LangGraph default + legacy maintenance-only). | Guardrail rows and requirement/task constraints plus baseline verification logs. | `rg -n "LangGraph|legacy.*maintenance|CLI.*argument|schema_version=1\\.0\\.0|v1\\.0\\.0-rc1|docs/reports/final-run/" specs/006-v1-3-real-workload-proof/requirements.md specs/006-v1-3-real-workload-proof/design.md specs/006-v1-3-real-workload-proof/tasks.md v1.3规划.md docs/roadmap.md specs/006-v1-3-real-workload-proof/guardrail-charter-acceptance-matrix.md` | Command output contains unchanged invariant clauses; baseline verification commands pass with command evidence logs. |
+specs/006-v1-3-real-workload-proof/guardrail-charter-acceptance-matrix.md:66:- Keep public CLI argument surface unchanged.
+specs/006-v1-3-real-workload-proof/guardrail-charter-acceptance-matrix.md:67:- Keep `schema_version=1.0.0` compatibility semantics unchanged.
+specs/006-v1-3-real-workload-proof/guardrail-charter-acceptance-matrix.md:68:- Keep `v1.0.0-rc1` anchor semantics and `docs/reports/final-run/` topology unchanged.
+specs/006-v1-3-real-workload-proof/guardrail-charter-acceptance-matrix.md:78:3. Compatibility review against CLI surface, `schema_version=1.0.0`, `v1.0.0-rc1`, and `docs/reports/final-run/` anchors.
+specs/006-v1-3-real-workload-proof/design.md:64:1. LangGraph is the default runtime mode.
+--- OUTPUT END ---
+Exit Code: 0
+=== COMMAND ENTRY 6 END ===
+
+=== COMMAND ENTRY 7 START ===
+Command: git rev-parse --verify v1.0.0-rc1 && ls docs/reports/final-run/RELEASE_SNAPSHOT.md docs/reports/final-run/pre_batch_results.tsv docs/reports/final-run/batch_results.tsv docs/reports/final-run/batch_resume_from_dkt003_results.tsv docs/reports/final-run/run_evidence_index.tsv docs/reports/final-run/run_evidence_index.md docs/reports/final-run/evidence_manifest.sha256
+Working Directory: /Users/huluobo/workSpace/DAOKit/.worktrees/dkt-063
+--- OUTPUT START ---
+966aff706c1ae381047901b78417f10d3195cd74
+docs/reports/final-run/RELEASE_SNAPSHOT.md
+docs/reports/final-run/batch_results.tsv
+docs/reports/final-run/batch_resume_from_dkt003_results.tsv
+docs/reports/final-run/evidence_manifest.sha256
+docs/reports/final-run/pre_batch_results.tsv
+docs/reports/final-run/run_evidence_index.md
+docs/reports/final-run/run_evidence_index.tsv
+--- OUTPUT END ---
+Exit Code: 0
+=== COMMAND ENTRY 7 END ===
+
+=== COMMAND ENTRY 8 START ===
+Command: PYTHONPATH=src python3 /Users/huluobo/workSpace/DAOKit/.worktrees/dkt-063/.artifacts/agent_runs/DKT-063_20260213T125046Z_qv24vh6/p1/verify_embedding_decision.py
+Working Directory: /Users/huluobo/workSpace/DAOKit/.worktrees/dkt-063
+--- OUTPUT START ---
+{
+  "metrics_path": "docs/reports/dkt-061/benchmark/retrieval-benchmark-metrics.json",
+  "dkt_062_report_path": "docs/reports/dkt-062/report.md",
+  "selected_backend_in_code": "local/token-signature",
+  "top_backend_by_metric_rule": "local/token-signature",
+  "top_backend_metrics": {
+    "hit_rate_at_1": 0.083333,
+    "hit_rate_at_3": 0.583333,
+    "hit_rate_at_5": 0.666667,
+    "mrr_at_1": 0.083333,
+    "mrr_at_3": 0.305556,
+    "mrr_at_5": 0.322222,
+    "ndcg_at_1": 0.083333,
+    "ndcg_at_3": 0.349947,
+    "ndcg_at_5": 0.382185,
+    "precision_at_1": 0.083333,
+    "precision_at_3": 0.222222,
+    "precision_at_5": 0.15,
+    "recall_at_1": 0.083333,
+    "recall_at_3": 0.5,
+    "recall_at_5": 0.583333
+  },
+  "selection_matches_metric_rule": true,
+  "dkt_062_report_mentions_selection": true
+}
+--- OUTPUT END ---
+Exit Code: 0
+=== COMMAND ENTRY 8 END ===
+
+=== COMMAND ENTRY 9 START ===
+Command: python3 /Users/huluobo/workSpace/DAOKit/.worktrees/dkt-063/.artifacts/agent_runs/DKT-063_20260213T125046Z_qv24vh6/baseline/evidence_existence_check.py
+Working Directory: /Users/huluobo/workSpace/DAOKit/.worktrees/dkt-063
+--- OUTPUT START ---
+{
+  "checked_deliverables": [
+    "DKT-057",
+    "DKT-058",
+    "DKT-059",
+    "DKT-060",
+    "DKT-061",
+    "DKT-062"
+  ],
+  "checked_p0_lanes": [
+    "p0_real",
+    "p0_fallback"
+  ],
+  "missing_count": 0,
+  "missing": []
+}
+--- OUTPUT END ---
+Exit Code: 0
+=== COMMAND ENTRY 9 END ===
+
+=== COMMAND ENTRY 10 START ===
+Command: make lint && make test && RELEASE_CHECK_LOG="/Users/huluobo/workSpace/DAOKit/.worktrees/dkt-063/.artifacts/agent_runs/DKT-063_20260213T125046Z_qv24vh6/baseline/release-check-verification-final.jsonl" RELEASE_CHECK_SUMMARY="/Users/huluobo/workSpace/DAOKit/.worktrees/dkt-063/.artifacts/agent_runs/DKT-063_20260213T125046Z_qv24vh6/baseline/release-check-summary-final.json" make release-check
+Working Directory: /Users/huluobo/workSpace/DAOKit/.worktrees/dkt-063
+--- OUTPUT START ---
+python3 -m compileall src tests
+Listing 'src'...
+Listing 'src/acceptance'...
+Listing 'src/artifacts'...
+Listing 'src/audit'...
+Listing 'src/cli'...
+Listing 'src/contracts'...
+Listing 'src/daokit'...
+Listing 'src/dispatch'...
+Listing 'src/hooks'...
+Listing 'src/orchestrator'...
+Listing 'src/planner'...
+Listing 'src/rag'...
+Listing 'src/rag/evaluation'...
+Listing 'src/rag/evaluation/datasets'...
+Listing 'src/rag/index'...
+Listing 'src/rag/ingest'...
+Listing 'src/rag/retrieval'...
+Listing 'src/reliability'...
+Listing 'src/reliability/handoff'...
+Listing 'src/reliability/heartbeat'...
+Listing 'src/reliability/lease'...
+Listing 'src/reliability/scenarios'...
+Listing 'src/reliability/succession'...
+Listing 'src/reports'...
+Listing 'src/skills'...
+Listing 'src/state'...
+Listing 'src/tools'...
+Listing 'src/tools/common'...
+Listing 'src/tools/function_calling'...
+Listing 'src/tools/langchain'...
+Listing 'src/tools/mcp'...
+Listing 'src/verification'...
+Listing 'tests'...
+Listing 'tests/acceptance'...
+Listing 'tests/audit'...
+Listing 'tests/ci'...
+Listing 'tests/cli'...
+Listing 'tests/contracts'...
+Listing 'tests/contracts/samples'...
+Listing 'tests/dispatch'...
+Listing 'tests/e2e'...
+Listing 'tests/hooks'...
+Listing 'tests/orchestrator'...
+Listing 'tests/planner'...
+Listing 'tests/rag'...
+Listing 'tests/reliability'...
+Listing 'tests/reports'...
+Listing 'tests/skills'...
+Listing 'tests/templates'...
+Listing 'tests/tools'...
+Listing 'tests/verification'...
+PYTHONPATH=src python3 -m unittest discover -s tests -p 'test_*.py' -v
+test_codex_integration_runbooks_reference_hardening_gate (ci.test_v11_hardening_gate_contract.V11HardeningGateContractTests) ... ok
+test_makefile_exposes_hardening_gate_targets (ci.test_v11_hardening_gate_contract.V11HardeningGateContractTests) ... ok
+test_release_check_runbook_matches_ci_gate_sequence (ci.test_v11_hardening_gate_contract.V11HardeningGateContractTests) ... ok
+test_workflow_runs_criterion_mapped_gate_order (ci.test_v11_hardening_gate_contract.V11HardeningGateContractTests) ... ok
+test_contributor_doc_includes_deterministic_release_checklist (templates.test_skill_manifest_template.SkillManifestTemplateTests) ... ok
+test_contributor_doc_includes_failure_examples (templates.test_skill_manifest_template.SkillManifestTemplateTests) ... ok
+test_template_hooks_use_supported_events (templates.test_skill_manifest_template.SkillManifestTemplateTests) ... ok
+test_template_is_accepted_by_loader_contract (templates.test_skill_manifest_template.SkillManifestTemplateTests) ... ok
+test_template_is_valid_json_with_required_metadata (templates.test_skill_manifest_template.SkillManifestTemplateTests) ... ok
+test_adapter_scaffold_is_immediately_runnable (templates.test_tool_adapter_template.ToolAdapterTemplateContractTests) ... ok
+test_contributor_checklist_maps_acceptance_and_evidence (templates.test_tool_adapter_template.ToolAdapterTemplateContractTests) ... ok
+test_readme_links_template_to_release_check (templates.test_tool_adapter_template.ToolAdapterTemplateContractTests) ... ok
+test_template_assets_exist (templates.test_tool_adapter_template.ToolAdapterTemplateContractTests) ... ok
+test_cli_init_returns_error_for_invalid_root (test_init.InitCommandTests) ... ok
+test_cli_init_returns_error_when_required_directory_is_file (test_init.InitCommandTests) ... ok
+test_cli_init_returns_error_when_state_file_path_is_directory (test_init.InitCommandTests) ... ok
+test_cli_init_supports_custom_root (test_init.InitCommandTests) ... ok
+test_initialize_repository_creates_required_layout (test_init.InitCommandTests) ... ok
+test_initialize_repository_is_idempotent (test_init.InitCommandTests) ... ok
+test_initialize_repository_rejects_directory_path_conflict (test_init.InitCommandTests) ... ok
+test_initialize_repository_rejects_state_file_path_conflict (test_init.InitCommandTests) ... ok
+test_run_release_check_fails_fast_after_first_failure (test_release_check.ReleaseCheckTests) ... ok
+test_run_release_check_writes_markerized_log_and_summary (test_release_check.ReleaseCheckTests) ... ok
+test_flow_completes_without_external_api_dependency (test_text_input_minimal_flow.TextInputMinimalFlowScenarioTests) ... ok
+test_real_dispatch_path_is_invoked_and_auditable (test_text_input_minimal_flow.TextInputMinimalFlowScenarioTests) ... ok
+test_repeated_runs_keep_process_path_and_artifact_structure_signatures_stable (test_text_input_minimal_flow.TextInputMinimalFlowScenarioTests) ... ok
+
+----------------------------------------------------------------------
+Ran 26 tests in 0.974s
+
+OK
+PYTHONPATH=src python3 -m cli.release_check \
+		--verification-log "/Users/huluobo/workSpace/DAOKit/.worktrees/dkt-063/.artifacts/agent_runs/DKT-063_20260213T125046Z_qv24vh6/baseline/release-check-verification-final.jsonl" \
+		--summary-json "/Users/huluobo/workSpace/DAOKit/.worktrees/dkt-063/.artifacts/agent_runs/DKT-063_20260213T125046Z_qv24vh6/baseline/release-check-summary-final.json" \
+		--working-directory "/Users/huluobo/workSpace/DAOKit/.worktrees/dkt-063"
+--- OUTPUT END ---
+Exit Code: 0
+=== COMMAND ENTRY 10 END ===
+

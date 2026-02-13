@@ -1,0 +1,38 @@
+{
+  "run_id": "DKT-063_20260213T125046Z_qv24vh6",
+  "task_id": "DKT-063",
+  "p0_real": {
+    "final_status": "DONE",
+    "planner_step_count": 3,
+    "dispatch_execution_mode": "real_llm",
+    "dispatch_llm_invoked": true,
+    "acceptance_checks": {
+      "process_path_consistent": true,
+      "artifact_structure_consistent": true,
+      "release_anchor_compatible": true
+    },
+    "evidence_paths": {
+      "report.md": ".artifacts/agent_runs/DKT-063_20260213T125046Z_qv24vh6/p0/scenario-real/artifacts/reports/S1/report.md",
+      "verification.log": ".artifacts/agent_runs/DKT-063_20260213T125046Z_qv24vh6/p0/scenario-real/artifacts/reports/S1/verification.log",
+      "audit-summary.md": ".artifacts/agent_runs/DKT-063_20260213T125046Z_qv24vh6/p0/scenario-real/artifacts/reports/S1/audit-summary.md",
+      "events.jsonl": ".artifacts/agent_runs/DKT-063_20260213T125046Z_qv24vh6/p0/scenario-real/artifacts/reports/S1/events.jsonl"
+    }
+  },
+  "p0_fallback": {
+    "final_status": "DONE",
+    "planner_step_count": 3,
+    "dispatch_execution_mode": "fallback",
+    "dispatch_llm_invoked": false,
+    "acceptance_checks": {
+      "process_path_consistent": true,
+      "artifact_structure_consistent": true,
+      "release_anchor_compatible": true
+    },
+    "evidence_paths": {
+      "report.md": ".artifacts/agent_runs/DKT-063_20260213T125046Z_qv24vh6/p0/scenario-fallback/artifacts/reports/S1/report.md",
+      "verification.log": ".artifacts/agent_runs/DKT-063_20260213T125046Z_qv24vh6/p0/scenario-fallback/artifacts/reports/S1/verification.log",
+      "audit-summary.md": ".artifacts/agent_runs/DKT-063_20260213T125046Z_qv24vh6/p0/scenario-fallback/artifacts/reports/S1/audit-summary.md",
+      "events.jsonl": ".artifacts/agent_runs/DKT-063_20260213T125046Z_qv24vh6/p0/scenario-fallback/artifacts/reports/S1/events.jsonl"
+    }
+  }
+}
