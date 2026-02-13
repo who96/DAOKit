@@ -1,0 +1,25 @@
+{
+  "metrics_path": "docs/reports/dkt-061/benchmark/retrieval-benchmark-metrics.json",
+  "dkt_062_report_path": "docs/reports/dkt-062/report.md",
+  "selected_backend_in_code": "local/token-signature",
+  "top_backend_by_metric_rule": "local/token-signature",
+  "top_backend_metrics": {
+    "hit_rate_at_1": 0.083333,
+    "hit_rate_at_3": 0.583333,
+    "hit_rate_at_5": 0.666667,
+    "mrr_at_1": 0.083333,
+    "mrr_at_3": 0.305556,
+    "mrr_at_5": 0.322222,
+    "ndcg_at_1": 0.083333,
+    "ndcg_at_3": 0.349947,
+    "ndcg_at_5": 0.382185,
+    "precision_at_1": 0.083333,
+    "precision_at_3": 0.222222,
+    "precision_at_5": 0.15,
+    "recall_at_1": 0.083333,
+    "recall_at_3": 0.5,
+    "recall_at_5": 0.583333
+  },
+  "selection_matches_metric_rule": true,
+  "dkt_062_report_mentions_selection": true
+}
