@@ -340,6 +340,14 @@ class OrchestratorRuntime:
         planning_context = self._retrieve_context_from_state(state, use_case="planning", query=None)
         state.setdefault("role_lifecycle", {})
         state["role_lifecycle"]["planning_retrieval"] = self._summarize_retrieval(planning_context)
+
+        inherited_policy: Mapping[str, Any] | None = None
+        active_step = self._active_step(state)
+        if active_step is not None:
+            raw_policy = active_step.get("retrieval_policy")
+            if isinstance(raw_policy, Mapping):
+                inherited_policy = raw_policy
+
         if self._should_generate_minimal_text_plan(state):
             generated_steps = [
                 dict(step)
@@ -348,6 +356,9 @@ class OrchestratorRuntime:
                     step_id=self.step_id,
                 )
             ]
+            if inherited_policy is not None:
+                for step in generated_steps:
+                    step["retrieval_policy"] = json.loads(json.dumps(inherited_policy))
             state["steps"] = generated_steps
             if generated_steps:
                 state["current_step"] = generated_steps[0]["id"]
@@ -357,7 +368,6 @@ class OrchestratorRuntime:
 
         if not state.get("steps"):
             state["steps"] = [self._default_step_contract()]
-
     def _mutate_dispatch(self, state: dict[str, Any]) -> None:
         if state.get("current_step") is None and state.get("steps"):
             first_step = state["steps"][0]
