@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -35,6 +36,9 @@ from state.store import StateStore
 TASK_ID = "DKT-036"
 RUN_ID = "RUN-INTEGRATED-RELIABILITY"
 STEP_ID = "S1"
+SOAK_TASK_ID = "DKT-052"
+SOAK_DEFAULT_ITERATIONS = 3
+SOAK_VARIANCE_LIMIT = 0
 _RUNTIME_SETTINGS = {"runtime": {"mode": "integrated"}}
 _ACTIVE_STATUSES = {
     "ANALYSIS",
@@ -167,6 +171,31 @@ def _leases_with_successor(
     ]
 
 
+def _resolve_fixture_selection(
+    scenario_ids: Sequence[str] | None,
+) -> tuple[CoreRotationChaosScenarioFixture, ...]:
+    if scenario_ids is None:
+        return list_core_rotation_chaos_scenarios()
+
+    selected: list[CoreRotationChaosScenarioFixture] = []
+    seen: set[str] = set()
+    for scenario_id in scenario_ids:
+        normalized = scenario_id.strip()
+        if not normalized or normalized in seen:
+            continue
+        selected.append(get_core_rotation_chaos_scenario(normalized))
+        seen.add(normalized)
+
+    if not selected:
+        raise ValueError("at least one valid scenario id is required")
+    return tuple(selected)
+
+
+def _hash_payload(payload: dict[str, Any]) -> str:
+    canonical = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
 def _continuity_assertion_signals(
     *,
     fixture: CoreRotationChaosScenarioFixture,
@@ -226,6 +255,23 @@ def _continuity_assertion_signals(
     else:
         lease_ownership = len(successor_active_after_recovery) == 0
 
+    event_ids = tuple(
+        event.get("event_id")
+        for event in events
+        if isinstance(event, dict) and isinstance(event.get("event_id"), str)
+    )
+    replay_event_ids = tuple(
+        replay_entry.get("event_id")
+        for replay_entry in replay_final
+        if isinstance(replay_entry, dict) and isinstance(replay_entry.get("event_id"), str)
+    )
+    replay_order_consistent = len(replay_final) == len(events) and replay_event_ids == event_ids
+    replay_schema_compatible = all(
+        isinstance(replay_entry, dict) and replay_entry.get("schema_version") == "1.0.0"
+        for replay_entry in replay_final
+    )
+    takeover_handoff_replay_consistent = takeover_sync and handoff_resume and replay_order_consistent
+
     signals = {
         "CONT-001": takeover_sync,
         "CONT-002": handoff_resume,
@@ -248,6 +294,9 @@ def _continuity_assertion_signals(
             and actual_failed_step_ids == expected_failed_step_ids
         ),
         "CONT-008": lease_ownership,
+        "CONT-009": takeover_handoff_replay_consistent,
+        "CONT-010": replay_order_consistent,
+        "CONT-011": replay_schema_compatible,
     }
 
     return {assertion_id: bool(signals.get(assertion_id, False)) for assertion_id in fixture.continuity_assertions}
@@ -645,11 +694,12 @@ def run_core_rotation_chaos_matrix(
     task_id_prefix: str = "DKT-051",
     run_id_prefix: str = "RUN-CORE-ROTATION",
     step_id: str = STEP_ID,
+    scenario_ids: Sequence[str] | None = None,
 ) -> dict[str, Any]:
     constraints = deterministic_constraints or DEFAULT_DETERMINISTIC_CONSTRAINTS
     matrix_root.mkdir(parents=True, exist_ok=True)
 
-    fixtures = list_core_rotation_chaos_scenarios()
+    fixtures = _resolve_fixture_selection(scenario_ids)
     matrix_summary = summarize_core_rotation_chaos_matrix()
 
     scenario_results: list[dict[str, Any]] = []
@@ -675,8 +725,12 @@ def run_core_rotation_chaos_matrix(
             "risk_tags": list(fixture.risk_tags),
             "continuity_assertions": list(fixture.continuity_assertions),
             "continuity_assertion_results": continuity_results,
+            "continuity_assertion_details": result.get("continuity_assertion_details", {}),
             "scenario_expectations": result.get("scenario_expectations", {}),
             "checks": result.get("checks", {}),
+            "takeover": result.get("takeover", {}),
+            "event_count": result.get("event_count", 0),
+            "replay_count": result.get("replay_count", 0),
             "reproducibility": result.get("reproducibility", {}),
             "deterministic_constraints": result.get("deterministic_constraints", {}),
             "evidence_output_points": result.get("evidence_output_points", {}),
@@ -722,10 +776,261 @@ def run_core_rotation_chaos_matrix(
     }
 
 
+def _render_soak_assertion_report(payload: dict[str, Any]) -> str:
+    checks = payload.get("checks", {})
+    release_gate = payload.get("release_gate", {})
+    lines = [
+        "# DKT-052 Continuity Assertion Soak Report",
+        "",
+        f"- Task ID: {payload.get('task_id')}",
+        f"- Iterations: {payload.get('iterations')}",
+        f"- Scenario IDs: {', '.join(payload.get('scenario_ids', []))}",
+        f"- Matrix Version: {payload.get('matrix_version')}",
+        f"- Release Gate Status: {release_gate.get('status')}",
+        "",
+        "## Gate Checks",
+        f"- continuity_assertions_all_passed: {checks.get('continuity_assertions_all_passed')}",
+        f"- takeover_handoff_replay_consistent: {checks.get('takeover_handoff_replay_consistent')}",
+        f"- deterministic_checkpoint_hashes: {checks.get('deterministic_checkpoint_hashes')}",
+        f"- bounded_variance: {checks.get('bounded_variance')}",
+        "",
+        "## Deterministic Checkpoint Hashes",
+    ]
+
+    hashes_by_scenario = payload.get("checkpoint_hashes_by_scenario", {})
+    for scenario_id, hashes in hashes_by_scenario.items():
+        lines.append(f"- {scenario_id}: {', '.join(hashes)}")
+
+    lines.extend(
+        [
+            "",
+            "## Variance",
+        ]
+    )
+    variance_by_scenario = payload.get("variance_by_scenario", {})
+    for scenario_id, variance in variance_by_scenario.items():
+        lines.append(
+            "- "
+            f"{scenario_id}: event_count_range={variance.get('event_count_range')} "
+            f"replay_count_range={variance.get('replay_count_range')}"
+        )
+    return "\n".join(lines) + "\n"
+
+
+def _persist_soak_assertion_outputs(*, soak_root: Path, payload: dict[str, Any]) -> dict[str, str]:
+    assertions_root = soak_root / "assertions"
+    assertions_root.mkdir(parents=True, exist_ok=True)
+
+    assertions_json_path = assertions_root / "continuity-assertions.json"
+    checkpoints_json_path = assertions_root / "deterministic-checkpoints.json"
+    release_gate_json_path = assertions_root / "continuity-release-gate.json"
+    assertions_markdown_path = assertions_root / "continuity-assertions.md"
+
+    persisted_payload = {
+        "task_id": payload["task_id"],
+        "matrix_version": payload["matrix_version"],
+        "iterations": payload["iterations"],
+        "scenario_ids": payload["scenario_ids"],
+        "deterministic_constraints": payload["deterministic_constraints"],
+        "checks": payload["checks"],
+        "release_gate": payload["release_gate"],
+        "checkpoint_hashes_by_scenario": payload["checkpoint_hashes_by_scenario"],
+        "variance_by_scenario": payload["variance_by_scenario"],
+        "checkpoints": payload["checkpoints"],
+    }
+    assertions_json_path.write_text(json.dumps(persisted_payload, indent=2) + "\n", encoding="utf-8")
+    checkpoints_json_path.write_text(json.dumps(payload["checkpoints"], indent=2) + "\n", encoding="utf-8")
+    release_gate_json_path.write_text(json.dumps(payload["release_gate"], indent=2) + "\n", encoding="utf-8")
+    assertions_markdown_path.write_text(_render_soak_assertion_report(payload), encoding="utf-8")
+
+    return {
+        "json": str(assertions_json_path),
+        "checkpoints": str(checkpoints_json_path),
+        "release_gate": str(release_gate_json_path),
+        "markdown": str(assertions_markdown_path),
+    }
+
+
+def run_long_run_soak_harness(
+    *,
+    repo_root: Path,
+    soak_root: Path,
+    iterations: int = SOAK_DEFAULT_ITERATIONS,
+    deterministic_constraints: DeterministicExecutionConstraints | None = None,
+    scenario_ids: Sequence[str] | None = None,
+    step_id: str = STEP_ID,
+) -> dict[str, Any]:
+    if iterations < 1:
+        raise ValueError("iterations must be >= 1")
+
+    constraints = deterministic_constraints or DEFAULT_DETERMINISTIC_CONSTRAINTS
+    fixtures = _resolve_fixture_selection(scenario_ids)
+    selected_scenario_ids = [fixture.scenario_id for fixture in fixtures]
+
+    soak_root.mkdir(parents=True, exist_ok=True)
+    for existing in soak_root.glob("iteration-*"):
+        if existing.is_dir():
+            shutil.rmtree(existing)
+    assertions_root = soak_root / "assertions"
+    if assertions_root.exists():
+        shutil.rmtree(assertions_root)
+
+    iteration_results: list[dict[str, Any]] = []
+    checkpoints: list[dict[str, Any]] = []
+    command_log: list[dict[str, Any]] = []
+    required_takeover_handoff_replay_assertions = (
+        "CONT-001",
+        "CONT-002",
+        "CONT-003",
+        "CONT-009",
+        "CONT-010",
+        "CONT-011",
+    )
+
+    for iteration in range(1, iterations + 1):
+        iteration_root = soak_root / f"iteration-{iteration:02d}"
+        matrix_payload = run_core_rotation_chaos_matrix(
+            repo_root=repo_root,
+            matrix_root=iteration_root,
+            deterministic_constraints=constraints,
+            task_id_prefix=f"{SOAK_TASK_ID}-{iteration:02d}",
+            run_id_prefix=f"RUN-LONG-RUN-SOAK-{iteration:02d}",
+            step_id=step_id,
+            scenario_ids=selected_scenario_ids,
+        )
+
+        iteration_checkpoints: list[dict[str, Any]] = []
+        for scenario_result in matrix_payload.get("scenario_results", []):
+            continuity_assertion_results = {
+                key: bool(value)
+                for key, value in scenario_result.get("continuity_assertion_results", {}).items()
+            }
+            takeover = scenario_result.get("takeover", {})
+            checkpoint_payload = {
+                "scenario_id": scenario_result.get("scenario_id"),
+                "takeover_action": takeover.get("action"),
+                "decision_reason_code": takeover.get("decision_reason_code"),
+                "handoff_applied": takeover.get("handoff_applied"),
+                "handoff_resume_step_id": takeover.get("handoff_resume_step_id"),
+                "event_count": int(scenario_result.get("event_count", 0)),
+                "replay_count": int(scenario_result.get("replay_count", 0)),
+                "continuity_assertion_results": continuity_assertion_results,
+            }
+            checkpoint_hash = _hash_payload(checkpoint_payload)
+            takeover_handoff_replay_consistent = all(
+                continuity_assertion_results.get(assertion_id, False)
+                for assertion_id in required_takeover_handoff_replay_assertions
+            )
+            checkpoint = {
+                "iteration": iteration,
+                "matrix_root": str(iteration_root),
+                **checkpoint_payload,
+                "takeover_handoff_replay_consistent": takeover_handoff_replay_consistent,
+                "checkpoint_hash": checkpoint_hash,
+            }
+            checkpoints.append(checkpoint)
+            iteration_checkpoints.append(checkpoint)
+
+            for command in scenario_result.get("command_log", []):
+                command_log.append(
+                    {
+                        "iteration": iteration,
+                        "scenario_id": scenario_result.get("scenario_id"),
+                        "command": command.get("command"),
+                        "exit_code": command.get("exit_code"),
+                    }
+                )
+
+        iteration_results.append(
+            {
+                "iteration": iteration,
+                "matrix_root": str(iteration_root),
+                "scenario_count": len(iteration_checkpoints),
+                "checks": matrix_payload.get("checks", {}),
+                "checkpoints": iteration_checkpoints,
+            }
+        )
+
+    checkpoint_hashes_by_scenario: dict[str, list[str]] = {}
+    variance_by_scenario: dict[str, dict[str, int | None]] = {}
+    for scenario_id in selected_scenario_ids:
+        scenario_checkpoints = [checkpoint for checkpoint in checkpoints if checkpoint["scenario_id"] == scenario_id]
+        hashes = sorted({checkpoint["checkpoint_hash"] for checkpoint in scenario_checkpoints})
+        checkpoint_hashes_by_scenario[scenario_id] = hashes
+
+        event_counts = [int(checkpoint["event_count"]) for checkpoint in scenario_checkpoints]
+        replay_counts = [int(checkpoint["replay_count"]) for checkpoint in scenario_checkpoints]
+        event_count_range = max(event_counts) - min(event_counts) if event_counts else None
+        replay_count_range = max(replay_counts) - min(replay_counts) if replay_counts else None
+        variance_by_scenario[scenario_id] = {
+            "event_count_range": event_count_range,
+            "replay_count_range": replay_count_range,
+        }
+
+    checks = {
+        "continuity_assertions_all_passed": bool(checkpoints)
+        and all(all(result.values()) for result in (checkpoint["continuity_assertion_results"] for checkpoint in checkpoints)),
+        "takeover_handoff_replay_consistent": bool(checkpoints)
+        and all(checkpoint["takeover_handoff_replay_consistent"] for checkpoint in checkpoints),
+        "deterministic_checkpoint_hashes": bool(checkpoint_hashes_by_scenario)
+        and all(len(hashes) == 1 for hashes in checkpoint_hashes_by_scenario.values()),
+        "bounded_variance": bool(variance_by_scenario)
+        and all(
+            variance["event_count_range"] is not None
+            and variance["replay_count_range"] is not None
+            and variance["event_count_range"] <= SOAK_VARIANCE_LIMIT
+            and variance["replay_count_range"] <= SOAK_VARIANCE_LIMIT
+            for variance in variance_by_scenario.values()
+        ),
+    }
+    release_gate_eligible = all(checks.values())
+    release_gate = {
+        "task_id": SOAK_TASK_ID,
+        "status": "PASS" if release_gate_eligible else "FAIL",
+        "eligible": release_gate_eligible,
+        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "criteria": {
+            criterion: {
+                "required": True,
+                "passed": passed,
+            }
+            for criterion, passed in checks.items()
+        },
+    }
+
+    payload = {
+        "task_id": SOAK_TASK_ID,
+        "soak_root": str(soak_root),
+        "matrix_version": CORE_ROTATION_MATRIX_VERSION,
+        "iterations": iterations,
+        "scenario_ids": selected_scenario_ids,
+        "deterministic_constraints": constraints.to_dict(),
+        "iteration_results": iteration_results,
+        "checkpoints": checkpoints,
+        "checkpoint_hashes_by_scenario": checkpoint_hashes_by_scenario,
+        "variance_by_scenario": variance_by_scenario,
+        "checks": checks,
+        "release_gate": release_gate,
+        "command_log": command_log,
+    }
+    assertion_outputs = _persist_soak_assertion_outputs(soak_root=soak_root, payload=payload)
+    payload["assertion_outputs"] = assertion_outputs
+    payload["evidence_output_points"] = {
+        "soak_root": str(soak_root),
+        "assertions_root": str(soak_root / "assertions"),
+        "continuity_assertions_json": assertion_outputs["json"],
+        "deterministic_checkpoints_json": assertion_outputs["checkpoints"],
+        "continuity_release_gate_json": assertion_outputs["release_gate"],
+        "continuity_assertions_markdown": assertion_outputs["markdown"],
+    }
+    return payload
+
+
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         description=(
-            "Run DKT-036 integrated reliability scenario or DKT-051 core-rotation chaos matrix"
+            "Run DKT-036 integrated reliability scenario, DKT-051 core-rotation chaos matrix, "
+            "or DKT-052 long-run continuity soak harness"
         )
     )
     parser.add_argument("--scenario-root", help="Root directory for scenario state")
@@ -740,6 +1045,21 @@ def _build_parser() -> argparse.ArgumentParser:
         "--matrix-root",
         help="Root directory for matrix execution outputs (defaults to --scenario-root)",
     )
+    parser.add_argument(
+        "--soak",
+        action="store_true",
+        help="Run DKT-052 long-run soak harness with deterministic checkpoints",
+    )
+    parser.add_argument(
+        "--soak-root",
+        help="Root directory for soak execution outputs (defaults to --scenario-root)",
+    )
+    parser.add_argument(
+        "--soak-iterations",
+        type=int,
+        default=SOAK_DEFAULT_ITERATIONS,
+        help="Number of deterministic soak iterations to execute",
+    )
     return parser
 
 
@@ -747,7 +1067,25 @@ def main(argv: Sequence[str] | None = None) -> int:
     args = _build_parser().parse_args(argv)
     repo_root = Path(__file__).resolve().parents[3]
 
-    if args.matrix:
+    if args.soak:
+        if args.soak_root:
+            soak_root = Path(args.soak_root).resolve()
+            soak_root.mkdir(parents=True, exist_ok=True)
+        elif args.scenario_root:
+            soak_root = Path(args.scenario_root).resolve()
+            soak_root.mkdir(parents=True, exist_ok=True)
+        else:
+            soak_root = Path(tempfile.mkdtemp(prefix="daokit_dkt052_long_run_soak_")).resolve()
+
+        selected_scenario_ids = (args.scenario_id,) if args.scenario_id else None
+        payload = run_long_run_soak_harness(
+            repo_root=repo_root,
+            soak_root=soak_root,
+            iterations=args.soak_iterations,
+            deterministic_constraints=DEFAULT_DETERMINISTIC_CONSTRAINTS,
+            scenario_ids=selected_scenario_ids,
+        )
+    elif args.matrix:
         if args.matrix_root:
             matrix_root = Path(args.matrix_root).resolve()
             matrix_root.mkdir(parents=True, exist_ok=True)
