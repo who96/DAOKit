@@ -4,8 +4,9 @@ import importlib
 from pathlib import Path
 from typing import Any, Callable, Mapping, Protocol
 
-from contracts.runtime_adapters import RuntimeRelayPolicy, RuntimeRetriever, RuntimeStateStore
+from contracts.runtime_adapters import RuntimeRelayPolicy, RuntimeRetriever
 from rag.retrieval import RetrievalPolicyConfig
+from state.backend import StateBackend
 from .runtime import DEFAULT_DISPATCH_MAX_RESUME_RETRIES, DEFAULT_DISPATCH_MAX_REWORK_ATTEMPTS
 
 from .runtime import OrchestratorRuntime, RuntimeDispatchAdapter
@@ -34,7 +35,7 @@ class LangGraphOrchestratorRuntime(OrchestratorRuntime):
         task_id: str,
         run_id: str,
         goal: str,
-        state_store: RuntimeStateStore,
+        state_store: StateBackend,
         step_id: str = "S1",
         retriever: RuntimeRetriever | None = None,
         retrieval_index_path: str | Path | None = None,

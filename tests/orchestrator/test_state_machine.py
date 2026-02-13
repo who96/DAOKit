@@ -15,6 +15,7 @@ from orchestrator.state_machine import (
     OrchestratorStatus,
     resolve_conditional_route,
 )
+from state.backend import StateBackend
 from state.store import StateStore, StateStoreError
 
 
@@ -79,6 +80,91 @@ class OrchestratorStateMachineTests(unittest.TestCase):
             if isinstance(parsed, dict):
                 events.append(parsed)
         return events
+
+    def test_runtime_runs_with_protocol_backend_without_filesystem_paths(self) -> None:
+        class _MemoryStateBackend:
+            def __init__(self) -> None:
+                self._state: dict[str, Any] = {
+                    "schema_version": "1.0.0",
+                    "task_id": None,
+                    "run_id": None,
+                    "goal": "",
+                    "status": "PLANNING",
+                    "current_step": None,
+                    "steps": [],
+                    "role_lifecycle": {"orchestrator": "idle"},
+                    "succession": {"enabled": True, "last_takeover_at": None},
+                    "updated_at": "2026-02-13T00:00:00+00:00",
+                }
+                self.events: list[dict[str, Any]] = []
+                self.snapshots: list[dict[str, Any]] = []
+
+            def load_state(self) -> dict[str, Any]:
+                return json.loads(json.dumps(self._state))
+
+            def save_state(
+                self,
+                state: Mapping[str, Any],
+                *,
+                node: str | None = None,
+                from_status: str | None = None,
+                to_status: str | None = None,
+            ) -> dict[str, Any]:
+                payload = json.loads(json.dumps(dict(state)))
+                payload["updated_at"] = "2026-02-13T00:00:00+00:00"
+                self._state = payload
+                self.snapshots.append(
+                    {
+                        "node": node,
+                        "from_status": from_status,
+                        "to_status": to_status,
+                        "state": payload,
+                    }
+                )
+                return json.loads(json.dumps(payload))
+
+            def append_event(
+                self,
+                *,
+                task_id: str,
+                run_id: str,
+                step_id: str | None,
+                event_type: str,
+                severity: str,
+                payload: Mapping[str, Any],
+                dedup_key: str | None = None,
+            ) -> dict[str, Any]:
+                event = {
+                    "schema_version": "1.0.0",
+                    "task_id": task_id,
+                    "run_id": run_id,
+                    "step_id": step_id,
+                    "event_type": event_type,
+                    "severity": severity,
+                    "payload": json.loads(json.dumps(dict(payload))),
+                    "dedup_key": dedup_key,
+                }
+                self.events.append(event)
+                return json.loads(json.dumps(event))
+
+            def load_latest_valid_checkpoint(self) -> dict[str, Any]:
+                return self.load_state()
+
+            def list_snapshots(self) -> list[dict[str, Any]]:
+                return json.loads(json.dumps(self.snapshots))
+
+        backend: StateBackend = _MemoryStateBackend()
+        runtime = OrchestratorRuntime(
+            task_id="DKT-068",
+            run_id="RUN-MEM-BACKEND",
+            goal="Validate protocol boundary",
+            state_store=backend,
+            step_id="S1",
+        )
+
+        final_state = runtime.run()
+        self.assertEqual(final_state["status"], "DONE")
+        self.assertFalse(hasattr(backend, "events_path"))
 
     def test_happy_path_runs_end_to_end(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

@@ -7,6 +7,8 @@ from pathlib import Path
 from typing import Any, Mapping
 from uuid import uuid4
 
+from .backend import StateBackend
+
 
 def _utc_now() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -54,17 +56,26 @@ def _default_heartbeat_status() -> dict[str, Any]:
     }
 
 
+def _default_process_leases() -> dict[str, Any]:
+    return {
+        "schema_version": "1.0.0",
+        "leases": [],
+        "updated_at": _utc_now(),
+    }
+
+
 class StateStoreError(RuntimeError):
     """Raised when persisted state cannot be read or written safely."""
 
 
-class StateStore:
+class FileSystemStateBackend(StateBackend):
     """File-backed state ledger for orchestrator runtime transitions."""
 
     def __init__(self, root: Path) -> None:
         self.root = Path(root)
         self.pipeline_state_path = self.root / "pipeline_state.json"
         self.heartbeat_status_path = self.root / "heartbeat_status.json"
+        self.leases_path = self.root / "process_leases.json"
         self.events_path = self.root / "events.jsonl"
         self.snapshots_path = self.root / "snapshots.jsonl"
         self.checkpoints_path = self.root / "checkpoints.jsonl"
@@ -155,6 +166,37 @@ class StateStore:
         payload = _copy_json(dict(status))
         payload["updated_at"] = _utc_now()
         self.heartbeat_status_path.write_text(
+            json.dumps(payload, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        return payload
+
+    def load_leases(self) -> dict[str, Any]:
+        if not self.leases_path.exists():
+            return _default_process_leases()
+        try:
+            payload = json.loads(self.leases_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError as exc:
+            raise StateStoreError(
+                f"process leases are not valid JSON: {self.leases_path}"
+            ) from exc
+        if not isinstance(payload, dict):
+            raise StateStoreError("process leases root must be a JSON object")
+        leases = payload.get("leases")
+        if not isinstance(leases, list):
+            raise StateStoreError("process leases field 'leases' must be a JSON array")
+        return payload
+
+    def save_leases(self, leases: Mapping[str, Any]) -> dict[str, Any]:
+        payload = _copy_json(dict(leases))
+        if "schema_version" not in payload:
+            payload["schema_version"] = "1.0.0"
+        if payload.get("schema_version") != "1.0.0":
+            raise StateStoreError("process leases schema_version must be '1.0.0'")
+        if not isinstance(payload.get("leases"), list):
+            raise StateStoreError("process leases field 'leases' must be a JSON array")
+        payload["updated_at"] = _utc_now()
+        self.leases_path.write_text(
             json.dumps(payload, indent=2) + "\n",
             encoding="utf-8",
         )
@@ -302,3 +344,7 @@ class StateStore:
             role_lifecycle["checkpoint_resume_diagnostics_count"] = "0"
             role_lifecycle.pop("checkpoint_resume_diagnostics", None)
         return state
+
+
+class StateStore(FileSystemStateBackend):
+    """Backward-compatible alias for the file-system state backend."""

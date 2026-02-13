@@ -5,8 +5,9 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Mapping
 
-from contracts.runtime_adapters import RuntimeRelayPolicy, RuntimeRetriever, RuntimeStateStore
+from contracts.runtime_adapters import RuntimeRelayPolicy, RuntimeRetriever
 from rag.retrieval import RetrievalPolicyConfig
+from state.backend import StateBackend
 from tools.common.optional_dependencies import OptionalDependencyError, import_optional_dependency
 from .runtime import DEFAULT_DISPATCH_MAX_RESUME_RETRIES, DEFAULT_DISPATCH_MAX_REWORK_ATTEMPTS, RuntimeDispatchAdapter
 
@@ -77,7 +78,7 @@ def create_runtime(
     task_id: str,
     run_id: str,
     goal: str,
-    state_store: RuntimeStateStore,
+    state_store: StateBackend,
     step_id: str = "S1",
     retriever: RuntimeRetriever | None = None,
     retrieval_index_path: str | Path | None = None,

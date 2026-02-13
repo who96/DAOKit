@@ -4,7 +4,7 @@ import json
 from pathlib import Path
 from typing import Any, Callable, Mapping, Protocol
 
-from contracts.runtime_adapters import RuntimeRelayPolicy, RuntimeRetriever, RuntimeStateStore
+from contracts.runtime_adapters import RuntimeRelayPolicy, RuntimeRetriever
 from dispatch.shim_adapter import DispatchCallResult
 from planner.text_input_plan import build_minimal_text_input_steps
 from rag.retrieval import (
@@ -13,6 +13,7 @@ from rag.retrieval import (
     RetrievalResult,
     policy_from_mapping,
 )
+from state.backend import StateBackend
 from state.relay_policy import RelayModePolicy
 
 from .state_machine import (
@@ -91,7 +92,7 @@ class OrchestratorRuntime:
         task_id: str,
         run_id: str,
         goal: str,
-        state_store: RuntimeStateStore,
+        state_store: StateBackend,
         step_id: str = "S1",
         retriever: RuntimeRetriever | None = None,
         retrieval_index_path: str | Path | None = None,
