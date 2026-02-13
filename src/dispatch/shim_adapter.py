@@ -95,11 +95,19 @@ class ShimDispatchAdapter:
         self,
         *,
         shim_path: str | Path,
+        shim_command_prefix: Sequence[str] | None = None,
         artifact_store: DispatchArtifactStore,
         command_runner: CommandRunner | None = None,
         relay_policy: RelayModePolicy | None = None,
     ) -> None:
         self.shim_path = str(shim_path)
+        self.shim_command_prefix = (
+            tuple(str(token) for token in shim_command_prefix)
+            if shim_command_prefix is not None
+            else None
+        )
+        if self.shim_command_prefix is not None and len(self.shim_command_prefix) == 0:
+            raise DispatchError("shim_command_prefix must not be empty")
         self.artifact_store = artifact_store
         self.command_runner = command_runner or self._default_command_runner
         self.relay_policy = relay_policy or RelayModePolicy(relay_mode_enabled=False)
@@ -319,8 +327,9 @@ class ShimDispatchAdapter:
         thread_id: str,
         dry_run: bool,
     ) -> list[str]:
+        prefix = list(self.shim_command_prefix) if self.shim_command_prefix is not None else [self.shim_path]
         command = [
-            self.shim_path,
+            *prefix,
             action,
             "--task-id",
             task_id,

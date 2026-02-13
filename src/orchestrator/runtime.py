@@ -6,6 +6,7 @@ from typing import Any, Callable, Mapping, Protocol
 
 from contracts.runtime_adapters import RuntimeRelayPolicy, RuntimeRetriever, RuntimeStateStore
 from dispatch.shim_adapter import DispatchCallResult
+from planner.text_input_plan import build_minimal_text_input_steps
 from rag.retrieval import (
     PolicyAwareRetriever,
     RetrievalPolicyConfig,
@@ -195,6 +196,7 @@ class OrchestratorRuntime:
                 "audit-summary.md",
             ],
             "dependencies": ["DKT-002"],
+            "planner_source": "bootstrap_default",
             "retrieval_policy": {
                 "planning": {
                     "enabled": True,
@@ -338,6 +340,21 @@ class OrchestratorRuntime:
         planning_context = self._retrieve_context_from_state(state, use_case="planning", query=None)
         state.setdefault("role_lifecycle", {})
         state["role_lifecycle"]["planning_retrieval"] = self._summarize_retrieval(planning_context)
+        if self._should_generate_minimal_text_plan(state):
+            generated_steps = [
+                dict(step)
+                for step in build_minimal_text_input_steps(
+                    goal=self._normalize_optional_string(state.get("goal")) or self.goal,
+                    step_id=self.step_id,
+                )
+            ]
+            state["steps"] = generated_steps
+            if generated_steps:
+                state["current_step"] = generated_steps[0]["id"]
+            state["role_lifecycle"]["planner_mode"] = "text_input_minimal_v1"
+            state["role_lifecycle"]["planner_step_count"] = str(len(generated_steps))
+            return
+
         if not state.get("steps"):
             state["steps"] = [self._default_step_contract()]
 
@@ -525,7 +542,7 @@ class OrchestratorRuntime:
         return request
 
     def _dispatch_call_entry(self, result: DispatchCallResult) -> dict[str, Any]:
-        return {
+        entry = {
             "action": result.action,
             "status": result.status,
             "retry_index": result.retry_index,
@@ -533,6 +550,15 @@ class OrchestratorRuntime:
             "correlation_id": result.correlation_id,
             "artifacts": result.artifacts.normalized_paths(),
         }
+        parsed = result.parsed_output
+        if isinstance(parsed, Mapping):
+            llm_invoked = parsed.get("llm_invoked")
+            if isinstance(llm_invoked, bool):
+                entry["llm_invoked"] = llm_invoked
+            execution_mode = parsed.get("execution_mode")
+            if isinstance(execution_mode, str) and execution_mode.strip():
+                entry["execution_mode"] = execution_mode.strip()
+        return entry
 
     def _build_rework_context(self, call_results: list[DispatchCallResult]) -> dict[str, Any]:
         failed_calls = [
@@ -687,3 +713,19 @@ class OrchestratorRuntime:
         if value < 0:
             raise ValueError(f"{name} must be >= 0")
         return value
+
+    def _should_generate_minimal_text_plan(self, state: Mapping[str, Any]) -> bool:
+        raw_steps = state.get("steps")
+        if not isinstance(raw_steps, list) or not raw_steps:
+            return True
+
+        mapping_steps = [item for item in raw_steps if isinstance(item, Mapping)]
+        if not mapping_steps:
+            return True
+
+        if len(mapping_steps) in (2, 3):
+            return False
+
+        first_step = mapping_steps[0]
+        planner_source = self._normalize_optional_string(first_step.get("planner_source"))
+        return planner_source == "bootstrap_default"

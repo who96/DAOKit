@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import subprocess
+import sys
 import tempfile
 from pathlib import Path
 import unittest
@@ -161,6 +162,42 @@ class ShimDispatchAdapterTests(unittest.TestCase):
             self.assertEqual(payload_doc["run_id"], "DKT-034_RUN")
             self.assertEqual(payload_doc["step_id"], "S1")
             self.assertEqual(result.status, "success")
+
+    def test_non_dry_run_accepts_command_prefix_for_python_module_shim(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            captured: dict[str, object] = {}
+
+            def fake_runner(command: list[str], payload: str) -> subprocess.CompletedProcess[str]:
+                captured["command"] = list(command)
+                captured["payload"] = payload
+                return subprocess.CompletedProcess(
+                    args=command,
+                    returncode=0,
+                    stdout='{"status":"ok","execution_mode":"real_llm","llm_invoked":true}',
+                    stderr="",
+                )
+
+            adapter = ShimDispatchAdapter(
+                shim_path="/unused/legacy-shim-path",
+                shim_command_prefix=[sys.executable, "-m", "dispatch.codex_worker_shim"],
+                artifact_store=DispatchArtifactStore(root / "artifacts"),
+                command_runner=fake_runner,
+            )
+
+            result = adapter.create(
+                task_id="DKT-057",
+                run_id="DKT-057_RUN",
+                step_id="S1",
+                request={"task_kind": "step"},
+                dry_run=False,
+            )
+
+            command = list(captured["command"])  # type: ignore[arg-type]
+            self.assertEqual(command[:3], [sys.executable, "-m", "dispatch.codex_worker_shim"])
+            self.assertEqual(command[3], "create")
+            self.assertEqual(result.status, "success")
+            self.assertTrue(result.parsed_output.get("llm_invoked"))
 
     def test_request_context_must_not_conflict_with_top_level_ids(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:

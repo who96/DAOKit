@@ -106,6 +106,31 @@ class OrchestratorStateMachineTests(unittest.TestCase):
             self.assertEqual(lifecycle["lane:controller"], "active_step:S1")
             self.assertEqual(lifecycle["step:S1"], "owned_by_lane:controller")
 
+    def test_plan_generates_bounded_executable_steps_from_text_input(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            runtime = OrchestratorRuntime(
+                task_id="DKT-057",
+                run_id="RUN-TEXT-PLAN",
+                goal="Implement minimal text-input extract-plan-dispatch-acceptance flow",
+                state_store=StateStore(Path(tmp) / "state"),
+                step_id="S1",
+            )
+
+            runtime.extract()
+            state = runtime.plan()
+            steps = [item for item in state.get("steps", []) if isinstance(item, dict)]
+
+            self.assertGreaterEqual(len(steps), 2)
+            self.assertLessEqual(len(steps), 3)
+            for step in steps:
+                self.assertTrue(step.get("actions"))
+                self.assertTrue(step.get("acceptance_criteria"))
+                self.assertTrue(step.get("expected_outputs"))
+
+            lifecycle = state["role_lifecycle"]
+            self.assertEqual(lifecycle["planner_mode"], "text_input_minimal_v1")
+            self.assertEqual(int(lifecycle["planner_step_count"]), len(steps))
+
     def test_dispatch_routes_to_shim_create_and_persists_dispatch_evidence(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

@@ -29,6 +29,7 @@ __all__ = [
     "run_core_rotation_chaos_matrix",
     "run_integrated_reliability_scenario",
     "run_long_run_soak_harness",
+    "run_text_input_minimal_flow",
 ]
 
 
@@ -46,5 +47,11 @@ def run_integrated_reliability_scenario(*args: Any, **kwargs: Any) -> dict[str, 
 
 def run_long_run_soak_harness(*args: Any, **kwargs: Any) -> dict[str, Any]:
     from .integrated_reliability import run_long_run_soak_harness as _runner
+
+    return _runner(*args, **kwargs)
+
+
+def run_text_input_minimal_flow(*args: Any, **kwargs: Any) -> dict[str, Any]:
+    from .text_input_minimal_flow import run_text_input_minimal_flow as _runner
 
     return _runner(*args, **kwargs)
