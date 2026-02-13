@@ -15,7 +15,7 @@ from orchestrator.state_machine import (
     OrchestratorStatus,
     resolve_conditional_route,
 )
-from state.store import StateStore
+from state.store import StateStore, StateStoreError
 
 
 class _SequencedRunner:
@@ -334,6 +334,71 @@ class OrchestratorStateMachineTests(unittest.TestCase):
             self.assertEqual(recovered_state["status"], "FREEZE")
             self.assertEqual(final_state["status"], "DONE")
             self.assertEqual(final_state["run_id"], "RUN-RECOVER")
+
+    def test_resume_loads_latest_valid_checkpoint_when_latest_record_is_invalid(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            first_runtime = self._new_runtime(root, run_id="RUN-CKPT-RECOVER")
+            first_runtime.extract()
+            first_runtime.plan()
+
+            pipeline_state = json.loads(
+                first_runtime.state_store.pipeline_state_path.read_text(encoding="utf-8")
+            )
+            pipeline_state["status"] = "DONE"
+            pipeline_state["current_step"] = "S999"
+            first_runtime.state_store.pipeline_state_path.write_text(
+                json.dumps(pipeline_state, indent=2) + "\n",
+                encoding="utf-8",
+            )
+            with first_runtime.state_store.checkpoints_path.open("a", encoding="utf-8") as handle:
+                handle.write("{not-valid-json}\n")
+
+            resumed_runtime = self._new_runtime(root, run_id="RUN-CKPT-RECOVER")
+            recovered_state = resumed_runtime.recover_state()
+
+            self.assertEqual(recovered_state["status"], "FREEZE")
+            self.assertEqual(recovered_state["current_step"], "S1")
+            lifecycle = recovered_state.get("role_lifecycle", {})
+            self.assertEqual(lifecycle.get("checkpoint_resume_status"), "recovered_with_warnings")
+            self.assertIn(
+                "line",
+                str(lifecycle.get("checkpoint_resume_diagnostics", "")),
+            )
+
+    def test_resume_rejects_invalid_checkpoint_log_with_clear_diagnostics(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            runtime = self._new_runtime(root, run_id="RUN-CKPT-INVALID")
+            runtime.extract()
+
+            runtime.state_store.checkpoints_path.write_text(
+                "\n".join(
+                    [
+                        "{not-json}",
+                        json.dumps(
+                            {
+                                "schema_version": "1.0.0",
+                                "kind": "checkpoint",
+                                "checkpoint_id": "ckpt_broken",
+                                "timestamp": "2026-02-13T00:00:00+00:00",
+                                "state": {"status": "ANALYSIS"},
+                                "state_hash": "deadbeef",
+                            }
+                        ),
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            with self.assertRaises(StateStoreError) as ctx:
+                self._new_runtime(root, run_id="RUN-CKPT-INVALID")
+
+            message = str(ctx.exception)
+            self.assertIn("checkpoint resume failed", message)
+            self.assertIn("line 1", message)
+            self.assertIn("line 2", message)
 
 
 if __name__ == "__main__":

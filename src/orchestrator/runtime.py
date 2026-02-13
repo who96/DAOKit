@@ -137,7 +137,7 @@ class OrchestratorRuntime:
         self._bootstrap_ledger()
 
     def _bootstrap_ledger(self) -> None:
-        state = self.state_store.load_state()
+        state = self.recover_state()
         changed = False
 
         if state.get("task_id") != self.task_id:
@@ -224,6 +224,11 @@ class OrchestratorRuntime:
         }
 
     def recover_state(self) -> dict[str, Any]:
+        checkpoint_loader = getattr(self.state_store, "load_latest_valid_checkpoint", None)
+        if callable(checkpoint_loader):
+            recovered = checkpoint_loader()
+            if isinstance(recovered, dict):
+                return recovered
         return self.state_store.load_state()
 
     def run(self) -> dict[str, Any]:
