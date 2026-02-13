@@ -57,13 +57,19 @@ Expected deliverables:
 
 Target themes:
 
-- Execute architecture-deepening work deferred from v1.3: P2 (LangGraph conditional routing + checkpoint/resume) and P3 (SQLite backend).
+- Freeze v1.4 Wave 0 scope with DKT-064 guardrail charter and acceptance matrix.
+- Execute architecture-deepening work deferred from v1.3: P2 (LangGraph conditional routing + checkpoint/resume) and P3 (`StateBackend` + SQLite backend).
+- Limit v1.4 scope to P2/P3 only; no P2/P3-adjacent feature expansion in this release line.
+- Explicitly exclude parallel branches and human-in-the-loop from v1.4 scope.
 - Maintain v1.3 guardrails as compatibility baseline while extending runtime/state capabilities.
+- Preserve non-breaking constraints for CLI parameters, `schema_version=1.0.0`, `v1.0.0-rc1`, and `docs/reports/final-run/` evidence topology.
+- Keep runtime policy as LangGraph default with legacy runtime maintenance-only.
 - Keep v1.4 implementation out of v1.3 waves until v1.3 acceptance is complete.
 
 Expected deliverables:
 
-- v1.4 requirements/design/tasks package.
+- Published v1.4 scope freeze artifact: `specs/007-v1-4-deep-integration/guardrail-charter-acceptance-matrix.md`.
+- v1.4 requirements/design/tasks package under `specs/007-v1-4-deep-integration/`.
 - LangGraph deep integration evidence and backend consistency report.
 - Release readiness report for `v1.4.0`.
 
