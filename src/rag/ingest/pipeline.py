@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Iterable
 
 from rag.ingest.chunker import ChunkInput, ChunkRecord, IngestionError, chunk_document
+from rag.index.providers import EmbeddingProvider, EmbeddingProviderConfig
 from rag.index.store import ChunkForIndex, EmbeddingIndexStore
 
 
@@ -30,6 +31,8 @@ def rebuild_index(
     chunk_size: int = 480,
     chunk_overlap: int = 64,
     dimensions: int = 64,
+    embedding_provider: EmbeddingProvider | None = None,
+    embedding_provider_config: EmbeddingProviderConfig | None = None,
 ) -> RebuildResult:
     """
     Build the RAG index deterministically.
@@ -95,7 +98,12 @@ def rebuild_index(
         )
         for chunk in sorted_chunks
     ]
-    store = EmbeddingIndexStore.from_chunks(index_chunks, dimensions=dimensions)
+    store = EmbeddingIndexStore.from_chunks(
+        index_chunks,
+        dimensions=dimensions,
+        embedding_provider=embedding_provider,
+        embedding_provider_config=embedding_provider_config,
+    )
     written_path = store.save(index_path)
     return RebuildResult(
         source_count=len(normalized_items),

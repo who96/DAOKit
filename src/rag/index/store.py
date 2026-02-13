@@ -1,11 +1,18 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 import json
 from pathlib import Path
-from typing import Any, Iterable, Mapping
+from typing import Any, Iterable, Mapping, Sequence
 
-from rag.index.embeddings import cosine_similarity, embed_text
+from rag.index.embeddings import cosine_similarity
+from rag.index.providers import (
+    EmbeddingProvider,
+    EmbeddingProviderConfig,
+    PRODUCTION_EMBEDDING_MODE,
+    TEST_EMBEDDING_MODE,
+    build_embedding_provider,
+)
 
 
 def _expect_non_empty_string(value: Any, *, name: str) -> str:
@@ -58,17 +65,25 @@ class _IndexedChunk:
 
 
 class EmbeddingIndexStore:
-    """Deterministic in-memory embedding index with JSON persistence."""
+    """Embedding index with pluggable providers and JSON persistence."""
 
     def __init__(
         self,
         *,
         dimensions: int = 64,
         chunks: Iterable[_IndexedChunk] | None = None,
+        embedding_provider: EmbeddingProvider | None = None,
+        embedding_provider_config: EmbeddingProviderConfig | None = None,
     ) -> None:
         if dimensions <= 0:
             raise ValueError("dimensions must be > 0")
         self.dimensions = int(dimensions)
+        self.embedding_provider = _resolve_embedding_provider(
+            dimensions=self.dimensions,
+            embedding_provider=embedding_provider,
+            embedding_provider_config=embedding_provider_config,
+            default_mode=TEST_EMBEDDING_MODE,
+        )
         self._chunks = sorted(
             list(chunks or []),
             key=lambda item: (
@@ -87,20 +102,61 @@ class EmbeddingIndexStore:
         chunks: Iterable[ChunkForIndex],
         *,
         dimensions: int = 64,
+        embedding_provider: EmbeddingProvider | None = None,
+        embedding_provider_config: EmbeddingProviderConfig | None = None,
     ) -> "EmbeddingIndexStore":
+        chunk_list = list(chunks)
+        provider = _resolve_embedding_provider(
+            dimensions=dimensions,
+            embedding_provider=embedding_provider,
+            embedding_provider_config=embedding_provider_config,
+            default_mode=TEST_EMBEDDING_MODE,
+        )
+        vectors = provider.embed_texts([chunk.text for chunk in chunk_list])
+        if len(vectors) != len(chunk_list):
+            raise ValueError("embedding provider returned inconsistent vector count")
+
         indexed = [
             _IndexedChunk(
                 payload=chunk,
-                embedding=embed_text(chunk.text, dimensions=dimensions),
+                embedding=_coerce_embedding_vector(
+                    vectors[index],
+                    dimensions=dimensions,
+                    name=f"chunk[{index}]",
+                ),
             )
-            for chunk in chunks
+            for index, chunk in enumerate(chunk_list)
         ]
-        return cls(dimensions=dimensions, chunks=indexed)
+        return cls(
+            dimensions=dimensions,
+            chunks=indexed,
+            embedding_provider=provider,
+        )
 
     @classmethod
-    def load(cls, path: str | Path) -> "EmbeddingIndexStore":
+    def load(
+        cls,
+        path: str | Path,
+        *,
+        embedding_provider: EmbeddingProvider | None = None,
+        embedding_provider_config: EmbeddingProviderConfig | None = None,
+    ) -> "EmbeddingIndexStore":
         doc = json.loads(Path(path).read_text(encoding="utf-8"))
         dimensions = int(doc["dimensions"])
+
+        inferred_config = embedding_provider_config
+        if embedding_provider is None and inferred_config is None:
+            inferred_config = _provider_config_from_payload(
+                doc.get("embedding_provider"),
+                dimensions=dimensions,
+            )
+        provider = _resolve_embedding_provider(
+            dimensions=dimensions,
+            embedding_provider=embedding_provider,
+            embedding_provider_config=inferred_config,
+            default_mode=TEST_EMBEDDING_MODE,
+        )
+
         raw_chunks = doc.get("chunks")
         if not isinstance(raw_chunks, list):
             raise ValueError("index payload missing chunks list")
@@ -119,12 +175,17 @@ class EmbeddingIndexStore:
                 chunk_index=int(entry.get("chunk_index", 0)),
                 total_chunks=int(entry.get("total_chunks", 0)),
             )
-            embedding_raw = entry.get("embedding")
-            if not isinstance(embedding_raw, list):
-                raise ValueError("embedding must be a list")
-            embedding = tuple(float(value) for value in embedding_raw)
+            embedding = _coerce_embedding_vector(
+                entry.get("embedding"),
+                dimensions=dimensions,
+                name="embedding",
+            )
             indexed.append(_IndexedChunk(payload=payload, embedding=embedding))
-        return cls(dimensions=dimensions, chunks=indexed)
+        return cls(
+            dimensions=dimensions,
+            chunks=indexed,
+            embedding_provider=provider,
+        )
 
     def save(self, path: str | Path) -> Path:
         target = Path(path)
@@ -132,6 +193,12 @@ class EmbeddingIndexStore:
         payload = {
             "schema_version": "rag-index.v1",
             "dimensions": self.dimensions,
+            "embedding_provider": {
+                "mode": self.embedding_provider.mode,
+                "backend": self.embedding_provider.name,
+                "name": self.embedding_provider.name,
+                "deterministic": bool(self.embedding_provider.deterministic),
+            },
             "chunk_count": len(self._chunks),
             "chunks": [
                 {
@@ -170,7 +237,15 @@ class EmbeddingIndexStore:
         if top_k <= 0:
             return []
 
-        query_embedding = embed_text(normalized_query, dimensions=self.dimensions)
+        query_vectors = self.embedding_provider.embed_texts([normalized_query])
+        if len(query_vectors) != 1:
+            raise ValueError("embedding provider must return exactly one query vector")
+        query_embedding = _coerce_embedding_vector(
+            query_vectors[0],
+            dimensions=self.dimensions,
+            name="query_embedding",
+        )
+
         matches: list[SearchHit] = []
         for entry in self._chunks:
             payload = entry.payload
@@ -198,3 +273,90 @@ class EmbeddingIndexStore:
 
         matches.sort(key=lambda hit: (-hit.score, hit.chunk_id))
         return matches[:top_k]
+
+
+def _provider_config_from_payload(
+    payload: Any,
+    *,
+    dimensions: int,
+) -> EmbeddingProviderConfig:
+    if not isinstance(payload, Mapping):
+        return EmbeddingProviderConfig(mode=TEST_EMBEDDING_MODE, dimensions=dimensions)
+
+    raw_mode = payload.get("mode")
+    mode = TEST_EMBEDDING_MODE
+    if isinstance(raw_mode, str) and raw_mode.strip().lower() in {
+        TEST_EMBEDDING_MODE,
+        PRODUCTION_EMBEDDING_MODE,
+    }:
+        mode = raw_mode.strip().lower()
+
+    raw_backend = payload.get("backend")
+    backend: str | None = None
+    if isinstance(raw_backend, str) and raw_backend.strip():
+        backend = raw_backend.strip().lower()
+    else:
+        raw_name = payload.get("name")
+        if isinstance(raw_name, str) and raw_name.strip():
+            backend = raw_name.strip().lower()
+
+    raw_allow_fallback = payload.get("allow_fallback")
+    allow_fallback = True
+    if isinstance(raw_allow_fallback, bool):
+        allow_fallback = raw_allow_fallback
+
+    raw_model = payload.get("openai_model")
+    openai_model = "text-embedding-3-small"
+    if isinstance(raw_model, str) and raw_model.strip():
+        openai_model = raw_model.strip()
+
+    return EmbeddingProviderConfig(
+        mode=mode,
+        backend=backend,
+        dimensions=dimensions,
+        allow_fallback=allow_fallback,
+        openai_model=openai_model,
+    )
+
+
+def _resolve_embedding_provider(
+    *,
+    dimensions: int,
+    embedding_provider: EmbeddingProvider | None,
+    embedding_provider_config: EmbeddingProviderConfig | None,
+    default_mode: str,
+) -> EmbeddingProvider:
+    if embedding_provider is not None and embedding_provider_config is not None:
+        raise ValueError("embedding_provider and embedding_provider_config are mutually exclusive")
+
+    if embedding_provider is not None:
+        if int(embedding_provider.dimensions) != int(dimensions):
+            raise ValueError("embedding provider dimensions do not match store dimensions")
+        return embedding_provider
+
+    config = embedding_provider_config or EmbeddingProviderConfig(
+        mode=default_mode,
+        dimensions=dimensions,
+    )
+    if int(config.dimensions) != int(dimensions):
+        config = replace(config, dimensions=dimensions)
+
+    provider = build_embedding_provider(config)
+    if int(provider.dimensions) != int(dimensions):
+        raise ValueError("embedding provider dimensions do not match store dimensions")
+    return provider
+
+
+def _coerce_embedding_vector(
+    value: Any,
+    *,
+    dimensions: int,
+    name: str,
+) -> tuple[float, ...]:
+    if not isinstance(value, Sequence) or isinstance(value, (str, bytes, bytearray)):
+        raise ValueError(f"{name} must be a list of numbers")
+
+    vector = tuple(float(item) for item in value)
+    if len(vector) != dimensions:
+        raise ValueError(f"{name} must contain exactly {dimensions} values")
+    return vector

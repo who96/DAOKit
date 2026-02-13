@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Mapping
 
+from rag.index.providers import EmbeddingProvider, EmbeddingProviderConfig
 from rag.index.store import EmbeddingIndexStore
 
 
@@ -74,8 +75,16 @@ def policy_from_mapping(
 
 
 class PolicyAwareRetriever:
-    def __init__(self, *, index_path: str | Path | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        index_path: str | Path | None = None,
+        embedding_provider: EmbeddingProvider | None = None,
+        embedding_provider_config: EmbeddingProviderConfig | None = None,
+    ) -> None:
         self.index_path = Path(index_path).expanduser() if index_path else None
+        self.embedding_provider = embedding_provider
+        self.embedding_provider_config = embedding_provider_config
         self._store: EmbeddingIndexStore | None = None
 
     def retrieve(
@@ -156,5 +165,9 @@ class PolicyAwareRetriever:
             return self._store
         if self.index_path is None or not self.index_path.is_file():
             return None
-        self._store = EmbeddingIndexStore.load(self.index_path)
+        self._store = EmbeddingIndexStore.load(
+            self.index_path,
+            embedding_provider=self.embedding_provider,
+            embedding_provider_config=self.embedding_provider_config,
+        )
         return self._store
