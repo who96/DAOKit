@@ -26,7 +26,7 @@ from reliability.heartbeat import (
 )
 from reliability.lease import LeaseRegistry, LeaseRegistryError
 from reliability.succession import SuccessionManager
-from state.store import StateStore, StateStoreError
+from state.store import StateStoreError, create_state_backend
 
 REQUIRED_STATE_FILES = (
     "state/pipeline_state.json",
@@ -293,8 +293,12 @@ def _cmd_check(args: argparse.Namespace) -> int:
 
 def _cmd_run(args: argparse.Namespace) -> int:
     root = Path(args.root).resolve()
-    state_store = StateStore(root / "state")
     runtime_settings = _load_optional_runtime_settings(root)
+    state_store = create_state_backend(
+        root / "state",
+        env=os.environ,
+        config=runtime_settings,
+    )
 
     run_id = args.run_id or _generate_run_id(args.task_id)
     try:
@@ -365,7 +369,12 @@ def _cmd_run(args: argparse.Namespace) -> int:
 
 def _cmd_status(args: argparse.Namespace) -> int:
     root = Path(args.root).resolve()
-    state_store = StateStore(root / "state")
+    runtime_settings = _load_optional_runtime_settings(root)
+    state_store = create_state_backend(
+        root / "state",
+        env=os.environ,
+        config=runtime_settings,
+    )
 
     try:
         pipeline_state = state_store.load_state()
@@ -425,7 +434,12 @@ def _cmd_replay(args: argparse.Namespace) -> int:
         events_path = root / "state" / "events.jsonl"
         entries = _load_json_lines(events_path, code="E_REPLAY_FAILED")
     else:
-        state_store = StateStore(root / "state")
+        runtime_settings = _load_optional_runtime_settings(root)
+        state_store = create_state_backend(
+            root / "state",
+            env=os.environ,
+            config=runtime_settings,
+        )
         try:
             entries = state_store.list_snapshots()
         except StateStoreError as exc:
@@ -469,7 +483,12 @@ def _cmd_replay(args: argparse.Namespace) -> int:
 
 def _cmd_takeover(args: argparse.Namespace) -> int:
     root = Path(args.root).resolve()
-    state_store = StateStore(root / "state")
+    runtime_settings = _load_optional_runtime_settings(root)
+    state_store = create_state_backend(
+        root / "state",
+        env=os.environ,
+        config=runtime_settings,
+    )
     try:
         state = state_store.load_state()
     except StateStoreError as exc:
@@ -513,7 +532,12 @@ def _cmd_takeover(args: argparse.Namespace) -> int:
 def _cmd_handoff(args: argparse.Namespace) -> int:
     root = Path(args.root).resolve()
     package_path = _resolve_path(root, args.package_path)
-    state_store = StateStore(root / "state")
+    runtime_settings = _load_optional_runtime_settings(root)
+    state_store = create_state_backend(
+        root / "state",
+        env=os.environ,
+        config=runtime_settings,
+    )
 
     try:
         ledger_state = state_store.load_state()

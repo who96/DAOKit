@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from reliability.diagnostics import emit_reliability_diagnostics_from_state_store
-from state.store import StateStore
+from state.store import create_state_backend
 
 
 @dataclass(frozen=True)
@@ -27,7 +27,7 @@ def build_operator_recovery_payload(
     run_id: str,
     state_root: Path,
 ) -> dict[str, Any]:
-    state_store = StateStore(state_root)
+    state_store = create_state_backend(state_root)
     emission = emit_reliability_diagnostics_from_state_store(
         task_id=task_id,
         run_id=run_id,

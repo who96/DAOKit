@@ -30,7 +30,7 @@ from reliability.scenarios.core_rotation_chaos_matrix import (
     summarize_core_rotation_chaos_matrix,
 )
 from reliability.succession import SelfHealingCycleResult, SuccessionManager
-from state.store import StateStore
+from state.store import create_state_backend
 from reports.operator_recovery import build_and_persist_operator_recovery_report
 
 
@@ -323,7 +323,11 @@ def run_integrated_reliability_scenario(
     settings_path = scenario_root / "state" / "runtime_settings.json"
     settings_path.write_text(json.dumps(_RUNTIME_SETTINGS, indent=2) + "\n", encoding="utf-8")
 
-    state_store = StateStore(scenario_root / "state")
+    state_store = create_state_backend(
+        scenario_root / "state",
+        env={},
+        config=_RUNTIME_SETTINGS,
+    )
     resolved_engine = resolve_runtime_engine(config=_RUNTIME_SETTINGS, env={}).value
     runtime = create_runtime(
         task_id=task_id,

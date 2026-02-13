@@ -6,7 +6,8 @@ import json
 from typing import Any, Callable, Mapping
 from uuid import uuid4
 
-from state.store import StateStore
+from state.backend import StateBackend
+from state.store import StateStoreError
 
 
 class LeaseRegistryError(ValueError):
@@ -25,13 +26,14 @@ class LeaseRegistry:
     def __init__(
         self,
         *,
-        state_store: StateStore,
+        state_store: StateBackend,
         now_provider: Callable[[], datetime] | None = None,
     ) -> None:
         self.state_store = state_store
         self._now_provider = now_provider or (lambda: datetime.now(timezone.utc))
-        self._leases_path = self.state_store.root / "process_leases.json"
-        self._ensure_registry()
+
+        # Ensure lease storage is readable before first lifecycle operation.
+        self._load_registry()
 
     def register(
         self,
@@ -302,32 +304,18 @@ class LeaseRegistry:
             lease["expiry"] = (at + timedelta(seconds=ttl)).isoformat()
 
     def _ensure_registry(self) -> None:
-        if self._leases_path.exists():
-            if not self._leases_path.is_file():
-                raise LeaseRegistryError(
-                    f"expected lease registry file at '{self._leases_path}'"
-                )
-            return
-
-        now = _normalize_datetime(self._now_provider())
-        payload = {
-            "schema_version": "1.0.0",
-            "leases": [],
-            "updated_at": now.isoformat(),
-        }
-        self._leases_path.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
+        # Compatibility shim: lease persistence is owned by the StateBackend.
+        return None
 
     def _load_registry(self) -> dict[str, Any]:
         try:
-            payload = json.loads(self._leases_path.read_text(encoding="utf-8"))
-        except json.JSONDecodeError as exc:
-            raise LeaseRegistryError("process_leases.json is not valid JSON") from exc
+            payload = self.state_store.load_leases()
+        except StateStoreError as exc:
+            raise LeaseRegistryError(str(exc)) from exc
 
-        if not isinstance(payload, dict):
-            raise LeaseRegistryError("process_leases.json root must be an object")
         leases = payload.get("leases")
         if not isinstance(leases, list):
-            raise LeaseRegistryError("process_leases.json field 'leases' must be a list")
+            raise LeaseRegistryError("process_leases field 'leases' must be a list")
 
         normalized = {
             "schema_version": str(payload.get("schema_version") or "1.0.0"),
@@ -340,7 +328,10 @@ class LeaseRegistry:
         persisted = _copy_json(dict(payload))
         persisted["schema_version"] = "1.0.0"
         persisted["updated_at"] = _normalize_datetime(updated_at).isoformat()
-        self._leases_path.write_text(json.dumps(persisted, indent=2) + "\n", encoding="utf-8")
+        try:
+            self.state_store.save_leases(persisted)
+        except StateStoreError as exc:
+            raise LeaseRegistryError(str(exc)) from exc
 
     def _find_bound_lease(
         self,

@@ -5,7 +5,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable
 
-from state.store import StateStore
+from state.backend import StateBackend
 
 from .evaluator import HeartbeatEvaluation, HeartbeatThresholds, evaluate_heartbeat
 
@@ -27,7 +27,7 @@ class HeartbeatDaemon:
         task_id: str,
         run_id: str,
         step_id: str,
-        state_store: StateStore,
+        state_store: StateBackend,
         artifact_root: str | Path,
         thresholds: HeartbeatThresholds,
         now_provider: Callable[[], datetime] | None = None,

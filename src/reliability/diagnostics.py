@@ -15,7 +15,7 @@ from contracts.diagnostics_contracts import (
     ReliabilityDiagnosticsReport,
     TakeoverDiagnostic,
 )
-from state.store import StateStore
+from state.backend import StateBackend
 
 SCHEMA_VERSION = "1.0.0"
 RUNTIME_POLICY_LANGGRAPH_ONLY = "LANGGRAPH_ONLY"
@@ -161,7 +161,7 @@ def emit_reliability_diagnostics_from_state_store(
     *,
     task_id: str,
     run_id: str,
-    state_store: StateStore,
+    state_store: StateBackend,
     generated_at: datetime | None = None,
 ) -> ReliabilityDiagnosticsEmission:
     heartbeat_status = state_store.load_heartbeat_status()
@@ -809,29 +809,18 @@ def _latest_event(events: Sequence[Mapping[str, Any]]) -> Mapping[str, Any] | No
     )[-1]
 
 
-def _load_process_leases(*, state_store: StateStore) -> list[dict[str, Any]]:
-    leases_path = Path(state_store.root) / "process_leases.json"
-    if not leases_path.exists() or not leases_path.is_file():
-        return []
+def _load_process_leases(*, state_store: StateBackend) -> list[dict[str, Any]]:
     try:
-        payload = json.loads(leases_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return []
-    if not isinstance(payload, Mapping):
+        payload = state_store.load_leases()
+    except Exception:
         return []
     leases = payload.get("leases")
     if not isinstance(leases, Sequence) or isinstance(leases, (str, bytes, bytearray)):
         return []
-
-    selected: list[dict[str, Any]] = []
-    for lease in leases:
-        if not isinstance(lease, Mapping):
-            continue
-        selected.append(dict(lease))
-    return selected
+    return [dict(lease) for lease in leases if isinstance(lease, Mapping)]
 
 
-def _load_events(*, state_store: StateStore) -> list[dict[str, Any]]:
+def _load_events(*, state_store: StateBackend) -> list[dict[str, Any]]:
     events_path = Path(state_store.events_path)
     if not events_path.exists() or not events_path.is_file():
         return []

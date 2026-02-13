@@ -9,7 +9,7 @@ import unittest
 
 from reliability.heartbeat.daemon import HeartbeatDaemon
 from reliability.heartbeat.evaluator import HeartbeatThresholds
-from state.store import StateStore
+from state.store import StateStore, create_state_backend
 
 
 class _MutableClock:
@@ -32,7 +32,7 @@ def _set_mtime(path: Path, dt: datetime) -> None:
 
 class HeartbeatDaemonTests(unittest.TestCase):
     def _new_daemon(self, *, root: Path, clock: _MutableClock, artifact_root: Path) -> HeartbeatDaemon:
-        store = StateStore(root / "state")
+        store = create_state_backend(root / "state")
         return HeartbeatDaemon(
             task_id="DKT-013",
             run_id="RUN-013",

@@ -7,7 +7,7 @@ from typing import Any, Callable, Iterable, Mapping
 
 from reliability.handoff.package import HandoffPackageError, HandoffPackageStore
 from reliability.lease.registry import LeaseRegistry
-from state.store import StateStore
+from state.backend import StateBackend
 
 DEFAULT_CONTROLLER_LANE = "controller"
 KNOWN_HEARTBEAT_STATUSES = {"IDLE", "RUNNING", "WARNING", "STALE", "BLOCKED"}
@@ -49,7 +49,7 @@ class SuccessionManager:
         *,
         task_id: str,
         run_id: str,
-        state_store: StateStore,
+        state_store: StateBackend,
         lease_registry: LeaseRegistry,
         now_provider: Callable[[], datetime] | None = None,
     ) -> None:

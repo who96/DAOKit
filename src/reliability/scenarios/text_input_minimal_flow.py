@@ -13,7 +13,7 @@ from artifacts.dispatch_artifacts import DispatchArtifactStore
 from daokit.bootstrap import initialize_repository
 from dispatch.shim_adapter import ShimDispatchAdapter
 from orchestrator.engine import create_runtime
-from state.store import StateStore
+from state.store import create_state_backend
 
 
 REQUIRED_EVIDENCE_PACKET = (
@@ -432,7 +432,7 @@ def run_text_input_minimal_flow(
     scenario_root.mkdir(parents=True, exist_ok=True)
     initialize_repository(scenario_root)
 
-    state_store = StateStore(scenario_root / "state")
+    state_store = create_state_backend(scenario_root / "state")
     dispatch_adapter = ShimDispatchAdapter(
         shim_path="codex-worker-shim",
         shim_command_prefix=(sys.executable, "-m", "dispatch.codex_worker_shim"),

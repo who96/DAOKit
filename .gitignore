@@ -20,6 +20,6 @@ venv/
 
 # Runtime artifacts
 .artifacts/
-state/
+/state/
 $tmpdir/
 subagent.log
