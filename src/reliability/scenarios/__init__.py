@@ -28,6 +28,7 @@ __all__ = [
     "summarize_core_rotation_chaos_matrix",
     "run_core_rotation_chaos_matrix",
     "run_integrated_reliability_scenario",
+    "run_long_run_soak_harness",
 ]
 
 
@@ -39,5 +40,11 @@ def run_core_rotation_chaos_matrix(*args: Any, **kwargs: Any) -> dict[str, Any]:
 
 def run_integrated_reliability_scenario(*args: Any, **kwargs: Any) -> dict[str, Any]:
     from .integrated_reliability import run_integrated_reliability_scenario as _runner
+
+    return _runner(*args, **kwargs)
+
+
+def run_long_run_soak_harness(*args: Any, **kwargs: Any) -> dict[str, Any]:
+    from .integrated_reliability import run_long_run_soak_harness as _runner
 
     return _runner(*args, **kwargs)

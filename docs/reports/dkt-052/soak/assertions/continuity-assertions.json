@@ -1,0 +1,384 @@
+{
+  "task_id": "DKT-052",
+  "matrix_version": "dkt-051-core-rotation-v1",
+  "iterations": 3,
+  "scenario_ids": [
+    "stale-takeover-handoff-resume",
+    "warning-invalid-lease-forced-takeover",
+    "stale-invalid-lease-core-rotation",
+    "stale-active-lease-dedup-escalation"
+  ],
+  "deterministic_constraints": {
+    "seed": "DKT-051-core-rotation-chaos-matrix",
+    "clock_anchor_utc": "2026-02-12T09:46:00+00:00",
+    "check_interval_seconds": 60,
+    "warning_after_seconds": 900,
+    "stale_after_seconds": 1200,
+    "second_tick_advance_seconds": 120,
+    "replay_limit": 500
+  },
+  "checks": {
+    "continuity_assertions_all_passed": true,
+    "takeover_handoff_replay_consistent": true,
+    "deterministic_checkpoint_hashes": true,
+    "bounded_variance": true
+  },
+  "release_gate": {
+    "task_id": "DKT-052",
+    "status": "PASS",
+    "eligible": true,
+    "generated_at_utc": "2026-02-13T02:53:20.299916+00:00",
+    "criteria": {
+      "continuity_assertions_all_passed": {
+        "required": true,
+        "passed": true
+      },
+      "takeover_handoff_replay_consistent": {
+        "required": true,
+        "passed": true
+      },
+      "deterministic_checkpoint_hashes": {
+        "required": true,
+        "passed": true
+      },
+      "bounded_variance": {
+        "required": true,
+        "passed": true
+      }
+    }
+  },
+  "checkpoint_hashes_by_scenario": {
+    "stale-takeover-handoff-resume": [
+      "1f0470a0ff89d1524691600df6e6abc1bd8b1da588547dd43a1fafe927cf80f7"
+    ],
+    "warning-invalid-lease-forced-takeover": [
+      "9804b9b4a36bdb90b6eaa83cdbd751514b38f6d3aa6170142a409c84131c39df"
+    ],
+    "stale-invalid-lease-core-rotation": [
+      "a8277594922d4c3105fad48d3c62245f569b9bc6eeca9a01663f13df4716d729"
+    ],
+    "stale-active-lease-dedup-escalation": [
+      "89c53bf8e7606daa8824cb2f7cdb9802258743e5f32fb4b36f6e463fd4e7f871"
+    ]
+  },
+  "variance_by_scenario": {
+    "stale-takeover-handoff-resume": {
+      "event_count_range": 0,
+      "replay_count_range": 0
+    },
+    "warning-invalid-lease-forced-takeover": {
+      "event_count_range": 0,
+      "replay_count_range": 0
+    },
+    "stale-invalid-lease-core-rotation": {
+      "event_count_range": 0,
+      "replay_count_range": 0
+    },
+    "stale-active-lease-dedup-escalation": {
+      "event_count_range": 0,
+      "replay_count_range": 0
+    }
+  },
+  "checkpoints": [
+    {
+      "iteration": 1,
+      "matrix_root": "/Users/huluobo/workSpace/DAOKit/.worktrees/dkt-052/docs/reports/dkt-052/soak/iteration-01",
+      "scenario_id": "stale-takeover-handoff-resume",
+      "takeover_action": "TAKEOVER",
+      "decision_reason_code": "HEARTBEAT_STALE",
+      "handoff_applied": true,
+      "handoff_resume_step_id": "S1",
+      "event_count": 10,
+      "replay_count": 10,
+      "continuity_assertion_results": {
+        "CONT-001": true,
+        "CONT-002": true,
+        "CONT-003": true,
+        "CONT-004": true,
+        "CONT-006": true,
+        "CONT-007": true,
+        "CONT-008": true,
+        "CONT-009": true,
+        "CONT-010": true,
+        "CONT-011": true
+      },
+      "takeover_handoff_replay_consistent": true,
+      "checkpoint_hash": "1f0470a0ff89d1524691600df6e6abc1bd8b1da588547dd43a1fafe927cf80f7"
+    },
+    {
+      "iteration": 1,
+      "matrix_root": "/Users/huluobo/workSpace/DAOKit/.worktrees/dkt-052/docs/reports/dkt-052/soak/iteration-01",
+      "scenario_id": "warning-invalid-lease-forced-takeover",
+      "takeover_action": "TAKEOVER",
+      "decision_reason_code": "INVALID_LEASE_EXPIRED_CONTROLLER_LEASE",
+      "handoff_applied": true,
+      "handoff_resume_step_id": "S1",
+      "event_count": 10,
+      "replay_count": 10,
+      "continuity_assertion_results": {
+        "CONT-001": true,
+        "CONT-002": true,
+        "CONT-003": true,
+        "CONT-004": true,
+        "CONT-005": true,
+        "CONT-007": true,
+        "CONT-008": true,
+        "CONT-009": true,
+        "CONT-010": true,
+        "CONT-011": true
+      },
+      "takeover_handoff_replay_consistent": true,
+      "checkpoint_hash": "9804b9b4a36bdb90b6eaa83cdbd751514b38f6d3aa6170142a409c84131c39df"
+    },
+    {
+      "iteration": 1,
+      "matrix_root": "/Users/huluobo/workSpace/DAOKit/.worktrees/dkt-052/docs/reports/dkt-052/soak/iteration-01",
+      "scenario_id": "stale-invalid-lease-core-rotation",
+      "takeover_action": "TAKEOVER",
+      "decision_reason_code": "HEARTBEAT_STALE",
+      "handoff_applied": true,
+      "handoff_resume_step_id": "S1",
+      "event_count": 10,
+      "replay_count": 10,
+      "continuity_assertion_results": {
+        "CONT-001": true,
+        "CONT-002": true,
+        "CONT-003": true,
+        "CONT-004": true,
+        "CONT-006": true,
+        "CONT-007": true,
+        "CONT-008": true,
+        "CONT-009": true,
+        "CONT-010": true,
+        "CONT-011": true
+      },
+      "takeover_handoff_replay_consistent": true,
+      "checkpoint_hash": "a8277594922d4c3105fad48d3c62245f569b9bc6eeca9a01663f13df4716d729"
+    },
+    {
+      "iteration": 1,
+      "matrix_root": "/Users/huluobo/workSpace/DAOKit/.worktrees/dkt-052/docs/reports/dkt-052/soak/iteration-01",
+      "scenario_id": "stale-active-lease-dedup-escalation",
+      "takeover_action": "TAKEOVER",
+      "decision_reason_code": "HEARTBEAT_STALE",
+      "handoff_applied": true,
+      "handoff_resume_step_id": "S1",
+      "event_count": 10,
+      "replay_count": 10,
+      "continuity_assertion_results": {
+        "CONT-001": true,
+        "CONT-002": true,
+        "CONT-003": true,
+        "CONT-004": true,
+        "CONT-006": true,
+        "CONT-007": true,
+        "CONT-008": true,
+        "CONT-009": true,
+        "CONT-010": true,
+        "CONT-011": true
+      },
+      "takeover_handoff_replay_consistent": true,
+      "checkpoint_hash": "89c53bf8e7606daa8824cb2f7cdb9802258743e5f32fb4b36f6e463fd4e7f871"
+    },
+    {
+      "iteration": 2,
+      "matrix_root": "/Users/huluobo/workSpace/DAOKit/.worktrees/dkt-052/docs/reports/dkt-052/soak/iteration-02",
+      "scenario_id": "stale-takeover-handoff-resume",
+      "takeover_action": "TAKEOVER",
+      "decision_reason_code": "HEARTBEAT_STALE",
+      "handoff_applied": true,
+      "handoff_resume_step_id": "S1",
+      "event_count": 10,
+      "replay_count": 10,
+      "continuity_assertion_results": {
+        "CONT-001": true,
+        "CONT-002": true,
+        "CONT-003": true,
+        "CONT-004": true,
+        "CONT-006": true,
+        "CONT-007": true,
+        "CONT-008": true,
+        "CONT-009": true,
+        "CONT-010": true,
+        "CONT-011": true
+      },
+      "takeover_handoff_replay_consistent": true,
+      "checkpoint_hash": "1f0470a0ff89d1524691600df6e6abc1bd8b1da588547dd43a1fafe927cf80f7"
+    },
+    {
+      "iteration": 2,
+      "matrix_root": "/Users/huluobo/workSpace/DAOKit/.worktrees/dkt-052/docs/reports/dkt-052/soak/iteration-02",
+      "scenario_id": "warning-invalid-lease-forced-takeover",
+      "takeover_action": "TAKEOVER",
+      "decision_reason_code": "INVALID_LEASE_EXPIRED_CONTROLLER_LEASE",
+      "handoff_applied": true,
+      "handoff_resume_step_id": "S1",
+      "event_count": 10,
+      "replay_count": 10,
+      "continuity_assertion_results": {
+        "CONT-001": true,
+        "CONT-002": true,
+        "CONT-003": true,
+        "CONT-004": true,
+        "CONT-005": true,
+        "CONT-007": true,
+        "CONT-008": true,
+        "CONT-009": true,
+        "CONT-010": true,
+        "CONT-011": true
+      },
+      "takeover_handoff_replay_consistent": true,
+      "checkpoint_hash": "9804b9b4a36bdb90b6eaa83cdbd751514b38f6d3aa6170142a409c84131c39df"
+    },
+    {
+      "iteration": 2,
+      "matrix_root": "/Users/huluobo/workSpace/DAOKit/.worktrees/dkt-052/docs/reports/dkt-052/soak/iteration-02",
+      "scenario_id": "stale-invalid-lease-core-rotation",
+      "takeover_action": "TAKEOVER",
+      "decision_reason_code": "HEARTBEAT_STALE",
+      "handoff_applied": true,
+      "handoff_resume_step_id": "S1",
+      "event_count": 10,
+      "replay_count": 10,
+      "continuity_assertion_results": {
+        "CONT-001": true,
+        "CONT-002": true,
+        "CONT-003": true,
+        "CONT-004": true,
+        "CONT-006": true,
+        "CONT-007": true,
+        "CONT-008": true,
+        "CONT-009": true,
+        "CONT-010": true,
+        "CONT-011": true
+      },
+      "takeover_handoff_replay_consistent": true,
+      "checkpoint_hash": "a8277594922d4c3105fad48d3c62245f569b9bc6eeca9a01663f13df4716d729"
+    },
+    {
+      "iteration": 2,
+      "matrix_root": "/Users/huluobo/workSpace/DAOKit/.worktrees/dkt-052/docs/reports/dkt-052/soak/iteration-02",
+      "scenario_id": "stale-active-lease-dedup-escalation",
+      "takeover_action": "TAKEOVER",
+      "decision_reason_code": "HEARTBEAT_STALE",
+      "handoff_applied": true,
+      "handoff_resume_step_id": "S1",
+      "event_count": 10,
+      "replay_count": 10,
+      "continuity_assertion_results": {
+        "CONT-001": true,
+        "CONT-002": true,
+        "CONT-003": true,
+        "CONT-004": true,
+        "CONT-006": true,
+        "CONT-007": true,
+        "CONT-008": true,
+        "CONT-009": true,
+        "CONT-010": true,
+        "CONT-011": true
+      },
+      "takeover_handoff_replay_consistent": true,
+      "checkpoint_hash": "89c53bf8e7606daa8824cb2f7cdb9802258743e5f32fb4b36f6e463fd4e7f871"
+    },
+    {
+      "iteration": 3,
+      "matrix_root": "/Users/huluobo/workSpace/DAOKit/.worktrees/dkt-052/docs/reports/dkt-052/soak/iteration-03",
+      "scenario_id": "stale-takeover-handoff-resume",
+      "takeover_action": "TAKEOVER",
+      "decision_reason_code": "HEARTBEAT_STALE",
+      "handoff_applied": true,
+      "handoff_resume_step_id": "S1",
+      "event_count": 10,
+      "replay_count": 10,
+      "continuity_assertion_results": {
+        "CONT-001": true,
+        "CONT-002": true,
+        "CONT-003": true,
+        "CONT-004": true,
+        "CONT-006": true,
+        "CONT-007": true,
+        "CONT-008": true,
+        "CONT-009": true,
+        "CONT-010": true,
+        "CONT-011": true
+      },
+      "takeover_handoff_replay_consistent": true,
+      "checkpoint_hash": "1f0470a0ff89d1524691600df6e6abc1bd8b1da588547dd43a1fafe927cf80f7"
+    },
+    {
+      "iteration": 3,
+      "matrix_root": "/Users/huluobo/workSpace/DAOKit/.worktrees/dkt-052/docs/reports/dkt-052/soak/iteration-03",
+      "scenario_id": "warning-invalid-lease-forced-takeover",
+      "takeover_action": "TAKEOVER",
+      "decision_reason_code": "INVALID_LEASE_EXPIRED_CONTROLLER_LEASE",
+      "handoff_applied": true,
+      "handoff_resume_step_id": "S1",
+      "event_count": 10,
+      "replay_count": 10,
+      "continuity_assertion_results": {
+        "CONT-001": true,
+        "CONT-002": true,
+        "CONT-003": true,
+        "CONT-004": true,
+        "CONT-005": true,
+        "CONT-007": true,
+        "CONT-008": true,
+        "CONT-009": true,
+        "CONT-010": true,
+        "CONT-011": true
+      },
+      "takeover_handoff_replay_consistent": true,
+      "checkpoint_hash": "9804b9b4a36bdb90b6eaa83cdbd751514b38f6d3aa6170142a409c84131c39df"
+    },
+    {
+      "iteration": 3,
+      "matrix_root": "/Users/huluobo/workSpace/DAOKit/.worktrees/dkt-052/docs/reports/dkt-052/soak/iteration-03",
+      "scenario_id": "stale-invalid-lease-core-rotation",
+      "takeover_action": "TAKEOVER",
+      "decision_reason_code": "HEARTBEAT_STALE",
+      "handoff_applied": true,
+      "handoff_resume_step_id": "S1",
+      "event_count": 10,
+      "replay_count": 10,
+      "continuity_assertion_results": {
+        "CONT-001": true,
+        "CONT-002": true,
+        "CONT-003": true,
+        "CONT-004": true,
+        "CONT-006": true,
+        "CONT-007": true,
+        "CONT-008": true,
+        "CONT-009": true,
+        "CONT-010": true,
+        "CONT-011": true
+      },
+      "takeover_handoff_replay_consistent": true,
+      "checkpoint_hash": "a8277594922d4c3105fad48d3c62245f569b9bc6eeca9a01663f13df4716d729"
+    },
+    {
+      "iteration": 3,
+      "matrix_root": "/Users/huluobo/workSpace/DAOKit/.worktrees/dkt-052/docs/reports/dkt-052/soak/iteration-03",
+      "scenario_id": "stale-active-lease-dedup-escalation",
+      "takeover_action": "TAKEOVER",
+      "decision_reason_code": "HEARTBEAT_STALE",
+      "handoff_applied": true,
+      "handoff_resume_step_id": "S1",
+      "event_count": 10,
+      "replay_count": 10,
+      "continuity_assertion_results": {
+        "CONT-001": true,
+        "CONT-002": true,
+        "CONT-003": true,
+        "CONT-004": true,
+        "CONT-006": true,
+        "CONT-007": true,
+        "CONT-008": true,
+        "CONT-009": true,
+        "CONT-010": true,
+        "CONT-011": true
+      },
+      "takeover_handoff_replay_consistent": true,
+      "checkpoint_hash": "89c53bf8e7606daa8824cb2f7cdb9802258743e5f32fb4b36f6e463fd4e7f871"
+    }
+  ]
+}

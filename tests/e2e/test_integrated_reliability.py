@@ -121,6 +121,56 @@ class IntegratedReliabilityE2ETests(unittest.TestCase):
                 self.assertGreaterEqual(len(scenario["command_log"]), 4)
                 self.assertTrue(all("exit_code" in entry for entry in scenario["command_log"]))
 
+    def test_long_run_soak_harness_cli_emits_deterministic_checkpoints_and_gate_outputs(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            soak_root = Path(tmp) / "soak"
+            summary_path = Path(tmp) / "soak-summary.json"
+
+            env = os.environ.copy()
+            env["PYTHONPATH"] = "src"
+            proc = subprocess.run(
+                [
+                    sys.executable,
+                    "-m",
+                    "reliability.scenarios.integrated_reliability",
+                    "--soak",
+                    "--soak-root",
+                    str(soak_root),
+                    "--soak-iterations",
+                    "2",
+                    "--scenario-id",
+                    "stale-takeover-handoff-resume",
+                    "--output-json",
+                    str(summary_path),
+                ],
+                cwd=self._repo_root(),
+                env=env,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertEqual(
+                proc.returncode,
+                0,
+                msg=f"soak command failed\nstdout:\n{proc.stdout}\nstderr:\n{proc.stderr}",
+            )
+            self.assertTrue(summary_path.is_file())
+
+            payload = json.loads(summary_path.read_text(encoding="utf-8"))
+            checks = payload["checks"]
+            self.assertEqual(payload["task_id"], "DKT-052")
+            self.assertEqual(payload["iterations"], 2)
+            self.assertEqual(payload["scenario_ids"], ["stale-takeover-handoff-resume"])
+            self.assertTrue(checks["continuity_assertions_all_passed"])
+            self.assertTrue(checks["takeover_handoff_replay_consistent"])
+            self.assertTrue(checks["deterministic_checkpoint_hashes"])
+            self.assertTrue(checks["bounded_variance"])
+            self.assertEqual(payload["release_gate"]["status"], "PASS")
+            self.assertTrue(payload["release_gate"]["eligible"])
+
+            for path in payload["assertion_outputs"].values():
+                self.assertTrue(Path(path).is_file(), msg=f"expected output file missing: {path}")
+
 
 if __name__ == "__main__":
     unittest.main()
