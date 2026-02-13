@@ -1,0 +1,439 @@
+=== COMMAND ENTRY 1 START ===
+Command: PYTHONPATH=src python3 -m reliability.consistency.cross_backend --repo-root . --output-root .artifacts/agent_runs/DKT-070_20260213T132036Z_7vugm3t/S1/cross-backend --task-id DKT-070 --run-id DKT-070_20260213T132036Z_7vugm3t --step-id S1 --report-json docs/reports/dkt-070/consistency-report.json --report-markdown docs/reports/dkt-070/consistency-report.md
+{
+  "backends": [
+    "filesystem",
+    "sqlite"
+  ],
+  "generated_at": "2026-02-13T16:27:07.201310+00:00",
+  "output_root": "/Users/huluobo/workSpace/DAOKit/.worktrees/dkt-070/.artifacts/agent_runs/DKT-070_20260213T132036Z_7vugm3t/S1/cross-backend",
+  "passed": true,
+  "run_id": "DKT-070_20260213T132036Z_7vugm3t",
+  "scenario_ids": [
+    "integrated_reliability",
+    "text_input_minimal_flow",
+    "checkpoint_recovery"
+  ],
+  "scenarios": [
+    {
+      "comparison": {
+        "differences": [],
+        "equivalent": true
+      },
+      "contract_hashes": {
+        "filesystem": "a9cb9ba547dd981d98ec9ab9233eea24bf30fb43531f07f2e1e24ecaeefb0b64",
+        "sqlite": "a9cb9ba547dd981d98ec9ab9233eea24bf30fb43531f07f2e1e24ecaeefb0b64"
+      },
+      "id": "integrated_reliability",
+      "outputs": {
+        "filesystem": {
+          "backend": "filesystem",
+          "contract_hash": "a9cb9ba547dd981d98ec9ab9233eea24bf30fb43531f07f2e1e24ecaeefb0b64",
+          "contract_path": "/Users/huluobo/workSpace/DAOKit/.worktrees/dkt-070/.artifacts/agent_runs/DKT-070_20260213T132036Z_7vugm3t/S1/cross-backend/integrated_reliability/filesystem/contract.json",
+          "contract_snapshot": {
+            "checks": {
+              "continuity_assertions_met": true,
+              "event_lease_state_consistent": true,
+              "forced_stale_condition": true,
+              "heartbeat_condition_matches_fixture": true,
+              "recovered_without_manual_state_repair": true,
+              "status_replay_consistent_after_recovery": true,
+              "takeover_and_handoff_applied_during_active_run": true
+            },
+            "continuity_assertion_results": {
+              "CONT-001": true,
+              "CONT-002": true,
+              "CONT-003": true,
+              "CONT-004": true,
+              "CONT-006": true,
+              "CONT-007": true,
+              "CONT-008": true,
+              "CONT-009": true,
+              "CONT-010": true,
+              "CONT-011": true
+            },
+            "event_count": 10,
+            "final_state": {
+              "current_step": "S1",
+              "status": "DONE"
+            },
+            "graph_backend": "fallback",
+            "heartbeat": {
+              "first_tick": {
+                "reason_code": "NO_OUTPUT_20M",
+                "status": "STALE"
+              },
+              "second_tick": {
+                "reason_code": "NO_OUTPUT_20M",
+                "status": "STALE"
+              },
+              "stale_event_count": 2
+            },
+            "replay_count": 10,
+            "resolved_runtime_engine": "langgraph",
+            "runtime_class": "LangGraphOrchestratorRuntime",
+            "runtime_mode": "integrated",
+            "scenario_expectations_passed": true,
+            "scenario_id": "stale-takeover-handoff-resume",
+            "takeover": {
+              "action": "TAKEOVER",
+              "adopted_step_ids": [
+                "S1"
+              ],
+              "failed_step_ids": [],
+              "handoff_applied": true,
+              "handoff_resume_step_id": "S1",
+              "successor_active_after_recovery": 1,
+              "successor_active_final": 1
+            }
+          },
+          "raw_summary_path": "/Users/huluobo/workSpace/DAOKit/.worktrees/dkt-070/.artifacts/agent_runs/DKT-070_20260213T132036Z_7vugm3t/S1/cross-backend/integrated_reliability/filesystem/raw-summary.json",
+          "scenario_root": "/Users/huluobo/workSpace/DAOKit/.worktrees/dkt-070/.artifacts/agent_runs/DKT-070_20260213T132036Z_7vugm3t/S1/cross-backend/integrated_reliability/filesystem/scenario"
+        },
+        "sqlite": {
+          "backend": "sqlite",
+          "contract_hash": "a9cb9ba547dd981d98ec9ab9233eea24bf30fb43531f07f2e1e24ecaeefb0b64",
+          "contract_path": "/Users/huluobo/workSpace/DAOKit/.worktrees/dkt-070/.artifacts/agent_runs/DKT-070_20260213T132036Z_7vugm3t/S1/cross-backend/integrated_reliability/sqlite/contract.json",
+          "contract_snapshot": {
+            "checks": {
+              "continuity_assertions_met": true,
+              "event_lease_state_consistent": true,
+              "forced_stale_condition": true,
+              "heartbeat_condition_matches_fixture": true,
+              "recovered_without_manual_state_repair": true,
+              "status_replay_consistent_after_recovery": true,
+              "takeover_and_handoff_applied_during_active_run": true
+            },
+            "continuity_assertion_results": {
+              "CONT-001": true,
+              "CONT-002": true,
+              "CONT-003": true,
+              "CONT-004": true,
+              "CONT-006": true,
+              "CONT-007": true,
+              "CONT-008": true,
+              "CONT-009": true,
+              "CONT-010": true,
+              "CONT-011": true
+            },
+            "event_count": 10,
+            "final_state": {
+              "current_step": "S1",
+              "status": "DONE"
+            },
+            "graph_backend": "fallback",
+            "heartbeat": {
+              "first_tick": {
+                "reason_code": "NO_OUTPUT_20M",
+                "status": "STALE"
+              },
+              "second_tick": {
+                "reason_code": "NO_OUTPUT_20M",
+                "status": "STALE"
+              },
+              "stale_event_count": 2
+            },
+            "replay_count": 10,
+            "resolved_runtime_engine": "langgraph",
+            "runtime_class": "LangGraphOrchestratorRuntime",
+            "runtime_mode": "integrated",
+            "scenario_expectations_passed": true,
+            "scenario_id": "stale-takeover-handoff-resume",
+            "takeover": {
+              "action": "TAKEOVER",
+              "adopted_step_ids": [
+                "S1"
+              ],
+              "failed_step_ids": [],
+              "handoff_applied": true,
+              "handoff_resume_step_id": "S1",
+              "successor_active_after_recovery": 1,
+              "successor_active_final": 1
+            }
+          },
+          "raw_summary_path": "/Users/huluobo/workSpace/DAOKit/.worktrees/dkt-070/.artifacts/agent_runs/DKT-070_20260213T132036Z_7vugm3t/S1/cross-backend/integrated_reliability/sqlite/raw-summary.json",
+          "scenario_root": "/Users/huluobo/workSpace/DAOKit/.worktrees/dkt-070/.artifacts/agent_runs/DKT-070_20260213T132036Z_7vugm3t/S1/cross-backend/integrated_reliability/sqlite/scenario"
+        }
+      }
+    },
+    {
+      "comparison": {
+        "differences": [],
+        "equivalent": true
+      },
+      "contract_hashes": {
+        "filesystem": "6c979fa5a0a16ea7e143608849448dda3076770348583316c2ba9994dc57ee98",
+        "sqlite": "6c979fa5a0a16ea7e143608849448dda3076770348583316c2ba9994dc57ee98"
+      },
+      "id": "text_input_minimal_flow",
+      "outputs": {
+        "filesystem": {
+          "backend": "filesystem",
+          "contract_hash": "6c979fa5a0a16ea7e143608849448dda3076770348583316c2ba9994dc57ee98",
+          "contract_path": "/Users/huluobo/workSpace/DAOKit/.worktrees/dkt-070/.artifacts/agent_runs/DKT-070_20260213T132036Z_7vugm3t/S1/cross-backend/text_input_minimal_flow/filesystem/contract.json",
+          "contract_snapshot": {
+            "acceptance": {
+              "artifact_structure_signature": "bdc39afb1693f0ec135a79bd381464b6d001467dfc4b5e5037936e25e4bc61db",
+              "checks": {
+                "artifact_structure_consistent": true,
+                "process_path_consistent": true,
+                "release_anchor_compatible": true
+              },
+              "process_path_signature": "d023ea3c5d2a959a67a1a9b97fc42eaa9171a75dc7b69e3667388ae0ad184e9b",
+              "release_anchor_compatible": true
+            },
+            "dispatch": {
+              "call_count": 1,
+              "execution_mode": "fallback",
+              "llm_invoked": false
+            },
+            "final_state": {
+              "current_step": "S1",
+              "status": "DONE"
+            },
+            "planner": {
+              "step_count": 3,
+              "step_ids": [
+                "S1",
+                "S2",
+                "S3"
+              ]
+            }
+          },
+          "raw_summary_path": "/Users/huluobo/workSpace/DAOKit/.worktrees/dkt-070/.artifacts/agent_runs/DKT-070_20260213T132036Z_7vugm3t/S1/cross-backend/text_input_minimal_flow/filesystem/raw-summary.json",
+          "scenario_root": "/Users/huluobo/workSpace/DAOKit/.worktrees/dkt-070/.artifacts/agent_runs/DKT-070_20260213T132036Z_7vugm3t/S1/cross-backend/text_input_minimal_flow/filesystem/scenario"
+        },
+        "sqlite": {
+          "backend": "sqlite",
+          "contract_hash": "6c979fa5a0a16ea7e143608849448dda3076770348583316c2ba9994dc57ee98",
+          "contract_path": "/Users/huluobo/workSpace/DAOKit/.worktrees/dkt-070/.artifacts/agent_runs/DKT-070_20260213T132036Z_7vugm3t/S1/cross-backend/text_input_minimal_flow/sqlite/contract.json",
+          "contract_snapshot": {
+            "acceptance": {
+              "artifact_structure_signature": "bdc39afb1693f0ec135a79bd381464b6d001467dfc4b5e5037936e25e4bc61db",
+              "checks": {
+                "artifact_structure_consistent": true,
+                "process_path_consistent": true,
+                "release_anchor_compatible": true
+              },
+              "process_path_signature": "d023ea3c5d2a959a67a1a9b97fc42eaa9171a75dc7b69e3667388ae0ad184e9b",
+              "release_anchor_compatible": true
+            },
+            "dispatch": {
+              "call_count": 1,
+              "execution_mode": "fallback",
+              "llm_invoked": false
+            },
+            "final_state": {
+              "current_step": "S1",
+              "status": "DONE"
+            },
+            "planner": {
+              "step_count": 3,
+              "step_ids": [
+                "S1",
+                "S2",
+                "S3"
+              ]
+            }
+          },
+          "raw_summary_path": "/Users/huluobo/workSpace/DAOKit/.worktrees/dkt-070/.artifacts/agent_runs/DKT-070_20260213T132036Z_7vugm3t/S1/cross-backend/text_input_minimal_flow/sqlite/raw-summary.json",
+          "scenario_root": "/Users/huluobo/workSpace/DAOKit/.worktrees/dkt-070/.artifacts/agent_runs/DKT-070_20260213T132036Z_7vugm3t/S1/cross-backend/text_input_minimal_flow/sqlite/scenario"
+        }
+      }
+    },
+    {
+      "comparison": {
+        "differences": [],
+        "equivalent": true
+      },
+      "contract_hashes": {
+        "filesystem": "b087db1d45e3a9ccdad1d4aaf42a298b0765859c32e035587dc99a67ace3b93c",
+        "sqlite": "b087db1d45e3a9ccdad1d4aaf42a298b0765859c32e035587dc99a67ace3b93c"
+      },
+      "id": "checkpoint_recovery",
+      "outputs": {
+        "filesystem": {
+          "backend": "filesystem",
+          "contract_hash": "b087db1d45e3a9ccdad1d4aaf42a298b0765859c32e035587dc99a67ace3b93c",
+          "contract_path": "/Users/huluobo/workSpace/DAOKit/.worktrees/dkt-070/.artifacts/agent_runs/DKT-070_20260213T132036Z_7vugm3t/S1/cross-backend/checkpoint_recovery/filesystem/contract.json",
+          "contract_snapshot": {
+            "checkpoint_resume_diagnostics_present": true,
+            "checkpoint_resume_status": "recovered_with_warnings",
+            "checks": {
+              "checkpoint_resume_warns": true,
+              "final_status_done": true,
+              "recovered_status_is_freeze": true,
+              "recovered_step_is_s1": true
+            },
+            "final_status": "DONE",
+            "recovered_status": "FREEZE",
+            "recovered_step": "S1"
+          },
+          "raw_summary_path": "/Users/huluobo/workSpace/DAOKit/.worktrees/dkt-070/.artifacts/agent_runs/DKT-070_20260213T132036Z_7vugm3t/S1/cross-backend/checkpoint_recovery/filesystem/raw-summary.json",
+          "scenario_root": "/Users/huluobo/workSpace/DAOKit/.worktrees/dkt-070/.artifacts/agent_runs/DKT-070_20260213T132036Z_7vugm3t/S1/cross-backend/checkpoint_recovery/filesystem/scenario"
+        },
+        "sqlite": {
+          "backend": "sqlite",
+          "contract_hash": "b087db1d45e3a9ccdad1d4aaf42a298b0765859c32e035587dc99a67ace3b93c",
+          "contract_path": "/Users/huluobo/workSpace/DAOKit/.worktrees/dkt-070/.artifacts/agent_runs/DKT-070_20260213T132036Z_7vugm3t/S1/cross-backend/checkpoint_recovery/sqlite/contract.json",
+          "contract_snapshot": {
+            "checkpoint_resume_diagnostics_present": true,
+            "checkpoint_resume_status": "recovered_with_warnings",
+            "checks": {
+              "checkpoint_resume_warns": true,
+              "final_status_done": true,
+              "recovered_status_is_freeze": true,
+              "recovered_step_is_s1": true
+            },
+            "final_status": "DONE",
+            "recovered_status": "FREEZE",
+            "recovered_step": "S1"
+          },
+          "raw_summary_path": "/Users/huluobo/workSpace/DAOKit/.worktrees/dkt-070/.artifacts/agent_runs/DKT-070_20260213T132036Z_7vugm3t/S1/cross-backend/checkpoint_recovery/sqlite/raw-summary.json",
+          "scenario_root": "/Users/huluobo/workSpace/DAOKit/.worktrees/dkt-070/.artifacts/agent_runs/DKT-070_20260213T132036Z_7vugm3t/S1/cross-backend/checkpoint_recovery/sqlite/scenario"
+        }
+      }
+    }
+  ],
+  "schema_version": "1.0.0",
+  "status": "PASS",
+  "step_id": "S1",
+  "task_id": "DKT-070",
+  "tolerance": {
+    "ignored_fields": [
+      "event_id",
+      "checkpoint_id",
+      "lease_token",
+      "timestamp",
+      "updated_at",
+      "scenario_root",
+      "state_dir",
+      "events_log",
+      "handoff_package",
+      "runtime_settings",
+      "operator_recovery_outputs",
+      "command_log"
+    ],
+    "notes": "Equivalence compares backend outputs after canonicalization. Canonicalization keeps only contract-relevant signals and drops volatile ids/timestamps and absolute filesystem paths."
+  },
+  "workflow": "cross-backend-consistency"
+}
+Exit Code: 0
+=== COMMAND ENTRY 1 END ===
+
+=== COMMAND ENTRY 2 START ===
+Command: PYTHONPATH=src python3 -m unittest tests/verification/test_cross_backend_consistency.py -v
+test_suite_reports_equivalent_contract_outputs_for_filesystem_and_sqlite (tests.verification.test_cross_backend_consistency.CrossBackendConsistencySuiteTests.test_suite_reports_equivalent_contract_outputs_for_filesystem_and_sqlite) ... ok
+
+----------------------------------------------------------------------
+Ran 1 test in 0.688s
+
+OK
+Exit Code: 0
+=== COMMAND ENTRY 2 END ===
+
+=== COMMAND ENTRY 3 START ===
+Command: make lint
+python3 -m compileall src tests
+Listing 'src'...
+Listing 'src/acceptance'...
+Listing 'src/artifacts'...
+Listing 'src/audit'...
+Listing 'src/cli'...
+Listing 'src/contracts'...
+Listing 'src/daokit'...
+Listing 'src/dispatch'...
+Listing 'src/hooks'...
+Listing 'src/orchestrator'...
+Listing 'src/planner'...
+Listing 'src/rag'...
+Listing 'src/rag/evaluation'...
+Listing 'src/rag/evaluation/datasets'...
+Listing 'src/rag/index'...
+Listing 'src/rag/ingest'...
+Listing 'src/rag/retrieval'...
+Listing 'src/reliability'...
+Listing 'src/reliability/consistency'...
+Listing 'src/reliability/handoff'...
+Listing 'src/reliability/heartbeat'...
+Listing 'src/reliability/lease'...
+Listing 'src/reliability/scenarios'...
+Listing 'src/reliability/succession'...
+Listing 'src/reports'...
+Listing 'src/skills'...
+Listing 'src/state'...
+Listing 'src/tools'...
+Listing 'src/tools/common'...
+Listing 'src/tools/function_calling'...
+Listing 'src/tools/langchain'...
+Listing 'src/tools/mcp'...
+Listing 'src/verification'...
+Listing 'tests'...
+Listing 'tests/acceptance'...
+Listing 'tests/audit'...
+Listing 'tests/ci'...
+Listing 'tests/cli'...
+Listing 'tests/contracts'...
+Listing 'tests/contracts/samples'...
+Listing 'tests/dispatch'...
+Listing 'tests/e2e'...
+Listing 'tests/hooks'...
+Listing 'tests/orchestrator'...
+Listing 'tests/planner'...
+Listing 'tests/rag'...
+Listing 'tests/reliability'...
+Listing 'tests/reports'...
+Listing 'tests/skills'...
+Listing 'tests/state'...
+Listing 'tests/templates'...
+Listing 'tests/tools'...
+Listing 'tests/verification'...
+Exit Code: 0
+=== COMMAND ENTRY 3 END ===
+
+=== COMMAND ENTRY 4 START ===
+Command: make test
+PYTHONPATH=src python3 -m unittest discover -s tests -p 'test_*.py' -v
+test_codex_integration_runbooks_reference_hardening_gate (ci.test_v11_hardening_gate_contract.V11HardeningGateContractTests.test_codex_integration_runbooks_reference_hardening_gate) ... ok
+test_makefile_exposes_hardening_gate_targets (ci.test_v11_hardening_gate_contract.V11HardeningGateContractTests.test_makefile_exposes_hardening_gate_targets) ... ok
+test_release_check_runbook_matches_ci_gate_sequence (ci.test_v11_hardening_gate_contract.V11HardeningGateContractTests.test_release_check_runbook_matches_ci_gate_sequence) ... ok
+test_workflow_runs_criterion_mapped_gate_order (ci.test_v11_hardening_gate_contract.V11HardeningGateContractTests.test_workflow_runs_criterion_mapped_gate_order) ... ok
+test_contributor_doc_includes_deterministic_release_checklist (templates.test_skill_manifest_template.SkillManifestTemplateTests.test_contributor_doc_includes_deterministic_release_checklist) ... ok
+test_contributor_doc_includes_failure_examples (templates.test_skill_manifest_template.SkillManifestTemplateTests.test_contributor_doc_includes_failure_examples) ... ok
+test_template_hooks_use_supported_events (templates.test_skill_manifest_template.SkillManifestTemplateTests.test_template_hooks_use_supported_events) ... ok
+test_template_is_accepted_by_loader_contract (templates.test_skill_manifest_template.SkillManifestTemplateTests.test_template_is_accepted_by_loader_contract) ... ok
+test_template_is_valid_json_with_required_metadata (templates.test_skill_manifest_template.SkillManifestTemplateTests.test_template_is_valid_json_with_required_metadata) ... ok
+test_adapter_scaffold_is_immediately_runnable (templates.test_tool_adapter_template.ToolAdapterTemplateContractTests.test_adapter_scaffold_is_immediately_runnable) ... ok
+test_contributor_checklist_maps_acceptance_and_evidence (templates.test_tool_adapter_template.ToolAdapterTemplateContractTests.test_contributor_checklist_maps_acceptance_and_evidence) ... ok
+test_readme_links_template_to_release_check (templates.test_tool_adapter_template.ToolAdapterTemplateContractTests.test_readme_links_template_to_release_check) ... ok
+test_template_assets_exist (templates.test_tool_adapter_template.ToolAdapterTemplateContractTests.test_template_assets_exist) ... ok
+test_cli_init_returns_error_for_invalid_root (test_init.InitCommandTests.test_cli_init_returns_error_for_invalid_root) ... ok
+test_cli_init_returns_error_when_required_directory_is_file (test_init.InitCommandTests.test_cli_init_returns_error_when_required_directory_is_file) ... ok
+test_cli_init_returns_error_when_state_file_path_is_directory (test_init.InitCommandTests.test_cli_init_returns_error_when_state_file_path_is_directory) ... ok
+test_cli_init_supports_custom_root (test_init.InitCommandTests.test_cli_init_supports_custom_root) ... ok
+test_initialize_repository_creates_required_layout (test_init.InitCommandTests.test_initialize_repository_creates_required_layout) ... ok
+test_initialize_repository_is_idempotent (test_init.InitCommandTests.test_initialize_repository_is_idempotent) ... ok
+test_initialize_repository_rejects_directory_path_conflict (test_init.InitCommandTests.test_initialize_repository_rejects_directory_path_conflict) ... ok
+test_initialize_repository_rejects_state_file_path_conflict (test_init.InitCommandTests.test_initialize_repository_rejects_state_file_path_conflict) ... ok
+test_run_release_check_fails_fast_after_first_failure (test_release_check.ReleaseCheckTests.test_run_release_check_fails_fast_after_first_failure) ... ok
+test_run_release_check_writes_markerized_log_and_summary (test_release_check.ReleaseCheckTests.test_run_release_check_writes_markerized_log_and_summary) ... ok
+test_flow_completes_without_external_api_dependency (test_text_input_minimal_flow.TextInputMinimalFlowScenarioTests.test_flow_completes_without_external_api_dependency) ... ok
+test_real_dispatch_path_is_invoked_and_auditable (test_text_input_minimal_flow.TextInputMinimalFlowScenarioTests.test_real_dispatch_path_is_invoked_and_auditable) ... ok
+test_repeated_runs_keep_process_path_and_artifact_structure_signatures_stable (test_text_input_minimal_flow.TextInputMinimalFlowScenarioTests.test_repeated_runs_keep_process_path_and_artifact_structure_signatures_stable) ... ok
+
+----------------------------------------------------------------------
+Ran 26 tests in 0.938s
+
+OK
+Exit Code: 0
+=== COMMAND ENTRY 4 END ===
+
+=== COMMAND ENTRY 5 START ===
+Command: make release-check
+PYTHONPATH=src python3 -m cli.release_check \
+		--verification-log ".artifacts/release-check/verification.log" \
+		--summary-json ".artifacts/release-check/summary.json" \
+		--working-directory "/Users/huluobo/workSpace/DAOKit/.worktrees/dkt-070"
+Exit Code: 0
+=== COMMAND ENTRY 5 END ===
+

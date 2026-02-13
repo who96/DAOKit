@@ -427,12 +427,18 @@ def run_text_input_minimal_flow(
     task_id: str = "DKT-057",
     run_id: str = "RUN-TEXT-INPUT-MINIMAL",
     step_id: str = "S1",
+    state_backend: str = "filesystem",
     env_overrides: Mapping[str, str] | None = None,
 ) -> dict[str, Any]:
     scenario_root.mkdir(parents=True, exist_ok=True)
     initialize_repository(scenario_root)
 
-    state_store = create_state_backend(scenario_root / "state")
+    state_store = create_state_backend(
+        scenario_root / "state",
+        explicit_backend=state_backend,
+        env={},
+        config={"runtime": {"state_backend": state_backend}},
+    )
     dispatch_adapter = ShimDispatchAdapter(
         shim_path="codex-worker-shim",
         shim_command_prefix=(sys.executable, "-m", "dispatch.codex_worker_shim"),
@@ -581,6 +587,7 @@ def run_text_input_minimal_flow(
     return {
         "task_id": task_id,
         "run_id": run_id,
+        "state_backend": state_backend,
         "scenario_root": str(scenario_root),
         "state_path": str(state_store.pipeline_state_path),
         "events_path": str(state_store.events_path),

@@ -11,7 +11,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
-from typing import Any, Sequence
+from typing import Any, Mapping, Sequence
 
 from daokit.bootstrap import initialize_repository
 from orchestrator.engine import create_runtime, resolve_runtime_engine
@@ -77,9 +77,13 @@ def _run_cli(
     repo_root: Path,
     args: Sequence[str],
     expected_codes: set[int],
+    env_overrides: Mapping[str, str] | None = None,
 ) -> subprocess.CompletedProcess[str]:
     env = os.environ.copy()
     env["PYTHONPATH"] = "src"
+    if env_overrides:
+        for key, value in env_overrides.items():
+            env[str(key)] = str(value)
     proc = subprocess.run(
         [sys.executable, "-m", "cli", *args],
         cwd=repo_root,
@@ -310,6 +314,7 @@ def run_integrated_reliability_scenario(
     task_id: str = TASK_ID,
     run_id: str = RUN_ID,
     step_id: str = STEP_ID,
+    state_backend: str = "filesystem",
     scenario_fixture: CoreRotationChaosScenarioFixture | None = None,
     deterministic_constraints: DeterministicExecutionConstraints | None = None,
 ) -> dict[str, Any]:
@@ -321,21 +326,29 @@ def run_integrated_reliability_scenario(
     initialize_repository(scenario_root)
 
     settings_path = scenario_root / "state" / "runtime_settings.json"
-    settings_path.write_text(json.dumps(_RUNTIME_SETTINGS, indent=2) + "\n", encoding="utf-8")
+    runtime_settings = json.loads(json.dumps(_RUNTIME_SETTINGS))
+    runtime_settings.setdefault("runtime", {})
+    if isinstance(runtime_settings["runtime"], dict):
+        runtime_settings["runtime"]["state_backend"] = state_backend
+    settings_path.write_text(
+        json.dumps(runtime_settings, indent=2) + "\n",
+        encoding="utf-8",
+    )
 
     state_store = create_state_backend(
         scenario_root / "state",
+        explicit_backend=state_backend,
         env={},
-        config=_RUNTIME_SETTINGS,
+        config=runtime_settings,
     )
-    resolved_engine = resolve_runtime_engine(config=_RUNTIME_SETTINGS, env={}).value
+    resolved_engine = resolve_runtime_engine(config=runtime_settings, env={}).value
     runtime = create_runtime(
         task_id=task_id,
         run_id=run_id,
         goal="Validate integrated stale takeover and handoff reliability",
         step_id=step_id,
         state_store=state_store,
-        config=_RUNTIME_SETTINGS,
+        config=runtime_settings,
         env={},
     )
     runtime.extract()
@@ -416,6 +429,7 @@ def run_integrated_reliability_scenario(
             "--json",
         ),
         expected_codes={0},
+        env_overrides={"DAOKIT_STATE_BACKEND": state_backend},
     )
     status_after_recovery = json.loads(status_after_recovery_proc.stdout)
 
@@ -432,6 +446,7 @@ def run_integrated_reliability_scenario(
             "--json",
         ),
         expected_codes={0},
+        env_overrides={"DAOKIT_STATE_BACKEND": state_backend},
     )
     replay_after_recovery = json.loads(replay_after_recovery_proc.stdout)
 
@@ -441,7 +456,7 @@ def run_integrated_reliability_scenario(
         goal="Complete run after integrated reliability recovery",
         step_id=step_id,
         state_store=state_store,
-        config=_RUNTIME_SETTINGS,
+        config=runtime_settings,
         env={},
     )
     final_state = resumed_runtime.run()
@@ -459,6 +474,7 @@ def run_integrated_reliability_scenario(
             "--json",
         ),
         expected_codes={0},
+        env_overrides={"DAOKIT_STATE_BACKEND": state_backend},
     )
     status_final = json.loads(status_final_proc.stdout)
 
@@ -475,6 +491,7 @@ def run_integrated_reliability_scenario(
             "--json",
         ),
         expected_codes={0},
+        env_overrides={"DAOKIT_STATE_BACKEND": state_backend},
     )
     replay_final = json.loads(replay_final_proc.stdout)
 
@@ -615,6 +632,7 @@ def run_integrated_reliability_scenario(
         "run_id": run_id,
         "step_id": step_id,
         "scenario_id": fixture.scenario_id,
+        "state_backend": state_backend,
         "scenario_root": str(scenario_root),
         "matrix_version": CORE_ROTATION_MATRIX_VERSION,
         "scenario_fixture": fixture.to_dict(),
@@ -622,11 +640,12 @@ def run_integrated_reliability_scenario(
         "reproducibility": {
             "seed": f"{constraints.seed}:{fixture.scenario_id}",
             "clock_anchor_utc": constraints.to_dict()["clock_anchor_utc"],
-            "runtime_mode": _RUNTIME_SETTINGS["runtime"]["mode"],
+            "runtime_mode": runtime_settings["runtime"]["mode"],
+            "state_backend": state_backend,
             "replay_limit": constraints.replay_limit,
             "check_interval_seconds": constraints.check_interval_seconds,
         },
-        "runtime_mode": _RUNTIME_SETTINGS["runtime"]["mode"],
+        "runtime_mode": runtime_settings["runtime"]["mode"],
         "resolved_runtime_engine": resolved_engine,
         "runtime_class": runtime.__class__.__name__,
         "graph_backend": getattr(runtime, "graph_backend", "legacy"),
