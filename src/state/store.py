@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from enum import Enum
 import hashlib
 import json
 from pathlib import Path
 import sqlite3
-from typing import Any, Mapping
+from typing import Any, Iterator, Mapping
 from uuid import uuid4
 
 from .backend import StateBackend
@@ -377,8 +378,9 @@ class SQLiteStateBackend(StateBackend):
                 path.write_text("", encoding="utf-8")
 
         with self._connect() as conn:
-            self._ensure_schema(conn)
-            self._seed_defaults(conn)
+            with conn:
+                self._ensure_schema(conn)
+                self._seed_defaults(conn)
 
         # Keep baseline JSON docs present for operator tooling that expects them on disk.
         if not self.pipeline_state_path.exists():
@@ -392,7 +394,8 @@ class SQLiteStateBackend(StateBackend):
                 encoding="utf-8",
             )
 
-    def _connect(self) -> sqlite3.Connection:
+    @contextmanager
+    def _connect(self) -> Iterator[sqlite3.Connection]:
         conn = sqlite3.connect(self.db_path)
         conn.row_factory = sqlite3.Row
         # Durability-oriented defaults; WAL improves concurrent reader behavior.
@@ -400,7 +403,10 @@ class SQLiteStateBackend(StateBackend):
         conn.execute("PRAGMA synchronous=FULL")
         conn.execute("PRAGMA foreign_keys=ON")
         conn.execute("PRAGMA busy_timeout=5000")
-        return conn
+        try:
+            yield conn
+        finally:
+            conn.close()
 
     def _ensure_schema(self, conn: sqlite3.Connection) -> None:
         conn.execute(
