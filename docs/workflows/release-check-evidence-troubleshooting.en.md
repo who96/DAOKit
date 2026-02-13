@@ -12,36 +12,45 @@ Run the same gate sequence locally that CI executes in `.github/workflows/v11-ha
 make gate-release-check
 ```
 
-2. RC-DIAG-001 criteria linkage diagnostics gate:
+2. RC-REL-001 reliability readiness gate:
+
+```bash
+make gate-reliability-readiness
+```
+
+3. RC-DIAG-001 criteria linkage diagnostics gate:
 
 ```bash
 make gate-criteria-linkage
 ```
 
-3. RC-TPL-001 template verification gate:
+4. RC-TPL-001 template verification gate:
 
 ```bash
 make gate-template-checks
 ```
 
-4. Optional one-shot wrapper (same order and checks):
+5. Optional one-shot wrapper (same order and checks):
 
-```bash
-make ci-hardening-gate
-```
+ ```bash
+ make ci-hardening-gate
+ ```
 
-5. Inspect generated outputs:
+6. Inspect generated outputs:
 - `.artifacts/release-check/verification.log`
 - `.artifacts/release-check/summary.json`
 - `docs/reports/criteria-map.json`
 - `docs/reports/criteria-map.md`
 - `.artifacts/release-check/criteria-linkage-check.json`
+- `.artifacts/reliability-gate/verification.log`
+- `.artifacts/reliability-gate/summary.json`
 
 ## Criterion to Evidence Mapping
 
 | Criterion ID | Gate Command | Primary Evidence |
 | --- | --- | --- |
 | RC-RC-001 | `make gate-release-check` | `.artifacts/release-check/verification.log`, `.artifacts/release-check/summary.json` |
+| RC-REL-001 | `make gate-reliability-readiness` | `.artifacts/reliability-gate/verification.log`, `.artifacts/reliability-gate/summary.json` |
 | RC-DIAG-001 | `make gate-criteria-linkage` | `docs/reports/criteria-map.json`, `docs/reports/criteria-map.md`, `.artifacts/release-check/criteria-linkage-check.json` |
 | RC-TPL-001 | `make gate-template-checks` | template-suite command output (`tests/templates/`) plus release-check evidence pointers |
 

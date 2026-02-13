@@ -55,4 +55,23 @@ RELEASE_ACCEPTANCE_CRITERIA: tuple[CriterionRegistryEntry, ...] = (
             "verify CLI surface, schema semantics, and release anchors remain backward-compatible"
         ),
     ),
+    CriterionRegistryEntry(
+        criterion_id="RC-REL-001",
+        criterion=(
+            "Reliability diagnostics and continuity assertions are executed by the "
+            "release readiness gate."
+        ),
+        evidence_refs=("reliability-gate-summary.json", "verification.log"),
+        remediation_hint=(
+            "add a dedicated reliability gate and verify it is wired into ci-hardening-gate"
+        ),
+    ),
+    CriterionRegistryEntry(
+        criterion_id="RC-REL-002",
+        criterion="Reliability coverage and continuity outputs are included in the release evidence.",
+        evidence_refs=("reliability-gate-summary.json", "verification.log"),
+        remediation_hint=(
+            "emit machine-readable reliability-gate evidence and include it in task reports"
+        ),
+    ),
 )

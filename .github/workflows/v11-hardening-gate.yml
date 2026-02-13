@@ -49,6 +49,9 @@ jobs:
       - name: RC-RC-001 Release-check baseline gate
         run: make gate-release-check
 
+      - name: RC-REL-001 Reliability readiness gate
+        run: make gate-reliability-readiness
+
       - name: RC-DIAG-001 Criteria linkage diagnostics gate
         run: make gate-criteria-linkage
 
@@ -65,5 +68,7 @@ jobs:
             .artifacts/release-check/verification.log
             .artifacts/release-check/summary.json
             .artifacts/release-check/criteria-linkage-check.json
+            .artifacts/reliability-gate/verification.log
+            .artifacts/reliability-gate/summary.json
             docs/reports/criteria-map.json
             docs/reports/criteria-map.md

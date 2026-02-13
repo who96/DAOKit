@@ -21,6 +21,8 @@ class CriteriaRegistryTests(unittest.TestCase):
                 "RC-TPL-001",
                 "RC-LGO-001",
                 "RC-COMP-001",
+                "RC-REL-001",
+                "RC-REL-002",
             ],
         )
 
