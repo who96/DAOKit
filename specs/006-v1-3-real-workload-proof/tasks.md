@@ -136,6 +136,13 @@ Select and document default embedding model through measured results.
 2. Configuration and docs are aligned.
 3. Selection rationale is auditable.
 
+**Selection Record (implemented)**
+- Default backend: `local/token-signature`.
+- Benchmark evidence:
+  - `docs/reports/dkt-061/benchmark/retrieval-benchmark-metrics.json`
+  - `docs/reports/dkt-061/benchmark/retrieval-benchmark-report.md`
+- Tradeoff note: `local/char-trigram` has stronger `hit_rate_at_1`, but `local/token-signature` wins on the primary ranking key (`ndcg_at_3`) and `hit_rate_at_3`, matching the default `top_k=3` retrieval policy focus.
+
 **Dependencies**
 - DKT-061.
 

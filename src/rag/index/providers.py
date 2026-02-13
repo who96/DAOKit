@@ -16,6 +16,13 @@ DETERMINISTIC_FIXTURE_BACKEND = "deterministic/hash-fixture"
 LOCAL_TOKEN_SIGNATURE_BACKEND = "local/token-signature"
 LOCAL_CHAR_TRIGRAM_BACKEND = "local/char-trigram"
 OPENAI_TEXT_EMBEDDING_3_SMALL_BACKEND = "openai/text-embedding-3-small"
+DEFAULT_PRODUCTION_EMBEDDING_BACKEND = LOCAL_TOKEN_SIGNATURE_BACKEND
+
+# DKT-062 selected the default production backend from DKT-061 benchmark evidence.
+DKT_062_SELECTION_EVIDENCE_PATHS = (
+    "docs/reports/dkt-061/benchmark/retrieval-benchmark-metrics.json",
+    "docs/reports/dkt-061/benchmark/retrieval-benchmark-report.md",
+)
 
 _LOCAL_BACKEND_IDS = (
     LOCAL_TOKEN_SIGNATURE_BACKEND,
@@ -290,6 +297,10 @@ def optional_api_embedding_candidates() -> tuple[str, ...]:
     return _OPTIONAL_API_BACKEND_IDS
 
 
+def default_production_embedding_backend() -> str:
+    return DEFAULT_PRODUCTION_EMBEDDING_BACKEND
+
+
 def build_embedding_provider(config: EmbeddingProviderConfig | None = None) -> EmbeddingProvider:
     effective = config or EmbeddingProviderConfig()
     mode = _normalize_mode(effective.mode)
@@ -299,7 +310,7 @@ def build_embedding_provider(config: EmbeddingProviderConfig | None = None) -> E
     if mode == TEST_EMBEDDING_MODE:
         return DeterministicHashEmbeddingProvider(dimensions=dimensions)
 
-    backend = _normalize_backend(effective.backend) or LOCAL_TOKEN_SIGNATURE_BACKEND
+    backend = _normalize_backend(effective.backend) or default_production_embedding_backend()
 
     local_factories = {
         LOCAL_TOKEN_SIGNATURE_BACKEND: lambda: LocalTokenSignatureEmbeddingProvider(
@@ -308,6 +319,11 @@ def build_embedding_provider(config: EmbeddingProviderConfig | None = None) -> E
         LOCAL_CHAR_TRIGRAM_BACKEND: lambda: LocalCharTrigramEmbeddingProvider(dimensions=dimensions),
         DETERMINISTIC_FIXTURE_BACKEND: lambda: DeterministicHashEmbeddingProvider(dimensions=dimensions),
     }
+    default_local_backend = default_production_embedding_backend()
+    if default_local_backend not in local_factories:
+        raise RuntimeError(
+            "default production embedding backend must be one of local embedding candidates"
+        )
 
     if backend in local_factories:
         return local_factories[backend]()
@@ -319,7 +335,7 @@ def build_embedding_provider(config: EmbeddingProviderConfig | None = None) -> E
                 model=effective.openai_model,
             )
         if effective.allow_fallback:
-            return LocalTokenSignatureEmbeddingProvider(dimensions=dimensions)
+            return local_factories[default_local_backend]()
         raise RuntimeError(
             "OpenAI embedding backend is unavailable (missing openai package or OPENAI_API_KEY)"
         )
