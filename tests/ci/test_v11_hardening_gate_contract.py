@@ -23,8 +23,8 @@ class V11HardeningGateContractTests(unittest.TestCase):
             "CRITERIA_LINKAGE_SUMMARY ?= .artifacts/release-check/criteria-linkage-check.json",
             "gate-release-check: release-check",
             "gate-criteria-linkage:",
-            "gate-template-checks:",
-            "ci-hardening-gate: gate-release-check gate-criteria-linkage gate-template-checks",
+            "gate-reliability-readiness:",
+            "ci-hardening-gate: gate-release-check gate-reliability-readiness gate-criteria-linkage gate-template-checks",
         )
         for phrase in required_phrases:
             self.assertIn(phrase, text)
@@ -34,6 +34,8 @@ class V11HardeningGateContractTests(unittest.TestCase):
         required_phrases = (
             "RC-RC-001 Release-check baseline gate",
             "run: make gate-release-check",
+            "RC-REL-001 Reliability readiness gate",
+            "run: make gate-reliability-readiness",
             "RC-DIAG-001 Criteria linkage diagnostics gate",
             "run: make gate-criteria-linkage",
             "RC-TPL-001 Template verification gate",
@@ -42,28 +44,38 @@ class V11HardeningGateContractTests(unittest.TestCase):
             ".artifacts/release-check/verification.log",
             ".artifacts/release-check/criteria-linkage-check.json",
             "docs/reports/criteria-map.json",
+            ".artifacts/reliability-gate/verification.log",
+            ".artifacts/reliability-gate/summary.json",
         )
         for phrase in required_phrases:
             self.assertIn(phrase, text)
 
         first = text.find("RC-RC-001 Release-check baseline gate")
-        second = text.find("RC-DIAG-001 Criteria linkage diagnostics gate")
-        third = text.find("RC-TPL-001 Template verification gate")
-        self.assertTrue(first < second < third, "criterion gate order must be deterministic")
+        second = text.find("RC-REL-001 Reliability readiness gate")
+        third = text.find("RC-DIAG-001 Criteria linkage diagnostics gate")
+        fourth = text.find("RC-TPL-001 Template verification gate")
+        self.assertTrue(
+            first < second < third < fourth,
+            "criterion gate order must be deterministic",
+        )
 
     def test_release_check_runbook_matches_ci_gate_sequence(self) -> None:
         text = RUNBOOK_PATH.read_text(encoding="utf-8")
         required_phrases = (
             "CI-Aligned Hardening Gate Order",
             "make gate-release-check",
+            "make gate-reliability-readiness",
             "make gate-criteria-linkage",
             "make gate-template-checks",
             "make ci-hardening-gate",
             "RC-RC-001",
+            "RC-REL-001",
             "RC-DIAG-001",
             "RC-TPL-001",
             ".artifacts/release-check/verification.log",
             ".artifacts/release-check/criteria-linkage-check.json",
+            ".artifacts/reliability-gate/verification.log",
+            ".artifacts/reliability-gate/summary.json",
         )
         for phrase in required_phrases:
             self.assertIn(phrase, text)
@@ -74,10 +86,12 @@ class V11HardeningGateContractTests(unittest.TestCase):
 
         self.assertIn("make ci-hardening-gate", en_text)
         self.assertIn("gate-release-check", en_text)
+        self.assertIn("gate-reliability-readiness", en_text)
         self.assertIn("gate-criteria-linkage", en_text)
         self.assertIn("gate-template-checks", en_text)
         self.assertIn("make ci-hardening-gate", zh_text)
         self.assertIn("gate-release-check", zh_text)
+        self.assertIn("gate-reliability-readiness", zh_text)
         self.assertIn("gate-criteria-linkage", zh_text)
         self.assertIn("gate-template-checks", zh_text)
 

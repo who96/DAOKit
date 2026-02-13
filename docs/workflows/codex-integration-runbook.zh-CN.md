@@ -95,8 +95,8 @@ PYTHONPATH=src python3 -m cli replay \
 make ci-hardening-gate
 ```
 
-预期：按顺序执行并通过 `RC-RC-001`、`RC-DIAG-001`、`RC-TPL-001`
-（`gate-release-check` -> `gate-criteria-linkage` -> `gate-template-checks`），退出码为 `0`。
+预期：按顺序执行并通过 `RC-RC-001`、`RC-REL-001`、`RC-DIAG-001`、`RC-TPL-001`
+（`gate-release-check` -> `gate-reliability-readiness` -> `gate-criteria-linkage` -> `gate-template-checks`），退出码为 `0`。
 
 ## 4. 已完成波次的参考证据
 

@@ -1,6 +1,8 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import datetime, timezone
+import json
 from typing import Any, Mapping, Sequence
 
 from contracts.diagnostics_contracts import (
@@ -15,6 +17,26 @@ from contracts.diagnostics_contracts import (
 
 SCHEMA_VERSION = "1.0.0"
 RUNTIME_POLICY_LANGGRAPH_ONLY = "LANGGRAPH_ONLY"
+
+
+@dataclass(frozen=True)
+class ReliabilityDiagnosticsEmission:
+    report: ReliabilityDiagnosticsReport
+    validation: Mapping[str, Any]
+    evidence: Mapping[str, Any]
+
+    def to_dict(self) -> dict[str, Any]:
+        report_payload = self.report.to_dict()
+        return {
+            "schema_version": report_payload["schema_version"],
+            "runtime_policy": report_payload["runtime_policy"],
+            "task_id": report_payload["task_id"],
+            "run_id": report_payload["run_id"],
+            "generated_at": report_payload["generated_at"],
+            "report": report_payload,
+            "validation": dict(self.validation),
+            "evidence": dict(self.evidence),
+        }
 
 
 def build_reliability_diagnostics_report(
@@ -65,6 +87,63 @@ def build_reliability_diagnostics_report(
         lease_transitions=lease_transitions,
         takeover=takeover,
         timeline=timeline,
+    )
+
+
+def emit_reliability_diagnostics_from_state_store(
+    *,
+    task_id: str,
+    run_id: str,
+    state_store: Any,
+) -> ReliabilityDiagnosticsEmission:
+    heartbeat_status = state_store.load_heartbeat_status()
+    state = state_store.load_state()
+    leases = _load_process_leases(state_store.root / "process_leases.json")
+    events = _load_events(state_store.root / "events.jsonl")
+
+    filtered_leases = [
+        lease
+        for lease in leases
+        if lease.get("task_id") == task_id and lease.get("run_id") == run_id
+    ]
+    filtered_events = [
+        event
+        for event in events
+        if event.get("task_id") == task_id and event.get("run_id") == run_id
+    ]
+
+    report = build_reliability_diagnostics_report(
+        task_id=task_id,
+        run_id=run_id,
+        heartbeat_status=heartbeat_status,
+        leases=filtered_leases,
+        events=filtered_events,
+    )
+
+    issues: list[str] = []
+    if task_id != _text(state.get("task_id")):
+        issues.append("state_store_task_id_mismatch")
+    if run_id != _text(state.get("run_id")):
+        issues.append("state_store_run_id_mismatch")
+
+    validation = {
+        "status": "PASS" if not issues else "REQUIRES_REVIEW",
+        "issue_count": len(issues),
+        "issues": issues,
+    }
+    evidence = {
+        "pipeline_state": state,
+        "heartbeat_status": heartbeat_status,
+        "process_leases": filtered_leases,
+        "events": filtered_events,
+        "event_count": len(filtered_events),
+        "lease_count": len(filtered_leases),
+    }
+
+    return ReliabilityDiagnosticsEmission(
+        report=report,
+        validation=validation,
+        evidence=evidence,
     )
 
 
@@ -367,6 +446,51 @@ def _timeline_entry_from_event(
         correlation=correlation,
         payload=dict(payload),
     )
+
+
+def _load_json_object(path: Path) -> dict[str, Any]:
+    if not path.exists():
+        return {}
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except json.JSONDecodeError:
+        return {}
+    if not isinstance(payload, dict):
+        return {}
+    return payload
+
+
+def _load_process_leases(path: Path) -> tuple[dict[str, Any], ...]:
+    payload = _load_json_object(path)
+    leases = payload.get("leases")
+    if not isinstance(leases, list):
+        return ()
+
+    normalized: list[dict[str, Any]] = []
+    for lease in leases:
+        if not isinstance(lease, dict):
+            continue
+        normalized.append(dict(lease))
+    return tuple(normalized)
+
+
+def _load_events(path: Path) -> tuple[dict[str, Any], ...]:
+    if not path.exists():
+        return ()
+
+    events: list[dict[str, Any]] = []
+    for line in path.read_text(encoding="utf-8").splitlines():
+        trimmed = line.strip()
+        if not trimmed:
+            continue
+        try:
+            payload = json.loads(trimmed)
+        except json.JSONDecodeError:
+            continue
+        if not isinstance(payload, dict):
+            continue
+        events.append(payload)
+    return tuple(events)
 
 
 def _last_decision_event_before(

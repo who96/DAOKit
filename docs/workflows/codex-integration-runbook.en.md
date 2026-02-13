@@ -95,8 +95,8 @@ Expected:
 make ci-hardening-gate
 ```
 
-Expected: command exits `0` after running `RC-RC-001`, `RC-DIAG-001`, and `RC-TPL-001`
-in order (`gate-release-check` -> `gate-criteria-linkage` -> `gate-template-checks`).
+Expected: command exits `0` after running `RC-RC-001`, `RC-REL-001`, `RC-DIAG-001`, and `RC-TPL-001`
+in order (`gate-release-check` -> `gate-reliability-readiness` -> `gate-criteria-linkage` -> `gate-template-checks`).
 
 ## 4. Reference evidence from finalized integration wave
 
