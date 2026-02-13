@@ -20,8 +20,8 @@ from .state_machine import (
     NODE_TRANSITIONS,
     STATUS_TO_NODE,
     OrchestratorStatus,
-    guard_transition,
     parse_status,
+    resolve_conditional_route,
 )
 
 
@@ -31,6 +31,16 @@ ROLE_KEY_CONTROLLER_LANE = "controller_lane"
 ROLE_KEY_CONTROLLER_OWNERSHIP = "controller_ownership"
 DEFAULT_DISPATCH_MAX_RESUME_RETRIES = 1
 DEFAULT_DISPATCH_MAX_REWORK_ATTEMPTS = 1
+STEP_CONTRACT_FIELDS = (
+    "id",
+    "title",
+    "category",
+    "goal",
+    "actions",
+    "acceptance_criteria",
+    "expected_outputs",
+    "dependencies",
+)
 
 
 class RuntimeDispatchAdapter(Protocol):
@@ -295,27 +305,64 @@ class OrchestratorRuntime:
         return self._retrieval_cache.get(use_case)
 
     def _execute_node(self, node_name: str, mutator: StateMutator) -> dict[str, Any]:
-        expected_source, target_status = NODE_TRANSITIONS[node_name]
+        expected_source, _default_target = NODE_TRANSITIONS[node_name]
         state = self.recover_state()
         current_status = parse_status(str(state.get("status")))
-        guard_transition(current=current_status, target=target_status, trigger=node_name)
-        if current_status != expected_source:
-            raise IllegalTransitionError(
-                f"Node '{node_name}' expects source status {expected_source.value}, "
-                f"but ledger is at {current_status.value}."
+        try:
+            route = resolve_conditional_route(
+                node_name=node_name,
+                current=current_status,
+                state=state,
             )
+        except IllegalTransitionError as exc:
+            self._append_route_failure_event(
+                node_name=node_name,
+                current_status=current_status,
+                state=state,
+                error=exc,
+            )
+            raise
+
+        if current_status != expected_source:
+            mismatch_error = IllegalTransitionError(
+                f"Node '{node_name}' expects source status {expected_source.value}, "
+                f"but ledger is at {current_status.value}. "
+                "Action: resume from the expected predecessor node before retrying this node.",
+                diagnostics={
+                    "diagnostic_type": "route_source_mismatch",
+                    "node": node_name,
+                    "current_status": current_status.value,
+                    "expected_source": expected_source.value,
+                    "attempted_target": route.target.value,
+                    "route_id": route.route_id,
+                    "route_reason": route.reason,
+                    "predicate_name": route.predicate_name,
+                },
+            )
+            self._append_route_failure_event(
+                node_name=node_name,
+                current_status=current_status,
+                state=state,
+                error=mismatch_error,
+            )
+            raise mismatch_error
 
         working_state = json.loads(json.dumps(state))
         mutator(working_state)
-        working_state["status"] = target_status.value
+        working_state["status"] = route.target.value
         working_state.setdefault("role_lifecycle", {})
         working_state["role_lifecycle"]["orchestrator"] = f"{node_name}_complete"
+        working_state["role_lifecycle"]["route:last_node"] = node_name
+        working_state["role_lifecycle"]["route:last_id"] = route.route_id
+        working_state["role_lifecycle"]["route:last_reason"] = route.reason
+        working_state["role_lifecycle"]["route:last_predicate"] = route.predicate_name
+        working_state["role_lifecycle"]["route:last_target"] = route.target.value
 
         saved = self.state_store.save_state(
             working_state,
             node=node_name,
             from_status=current_status.value,
-            to_status=target_status.value,
+            to_status=route.target.value,
         )
         self.state_store.append_event(
             task_id=str(saved.get("task_id") or self.task_id),
@@ -326,11 +373,54 @@ class OrchestratorRuntime:
             payload={
                 "node": node_name,
                 "from_status": current_status.value,
-                "to_status": target_status.value,
+                "to_status": route.target.value,
+                "route_id": route.route_id,
+                "route_reason": route.reason,
+                "route_predicate": route.predicate_name,
             },
             dedup_key=None,
         )
         return saved
+
+    def _append_route_failure_event(
+        self,
+        *,
+        node_name: str,
+        current_status: OrchestratorStatus,
+        state: Mapping[str, Any],
+        error: IllegalTransitionError,
+    ) -> None:
+        diagnostics = error.diagnostics if isinstance(error.diagnostics, Mapping) else {}
+        actionable_hint = "Action: inspect route diagnostics and retry with valid transition inputs."
+        message = str(error)
+        if "Action:" in message:
+            actionable_hint = f"Action: {message.split('Action:', maxsplit=1)[1].strip()}"
+
+        payload: dict[str, Any] = {
+            "diagnostic_type": str(diagnostics.get("diagnostic_type") or "route_guard_failure"),
+            "node": str(diagnostics.get("node") or diagnostics.get("trigger") or node_name),
+            "current_status": str(diagnostics.get("current_status") or current_status.value),
+            "attempted_target": str(diagnostics.get("attempted_target") or "<unknown>"),
+            "route_id": str(diagnostics.get("route_id") or "<unknown>"),
+            "route_reason": str(diagnostics.get("route_reason") or "<unknown>"),
+            "route_predicate": str(diagnostics.get("predicate_name") or "<unknown>"),
+            "allowed_targets": [
+                str(item)
+                for item in (diagnostics.get("allowed_targets") if isinstance(diagnostics.get("allowed_targets"), list) else [])
+            ],
+            "message": message,
+            "actionable_hint": actionable_hint,
+        }
+
+        self.state_store.append_event(
+            task_id=str(state.get("task_id") or self.task_id),
+            run_id=str(state.get("run_id") or self.run_id),
+            step_id=state.get("current_step"),
+            event_type="SYSTEM",
+            severity="ERROR",
+            payload=payload,
+            dedup_key=None,
+        )
 
     def _mutate_extract(self, state: dict[str, Any]) -> None:
         state.setdefault("role_lifecycle", {})
@@ -350,7 +440,7 @@ class OrchestratorRuntime:
 
         if self._should_generate_minimal_text_plan(state):
             generated_steps = [
-                dict(step)
+                {field: step[field] for field in STEP_CONTRACT_FIELDS if field in step}
                 for step in build_minimal_text_input_steps(
                     goal=self._normalize_optional_string(state.get("goal")) or self.goal,
                     step_id=self.step_id,

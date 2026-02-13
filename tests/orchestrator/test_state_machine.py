@@ -10,7 +10,11 @@ import unittest
 from artifacts.dispatch_artifacts import DispatchArtifactStore
 from dispatch.shim_adapter import ShimDispatchAdapter
 from orchestrator.runtime import OrchestratorRuntime
-from orchestrator.state_machine import IllegalTransitionError
+from orchestrator.state_machine import (
+    IllegalTransitionError,
+    OrchestratorStatus,
+    resolve_conditional_route,
+)
 from state.store import StateStore
 
 
@@ -244,6 +248,39 @@ class OrchestratorStateMachineTests(unittest.TestCase):
                 self.assertTrue(Path(entry["artifacts"]["output"]).is_file())
                 self.assertTrue(Path(entry["artifacts"]["error"]).is_file())
 
+    def test_transition_route_decision_is_deterministic_with_reason_metadata(self) -> None:
+        failed_decision = resolve_conditional_route(
+            node_name="transition",
+            current=OrchestratorStatus.ACCEPT,
+            state={"role_lifecycle": {"acceptance": "failed"}},
+        )
+        self.assertEqual(failed_decision.target, OrchestratorStatus.EXECUTE)
+        self.assertEqual(failed_decision.route_id, "transition.acceptance_failed.rework")
+        self.assertEqual(failed_decision.reason, "acceptance_failed_rework")
+        self.assertEqual(failed_decision.predicate_name, "acceptance_failed")
+
+        passed_decision = resolve_conditional_route(
+            node_name="transition",
+            current=OrchestratorStatus.ACCEPT,
+            state={"role_lifecycle": {"acceptance": "passed"}},
+        )
+        self.assertEqual(passed_decision.target, OrchestratorStatus.DONE)
+        self.assertEqual(passed_decision.route_id, "transition.acceptance_not_failed.done")
+        self.assertEqual(passed_decision.reason, "acceptance_not_failed_finalize")
+        self.assertEqual(passed_decision.predicate_name, "acceptance_not_failed")
+
+    def test_undefined_route_policy_reports_actionable_diagnostics(self) -> None:
+        with self.assertRaises(IllegalTransitionError) as ctx:
+            resolve_conditional_route(
+                node_name="undefined-node",
+                current=OrchestratorStatus.PLANNING,
+                state={},
+            )
+
+        message = str(ctx.exception)
+        self.assertIn("Undefined conditional route policy", message)
+        self.assertIn("Action:", message)
+
     def test_illegal_transition_reports_explicit_diagnostics(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             runtime = self._new_runtime(Path(tmp))
@@ -256,6 +293,31 @@ class OrchestratorStateMachineTests(unittest.TestCase):
             self.assertIn("transition", message)
             self.assertIn("PLANNING -> DONE", message)
             self.assertIn("Allowed targets from PLANNING: ANALYSIS", message)
+            self.assertIn("Route diagnostics:", message)
+            self.assertIn("Action:", message)
+
+    def test_illegal_transition_emits_route_guard_failure_event(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            runtime = self._new_runtime(Path(tmp))
+
+            with self.assertRaises(IllegalTransitionError):
+                runtime.transition()
+
+            route_failures = [
+                event
+                for event in self._read_events(runtime)
+                if event.get("severity") == "ERROR"
+                and isinstance(event.get("payload"), dict)
+                and event["payload"].get("diagnostic_type") == "route_guard_failure"
+            ]
+
+            self.assertEqual(len(route_failures), 1)
+            payload = route_failures[0]["payload"]
+            self.assertEqual(payload["node"], "transition")
+            self.assertEqual(payload["current_status"], "PLANNING")
+            self.assertEqual(payload["attempted_target"], "DONE")
+            self.assertEqual(payload["route_reason"], "acceptance_not_failed_finalize")
+            self.assertIn("Action:", payload["actionable_hint"])
 
     def test_state_is_recoverable_after_process_restart(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
