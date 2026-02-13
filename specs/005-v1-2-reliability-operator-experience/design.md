@@ -37,6 +37,11 @@ flowchart TD
 - Assert continuity across takeover/handoff/replay.
 - Produce bounded, reproducible long-run reliability evidence.
 
+### 3.4 Guardrail Charter and Acceptance Matrix
+- Use `guardrail-charter-acceptance-matrix.md` as the v1.2 source-of-truth for reliability guardrails.
+- Encode compatibility invariants and parser-compatible evidence requirements as acceptance gates.
+- Anchor v1.2 non-breaking policy to DKT-046 final verification packet outputs.
+
 ## 4. LangGraph-only Policy Enforcement
 1. Runtime and reliability workflows are documented and validated only for LangGraph orchestration.
 2. Legacy path references are removed from v1.2 rollout artifacts.
@@ -57,3 +62,4 @@ flowchart TD
 - DKT-047..DKT-055 implement v1.2 reliability/operator hardening in gated waves.
 - Parallel waves are allowed only where dependencies permit isolated worktree execution.
 - Each wave requires merge-to-main and successful push before next-wave start.
+- DKT-047 freezes guardrails through `guardrail-charter-acceptance-matrix.md` before runtime changes begin.

@@ -26,11 +26,15 @@ Target themes:
 - Strengthen stale heartbeat and lease takeover observability.
 - Add clearer operator recovery dashboards/reports from ledger data.
 - Expand core-rotation stress scenarios and continuity assertions.
+- Freeze a v1.2 reliability guardrail charter and acceptance matrix.
+- Keep v1.2 rollout and recovery assets LangGraph-only (no orchestration-engine switching surface).
+- Preserve non-breaking constraints for CLI parameters, `schema_version=1.0.0`, `v1.0.0-rc1`, and `docs/reports/final-run/` evidence topology.
 
 Expected deliverables:
 
 - More robust succession recovery under chaos scenarios.
 - Better day-2 operations for long-running agent workflows.
+- Published `specs/005-v1-2-reliability-operator-experience/guardrail-charter-acceptance-matrix.md`.
 
 ## Release Notes Discipline
 

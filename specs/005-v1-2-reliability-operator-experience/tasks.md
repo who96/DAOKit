@@ -19,10 +19,13 @@ Define v1.2 reliability scope, acceptance gates, and non-breaking constraints wi
 3. Legacy runtime path is absent from v1.2 rollout plan.
 
 **Deliverables**
-- Reliability charter + acceptance matrix.
+- `specs/005-v1-2-reliability-operator-experience/guardrail-charter-acceptance-matrix.md`
 
 **Dependencies**
 - DKT-046.
+
+**Dependency Integration Note**
+- DKT-047 must preserve DKT-046 compatibility/evidence anchors as the v1.2 rollout baseline.
 
 ### Task DKT-048: Define heartbeat/lease/takeover observability diagnostics model
 **Goal**

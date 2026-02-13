@@ -75,3 +75,11 @@ Post-v1.1 tooling improvements still leave operations gaps:
 2. No semantic break to `schema_version=1.0.0` contracts.
 3. No break to `v1.0.0-rc1` anchor semantics and `docs/reports/final-run/` evidence layout.
 4. This iteration outputs research/design/task assets only, not large runtime refactoring.
+
+## 10. Reliability Charter and Evidence Requirements
+1. `specs/005-v1-2-reliability-operator-experience/guardrail-charter-acceptance-matrix.md` is the authoritative v1.2 guardrail/acceptance asset for DKT-047.
+2. Every v1.2 task must retain parser-compatible verification command evidence in `verification.log`:
+   - `Command: <cmd>`
+   - `=== COMMAND ENTRY N START/END ===`
+3. Reliability evidence claims require artifact pointers (`report.md`, `verification.log`, `audit-summary.md`) and must not rely on oral assertions.
+4. The DKT-046 v1.1 final packet remains the compatibility baseline for v1.2 rollout constraints.
