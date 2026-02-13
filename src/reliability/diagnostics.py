@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from datetime import datetime, timezone
+import json
+from pathlib import Path
 from typing import Any, Mapping, Sequence
 
 from contracts.diagnostics_contracts import (
@@ -12,9 +15,62 @@ from contracts.diagnostics_contracts import (
     ReliabilityDiagnosticsReport,
     TakeoverDiagnostic,
 )
+from state.store import StateStore
 
 SCHEMA_VERSION = "1.0.0"
 RUNTIME_POLICY_LANGGRAPH_ONLY = "LANGGRAPH_ONLY"
+
+
+@dataclass(frozen=True)
+class ObservabilityValidationIssue:
+    code: str
+    severity: str
+    message: str
+    task_id: str
+    run_id: str
+    step_id: str | None
+    event_id: str | None
+    occurred_at: str
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "code": self.code,
+            "severity": self.severity,
+            "message": self.message,
+            "task_id": self.task_id,
+            "run_id": self.run_id,
+            "step_id": self.step_id,
+            "event_id": self.event_id,
+            "occurred_at": self.occurred_at,
+        }
+
+
+@dataclass(frozen=True)
+class ReliabilityDiagnosticsEmission:
+    report: ReliabilityDiagnosticsReport
+    validation_issues: tuple[ObservabilityValidationIssue, ...]
+    event_count: int
+    lease_count: int
+
+    def to_dict(self) -> dict[str, Any]:
+        issues = [issue.to_dict() for issue in self.validation_issues]
+        return {
+            "schema_version": self.report.schema_version,
+            "runtime_policy": self.report.runtime_policy,
+            "task_id": self.report.task_id,
+            "run_id": self.report.run_id,
+            "generated_at": self.report.generated_at,
+            "report": self.report.to_dict(),
+            "validation": {
+                "status": "PASS" if not issues else "FAIL",
+                "issue_count": len(issues),
+                "issues": issues,
+            },
+            "evidence": {
+                "event_count": self.event_count,
+                "lease_count": self.lease_count,
+            },
+        }
 
 
 def build_reliability_diagnostics_report(
@@ -65,6 +121,59 @@ def build_reliability_diagnostics_report(
         lease_transitions=lease_transitions,
         takeover=takeover,
         timeline=timeline,
+    )
+
+
+def emit_reliability_diagnostics(
+    *,
+    task_id: str,
+    run_id: str,
+    heartbeat_status: Mapping[str, Any] | None,
+    leases: Sequence[Mapping[str, Any]],
+    events: Sequence[Mapping[str, Any]],
+    generated_at: datetime | None = None,
+) -> ReliabilityDiagnosticsEmission:
+    report = build_reliability_diagnostics_report(
+        task_id=task_id,
+        run_id=run_id,
+        heartbeat_status=heartbeat_status,
+        leases=leases,
+        events=events,
+        generated_at=generated_at,
+    )
+    filtered_events = _filter_events(events=events, task_id=task_id, run_id=run_id)
+    filtered_leases = _filter_leases(leases=leases, task_id=task_id, run_id=run_id)
+    issues = _validate_observability_signals(
+        task_id=task_id,
+        run_id=run_id,
+        report=report,
+        events=filtered_events,
+    )
+    return ReliabilityDiagnosticsEmission(
+        report=report,
+        validation_issues=issues,
+        event_count=len(filtered_events),
+        lease_count=len(filtered_leases),
+    )
+
+
+def emit_reliability_diagnostics_from_state_store(
+    *,
+    task_id: str,
+    run_id: str,
+    state_store: StateStore,
+    generated_at: datetime | None = None,
+) -> ReliabilityDiagnosticsEmission:
+    heartbeat_status = state_store.load_heartbeat_status()
+    leases = _load_process_leases(state_store=state_store)
+    events = _load_events(state_store=state_store)
+    return emit_reliability_diagnostics(
+        task_id=task_id,
+        run_id=run_id,
+        heartbeat_status=heartbeat_status,
+        leases=leases,
+        events=events,
+        generated_at=generated_at,
     )
 
 
@@ -475,6 +584,270 @@ def _filter_events(
             continue
         selected.append(dict(event))
     return selected
+
+
+def _filter_leases(
+    *,
+    leases: Sequence[Mapping[str, Any]],
+    task_id: str,
+    run_id: str,
+) -> list[dict[str, Any]]:
+    selected: list[dict[str, Any]] = []
+    for lease in leases:
+        if _text(lease.get("task_id")) != task_id or _text(lease.get("run_id")) != run_id:
+            continue
+        selected.append(dict(lease))
+    return selected
+
+
+def _validate_observability_signals(
+    *,
+    task_id: str,
+    run_id: str,
+    report: ReliabilityDiagnosticsReport,
+    events: Sequence[Mapping[str, Any]],
+) -> tuple[ObservabilityValidationIssue, ...]:
+    issues: list[ObservabilityValidationIssue] = []
+
+    stale_events = [event for event in events if _text(event.get("event_type")) == "HEARTBEAT_STALE"]
+    takeover_events = [event for event in events if _text(event.get("event_type")) == "LEASE_TAKEOVER"]
+    decision_events = [
+        event
+        for event in events
+        if _payload(event).get("stage") == "decide" and _payload(event).get("takeover_required") is True
+    ]
+    lease_adopted_step_ids = {
+        _text(event.get("step_id"))
+        for event in events
+        if _text(_payload(event).get("operation")) == "LEASE_ADOPTED"
+    }
+    lease_adopted_step_ids.discard(None)
+
+    lease_failed_step_ids = {
+        _text(event.get("step_id"))
+        for event in events
+        if _text(event.get("event_type")) == "STEP_FAILED"
+        and _text(_payload(event).get("reason_code")) == "LEASE_NOT_ADOPTED"
+    }
+    lease_failed_step_ids.discard(None)
+
+    if report.heartbeat.status == "STALE" and not stale_events:
+        issues.append(
+            _make_validation_issue(
+                code="MISSING_HEARTBEAT_STALE_SIGNAL",
+                severity="ERROR",
+                message="heartbeat status is STALE but no HEARTBEAT_STALE event exists",
+                task_id=task_id,
+                run_id=run_id,
+                correlation=report.heartbeat.correlation,
+                fallback_occurred_at=report.heartbeat.observed_at,
+            )
+        )
+
+    if decision_events and report.takeover is None:
+        latest_decision = _latest_event(decision_events)
+        correlation = _correlation_from_event(
+            task_id=task_id,
+            run_id=run_id,
+            event=latest_decision,
+            fallback_step_id=None,
+            fallback_occurred_at=report.generated_at,
+        )
+        issues.append(
+            _make_validation_issue(
+                code="MISSING_TAKEOVER_EVENT",
+                severity="ERROR",
+                message="takeover decision exists but LEASE_TAKEOVER event is missing",
+                task_id=task_id,
+                run_id=run_id,
+                correlation=correlation,
+                fallback_occurred_at=report.generated_at,
+            )
+        )
+
+    if report.takeover is not None:
+        takeover = report.takeover
+        if not decision_events:
+            issues.append(
+                _make_validation_issue(
+                    code="MISSING_TAKEOVER_DECISION_SIGNAL",
+                    severity="ERROR",
+                    message="LEASE_TAKEOVER event exists but decision signal is missing",
+                    task_id=task_id,
+                    run_id=run_id,
+                    correlation=takeover.correlation,
+                    fallback_occurred_at=takeover.takeover_at,
+                )
+            )
+
+        if takeover.decision_latency_seconds is None:
+            issues.append(
+                _make_validation_issue(
+                    code="INCONSISTENT_TAKEOVER_TIMING",
+                    severity="ERROR",
+                    message="takeover timing is inconsistent or incomplete",
+                    task_id=task_id,
+                    run_id=run_id,
+                    correlation=takeover.correlation,
+                    fallback_occurred_at=takeover.takeover_at,
+                )
+            )
+
+        if takeover.correlation.event_id is None or takeover.correlation.occurred_at is None:
+            issues.append(
+                _make_validation_issue(
+                    code="MISSING_TAKEOVER_CORRELATION",
+                    severity="ERROR",
+                    message="takeover correlation is missing event_id or occurred_at",
+                    task_id=task_id,
+                    run_id=run_id,
+                    correlation=takeover.correlation,
+                    fallback_occurred_at=takeover.takeover_at,
+                )
+            )
+
+        missing_adopted = sorted(set(takeover.adopted_step_ids) - lease_adopted_step_ids)
+        if missing_adopted:
+            issues.append(
+                _make_validation_issue(
+                    code="MISSING_LEASE_ADOPTED_SIGNAL",
+                    severity="ERROR",
+                    message=(
+                        "takeover adopted steps missing LEASE_ADOPTED signals: "
+                        + ",".join(missing_adopted)
+                    ),
+                    task_id=task_id,
+                    run_id=run_id,
+                    correlation=takeover.correlation,
+                    fallback_occurred_at=takeover.takeover_at,
+                )
+            )
+
+        missing_failed = sorted(set(takeover.failed_step_ids) - lease_failed_step_ids)
+        if missing_failed:
+            issues.append(
+                _make_validation_issue(
+                    code="MISSING_LEASE_FAILURE_SIGNAL",
+                    severity="ERROR",
+                    message=(
+                        "takeover failed steps missing LEASE_NOT_ADOPTED failure signals: "
+                        + ",".join(missing_failed)
+                    ),
+                    task_id=task_id,
+                    run_id=run_id,
+                    correlation=takeover.correlation,
+                    fallback_occurred_at=takeover.takeover_at,
+                )
+            )
+
+    for transition in report.lease_transitions:
+        if transition.transition_kind != "EVENT":
+            continue
+        correlation = transition.correlation
+        if correlation.event_id is not None and correlation.occurred_at is not None:
+            continue
+        issues.append(
+            _make_validation_issue(
+                code="MISSING_LEASE_TRANSITION_CORRELATION",
+                severity="WARN",
+                message="lease transition event is missing correlation event_id or occurred_at",
+                task_id=task_id,
+                run_id=run_id,
+                correlation=correlation,
+                fallback_occurred_at=transition.transition_at,
+            )
+        )
+
+    sorted_issues = sorted(
+        issues,
+        key=lambda issue: (
+            issue.code,
+            issue.occurred_at,
+            issue.event_id or "",
+            issue.step_id or "",
+        ),
+    )
+    return tuple(sorted_issues)
+
+
+def _make_validation_issue(
+    *,
+    code: str,
+    severity: str,
+    message: str,
+    task_id: str,
+    run_id: str,
+    correlation: DiagnosticCorrelationRef,
+    fallback_occurred_at: str,
+) -> ObservabilityValidationIssue:
+    occurred_at = correlation.occurred_at or fallback_occurred_at
+    return ObservabilityValidationIssue(
+        code=code,
+        severity=severity,
+        message=message,
+        task_id=task_id,
+        run_id=run_id,
+        step_id=correlation.step_id,
+        event_id=correlation.event_id,
+        occurred_at=occurred_at,
+    )
+
+
+def _latest_event(events: Sequence[Mapping[str, Any]]) -> Mapping[str, Any] | None:
+    if not events:
+        return None
+    return sorted(
+        events,
+        key=lambda item: (
+            _timestamp_or_default(
+                first=_payload(item).get("takeover_at"),
+                second=item.get("timestamp"),
+                default=datetime.fromtimestamp(0, tz=timezone.utc),
+            ),
+            _text(item.get("event_id")) or "",
+        ),
+    )[-1]
+
+
+def _load_process_leases(*, state_store: StateStore) -> list[dict[str, Any]]:
+    leases_path = Path(state_store.root) / "process_leases.json"
+    if not leases_path.exists() or not leases_path.is_file():
+        return []
+    try:
+        payload = json.loads(leases_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return []
+    if not isinstance(payload, Mapping):
+        return []
+    leases = payload.get("leases")
+    if not isinstance(leases, Sequence) or isinstance(leases, (str, bytes, bytearray)):
+        return []
+
+    selected: list[dict[str, Any]] = []
+    for lease in leases:
+        if not isinstance(lease, Mapping):
+            continue
+        selected.append(dict(lease))
+    return selected
+
+
+def _load_events(*, state_store: StateStore) -> list[dict[str, Any]]:
+    events_path = Path(state_store.events_path)
+    if not events_path.exists() or not events_path.is_file():
+        return []
+
+    events: list[dict[str, Any]] = []
+    for line in events_path.read_text(encoding="utf-8").splitlines():
+        payload = line.strip()
+        if not payload:
+            continue
+        try:
+            parsed = json.loads(payload)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(parsed, Mapping):
+            events.append(dict(parsed))
+    return events
 
 
 def _last_matching_event(
