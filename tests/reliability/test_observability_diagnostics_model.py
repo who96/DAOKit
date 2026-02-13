@@ -1,6 +1,9 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+import json
+from pathlib import Path
+import tempfile
 import unittest
 
 from contracts.diagnostics_contracts import (
@@ -12,7 +15,12 @@ from contracts.diagnostics_contracts import (
     ReliabilityDiagnosticsReport,
     TakeoverDiagnostic,
 )
-from reliability.diagnostics import build_reliability_diagnostics_report
+from reliability.diagnostics import (
+    build_reliability_diagnostics_report,
+    emit_reliability_diagnostics,
+    emit_reliability_diagnostics_from_state_store,
+)
+from state.store import StateStore
 
 
 def _dt(raw: str) -> datetime:
@@ -248,6 +256,196 @@ class ObservabilityDiagnosticsModelTests(unittest.TestCase):
                 for transition in payload["lease_transitions"]
             )
         )
+
+    def test_emitter_validation_detects_missing_stale_and_takeover_signals(self) -> None:
+        emission = emit_reliability_diagnostics(
+            task_id="DKT-049",
+            run_id="RUN-049",
+            heartbeat_status={
+                "status": "STALE",
+                "reason_code": "NO_OUTPUT_20M",
+                "warning_after_seconds": 900,
+                "stale_after_seconds": 1200,
+            },
+            leases=[],
+            events=[
+                {
+                    "event_id": "evt_decide_only",
+                    "task_id": "DKT-049",
+                    "run_id": "RUN-049",
+                    "step_id": "S1",
+                    "event_type": "SYSTEM",
+                    "severity": "WARN",
+                    "timestamp": "2026-02-13T00:00:00+00:00",
+                    "payload": {
+                        "stage": "decide",
+                        "decision_action": "TAKEOVER",
+                        "decision_reason_code": "HEARTBEAT_STALE",
+                        "heartbeat_status": "STALE",
+                        "lease_reason_code": "VALID_ACTIVE_LEASE",
+                        "takeover_required": True,
+                        "decided_at": "2026-02-13T00:00:00+00:00",
+                    },
+                }
+            ],
+            generated_at=_dt("2026-02-13T00:00:30+00:00"),
+        )
+        payload = emission.to_dict()
+        issue_codes = [item["code"] for item in payload["validation"]["issues"]]
+
+        self.assertEqual(payload["validation"]["status"], "FAIL")
+        self.assertIn("MISSING_HEARTBEAT_STALE_SIGNAL", issue_codes)
+        self.assertIn("MISSING_TAKEOVER_EVENT", issue_codes)
+
+    def test_emitter_validation_detects_inconsistent_takeover_timing(self) -> None:
+        emission = emit_reliability_diagnostics(
+            task_id="DKT-049",
+            run_id="RUN-049",
+            heartbeat_status={"status": "WARNING"},
+            leases=[],
+            events=[
+                {
+                    "event_id": "evt_decide",
+                    "task_id": "DKT-049",
+                    "run_id": "RUN-049",
+                    "step_id": "S1",
+                    "event_type": "SYSTEM",
+                    "severity": "WARN",
+                    "timestamp": "2026-02-13T00:00:45+00:00",
+                    "payload": {
+                        "stage": "decide",
+                        "decision_action": "TAKEOVER",
+                        "decision_reason_code": "INVALID_LEASE_EXPIRED_CONTROLLER_LEASE",
+                        "heartbeat_status": "WARNING",
+                        "lease_reason_code": "EXPIRED_CONTROLLER_LEASE",
+                        "takeover_required": True,
+                        "decided_at": "2026-02-13T00:00:45+00:00",
+                    },
+                },
+                {
+                    "event_id": "evt_takeover",
+                    "task_id": "DKT-049",
+                    "run_id": "RUN-049",
+                    "step_id": None,
+                    "event_type": "LEASE_TAKEOVER",
+                    "severity": "INFO",
+                    "timestamp": "2026-02-13T00:00:40+00:00",
+                    "payload": {
+                        "takeover_at": "2026-02-13T00:00:40+00:00",
+                        "reason_code": "INVALID_LEASE_EXPIRED_CONTROLLER_LEASE",
+                        "adopted_step_ids": [],
+                        "failed_step_ids": [],
+                    },
+                },
+            ],
+            generated_at=_dt("2026-02-13T00:01:00+00:00"),
+        )
+        payload = emission.to_dict()
+        issue_codes = [item["code"] for item in payload["validation"]["issues"]]
+
+        self.assertIn("INCONSISTENT_TAKEOVER_TIMING", issue_codes)
+        self.assertEqual(payload["validation"]["status"], "FAIL")
+
+    def test_state_store_emitter_preserves_correlation_and_timing_fields(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            repo_root = Path(tmp)
+            state_root = repo_root / "state"
+            state_store = StateStore(state_root)
+
+            state_store.save_heartbeat_status(
+                {
+                    "schema_version": "1.0.0",
+                    "status": "STALE",
+                    "reason_code": "NO_OUTPUT_20M",
+                    "last_heartbeat_at": "2026-02-12T23:40:00+00:00",
+                    "warning_after_seconds": 900,
+                    "stale_after_seconds": 1200,
+                }
+            )
+            (state_root / "process_leases.json").write_text(
+                json.dumps(
+                    {
+                        "schema_version": "1.0.0",
+                        "leases": [
+                            {
+                                "task_id": "DKT-049",
+                                "run_id": "RUN-049",
+                                "step_id": "S1",
+                                "lane": "controller",
+                                "status": "ACTIVE",
+                                "lease_token": "lease_1",
+                                "thread_id": "thread-main",
+                                "pid": 101,
+                                "created_at": "2026-02-12T23:00:00+00:00",
+                                "updated_at": "2026-02-12T23:59:00+00:00",
+                                "expiry": "2026-02-13T00:20:00+00:00",
+                            }
+                        ],
+                    }
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+
+            _ = state_store.append_event(
+                task_id="DKT-049",
+                run_id="RUN-049",
+                step_id="S1",
+                event_type="HEARTBEAT_STALE",
+                severity="WARN",
+                payload={
+                    "stage": "decide",
+                    "decision_action": "TAKEOVER",
+                    "decision_reason_code": "HEARTBEAT_STALE",
+                    "heartbeat_status": "STALE",
+                    "lease_reason_code": "VALID_ACTIVE_LEASE",
+                    "takeover_required": True,
+                    "decided_at": "2026-02-12T23:59:30+00:00",
+                },
+            )
+            takeover_event = state_store.append_event(
+                task_id="DKT-049",
+                run_id="RUN-049",
+                step_id=None,
+                event_type="LEASE_TAKEOVER",
+                severity="INFO",
+                payload={
+                    "takeover_at": "2026-02-12T23:59:40+00:00",
+                    "reason_code": "HEARTBEAT_STALE",
+                    "adopted_step_ids": ["S1"],
+                    "failed_step_ids": [],
+                },
+            )
+            _ = state_store.append_event(
+                task_id="DKT-049",
+                run_id="RUN-049",
+                step_id="S1",
+                event_type="SYSTEM",
+                severity="INFO",
+                payload={
+                    "operation": "LEASE_ADOPTED",
+                    "reason_code": "VALID_UNEXPIRED_LEASE",
+                    "takeover_at": "2026-02-12T23:59:40+00:00",
+                },
+            )
+
+            emission = emit_reliability_diagnostics_from_state_store(
+                task_id="DKT-049",
+                run_id="RUN-049",
+                state_store=state_store,
+                generated_at=_dt("2026-02-13T00:00:00+00:00"),
+            )
+
+        payload = emission.to_dict()
+        self.assertEqual(payload["validation"]["status"], "PASS")
+        self.assertEqual(payload["validation"]["issue_count"], 0)
+        self.assertEqual(payload["report"]["takeover"]["decision_latency_seconds"], 10)
+        self.assertEqual(
+            payload["report"]["takeover"]["correlation"]["event_id"],
+            takeover_event["event_id"],
+        )
+        self.assertEqual(payload["report"]["takeover"]["correlation"]["run_id"], "RUN-049")
+        self.assertEqual(payload["report"]["heartbeat"]["correlation"]["run_id"], "RUN-049")
 
 
 if __name__ == "__main__":
