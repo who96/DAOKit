@@ -1,4 +1,6 @@
 from rag.index.providers import (
+    DKT_062_SELECTION_EVIDENCE_PATHS,
+    DEFAULT_PRODUCTION_EMBEDDING_BACKEND,
     DETERMINISTIC_FIXTURE_BACKEND,
     LOCAL_CHAR_TRIGRAM_BACKEND,
     LOCAL_TOKEN_SIGNATURE_BACKEND,
@@ -8,6 +10,7 @@ from rag.index.providers import (
     EmbeddingProvider,
     EmbeddingProviderConfig,
     build_embedding_provider,
+    default_production_embedding_backend,
     local_embedding_candidates,
     optional_api_embedding_candidates,
 )
@@ -15,6 +18,8 @@ from rag.index.store import ChunkForIndex, EmbeddingIndexStore, SearchHit
 
 __all__ = [
     "ChunkForIndex",
+    "DKT_062_SELECTION_EVIDENCE_PATHS",
+    "DEFAULT_PRODUCTION_EMBEDDING_BACKEND",
     "DETERMINISTIC_FIXTURE_BACKEND",
     "EmbeddingIndexStore",
     "EmbeddingProvider",
@@ -26,6 +31,7 @@ __all__ = [
     "SearchHit",
     "TEST_EMBEDDING_MODE",
     "build_embedding_provider",
+    "default_production_embedding_backend",
     "local_embedding_candidates",
     "optional_api_embedding_candidates",
 ]

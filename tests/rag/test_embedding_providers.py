@@ -4,10 +4,14 @@ from dataclasses import dataclass
 import unittest
 
 from rag.index.providers import (
+    DKT_062_SELECTION_EVIDENCE_PATHS,
+    DEFAULT_PRODUCTION_EMBEDDING_BACKEND,
     EmbeddingProvider,
     EmbeddingProviderConfig,
+    LOCAL_CHAR_TRIGRAM_BACKEND,
     LOCAL_TOKEN_SIGNATURE_BACKEND,
     build_embedding_provider,
+    default_production_embedding_backend,
     local_embedding_candidates,
     optional_api_embedding_candidates,
 )
@@ -38,6 +42,21 @@ class _RecordingProvider(EmbeddingProvider):
 
 
 class EmbeddingProviderTests(unittest.TestCase):
+    def test_default_production_backend_is_benchmark_selected_and_evidence_linked(self) -> None:
+        backend = default_production_embedding_backend()
+        self.assertEqual(backend, DEFAULT_PRODUCTION_EMBEDDING_BACKEND)
+        self.assertEqual(backend, LOCAL_TOKEN_SIGNATURE_BACKEND)
+        self.assertNotEqual(backend, LOCAL_CHAR_TRIGRAM_BACKEND)
+        self.assertGreaterEqual(len(DKT_062_SELECTION_EVIDENCE_PATHS), 2)
+        self.assertIn(
+            "docs/reports/dkt-061/benchmark/retrieval-benchmark-metrics.json",
+            set(DKT_062_SELECTION_EVIDENCE_PATHS),
+        )
+        self.assertIn(
+            "docs/reports/dkt-061/benchmark/retrieval-benchmark-report.md",
+            set(DKT_062_SELECTION_EVIDENCE_PATHS),
+        )
+
     def test_index_search_uses_embedding_provider_abstraction(self) -> None:
         provider = _RecordingProvider(dimensions=4)
         chunks = [
@@ -110,8 +129,19 @@ class EmbeddingProviderTests(unittest.TestCase):
                 allow_fallback=True,
             )
         )
+        self.assertEqual(provider.name, DEFAULT_PRODUCTION_EMBEDDING_BACKEND)
         self.assertIn(provider.name, set(local_embedding_candidates()))
         self.assertEqual(provider.dimensions, 24)
+
+    def test_production_mode_without_backend_uses_benchmark_selected_default(self) -> None:
+        provider = build_embedding_provider(
+            EmbeddingProviderConfig(
+                mode="production",
+                backend=None,
+                dimensions=16,
+            )
+        )
+        self.assertEqual(provider.name, DEFAULT_PRODUCTION_EMBEDDING_BACKEND)
 
     def test_local_token_signature_provider_vector_signature_is_stable(self) -> None:
         provider = build_embedding_provider(

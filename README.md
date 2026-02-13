@@ -116,3 +116,12 @@ If `make release-check` is unavailable in your branch, use `make lint && make te
 - Keep CLI command names and argument names unchanged.
 - Keep contract semantics compatible with `schema_version=1.0.0`.
 - Keep `v1.0.0-rc1` release-anchor semantics and `docs/reports/final-run/` evidence structure unchanged.
+
+## RAG Embedding Default (v1.3 P1)
+
+- Production default backend: `local/token-signature` (selected in DKT-062).
+- Selection evidence:
+  - `docs/reports/dkt-061/benchmark/retrieval-benchmark-metrics.json`
+  - `docs/reports/dkt-061/benchmark/retrieval-benchmark-report.md`
+- Test-mode contract remains deterministic via `deterministic/hash-fixture`.
+- Optional API backend `openai/text-embedding-3-small` remains opt-in and non-default.
