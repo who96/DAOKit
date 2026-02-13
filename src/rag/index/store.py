@@ -7,6 +7,7 @@ from typing import Any, Iterable, Mapping, Sequence
 
 from rag.index.embeddings import cosine_similarity
 from rag.index.providers import (
+    DETERMINISTIC_FIXTURE_BACKEND,
     EmbeddingProvider,
     EmbeddingProviderConfig,
     PRODUCTION_EMBEDDING_MODE,
@@ -82,7 +83,7 @@ class EmbeddingIndexStore:
             dimensions=self.dimensions,
             embedding_provider=embedding_provider,
             embedding_provider_config=embedding_provider_config,
-            default_mode=TEST_EMBEDDING_MODE,
+            default_mode=PRODUCTION_EMBEDDING_MODE,
         )
         self._chunks = sorted(
             list(chunks or []),
@@ -110,7 +111,7 @@ class EmbeddingIndexStore:
             dimensions=dimensions,
             embedding_provider=embedding_provider,
             embedding_provider_config=embedding_provider_config,
-            default_mode=TEST_EMBEDDING_MODE,
+            default_mode=PRODUCTION_EMBEDDING_MODE,
         )
         vectors = provider.embed_texts([chunk.text for chunk in chunk_list])
         if len(vectors) != len(chunk_list):
@@ -299,6 +300,11 @@ def _provider_config_from_payload(
         raw_name = payload.get("name")
         if isinstance(raw_name, str) and raw_name.strip():
             backend = raw_name.strip().lower()
+
+    # Compatibility guard: deterministic fixture backend is a test-only contract,
+    # including for legacy payloads that omitted/serialized mode incorrectly.
+    if backend == DETERMINISTIC_FIXTURE_BACKEND:
+        mode = TEST_EMBEDDING_MODE
 
     raw_allow_fallback = payload.get("allow_fallback")
     allow_fallback = True

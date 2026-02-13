@@ -7,10 +7,45 @@ import tempfile
 import unittest
 
 from rag.ingest.pipeline import FileIngestionItem, rebuild_index
+from rag.index.providers import (
+    DETERMINISTIC_FIXTURE_BACKEND,
+    PRODUCTION_EMBEDDING_MODE,
+    TEST_EMBEDDING_MODE,
+    EmbeddingProviderConfig,
+)
 from rag.index.store import EmbeddingIndexStore
 
 
 class RagIngestionPipelineTests(unittest.TestCase):
+    def test_default_rebuild_uses_production_embedding_provider(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            docs_dir = root / "docs"
+            docs_dir.mkdir(parents=True, exist_ok=True)
+
+            markdown_path = docs_dir / "overview.md"
+            markdown_path.write_text(
+                "# DAOKit\n\nProduction retrieval should use production embeddings.\n",
+                encoding="utf-8",
+            )
+
+            index_path = root / "rag-index.json"
+            rebuild_index(
+                [FileIngestionItem(path=markdown_path, task_id="DKT-060", run_id="RUN-PROD")],
+                index_path=index_path,
+            )
+
+            payload = json.loads(index_path.read_text(encoding="utf-8"))
+            provider = payload.get("embedding_provider")
+
+            self.assertIsInstance(provider, dict)
+            self.assertEqual(provider.get("mode"), PRODUCTION_EMBEDDING_MODE)
+            self.assertNotEqual(provider.get("backend"), DETERMINISTIC_FIXTURE_BACKEND)
+
+            store = EmbeddingIndexStore.load(index_path)
+            self.assertEqual(store.embedding_provider.mode, PRODUCTION_EMBEDDING_MODE)
+            self.assertNotEqual(store.embedding_provider.name, DETERMINISTIC_FIXTURE_BACKEND)
+
     def test_new_documents_are_indexed_and_searchable(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -136,6 +171,53 @@ class RagIngestionPipelineTests(unittest.TestCase):
                 hashlib.sha256(first_bytes).hexdigest(),
                 hashlib.sha256(second_bytes).hexdigest(),
             )
+
+    def test_test_mode_rebuild_remains_deterministic(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            docs_dir = root / "docs"
+            docs_dir.mkdir(parents=True, exist_ok=True)
+
+            first = docs_dir / "first.md"
+            second = docs_dir / "second.md"
+
+            shared = "deterministic fixture behavior must remain stable"
+            first.write_text(shared, encoding="utf-8")
+            second.write_text(shared, encoding="utf-8")
+
+            first_index = root / "index-first.json"
+            second_index = root / "index-second.json"
+
+            config = EmbeddingProviderConfig(
+                mode=TEST_EMBEDDING_MODE,
+                dimensions=64,
+            )
+            rebuild_index(
+                [
+                    FileIngestionItem(path=second, task_id="DKT-060", run_id="RUN-TEST"),
+                    FileIngestionItem(path=first, task_id="DKT-060", run_id="RUN-TEST"),
+                ],
+                index_path=first_index,
+                embedding_provider_config=config,
+            )
+            rebuild_index(
+                [
+                    FileIngestionItem(path=first, task_id="DKT-060", run_id="RUN-TEST"),
+                    FileIngestionItem(path=second, task_id="DKT-060", run_id="RUN-TEST"),
+                ],
+                index_path=second_index,
+                embedding_provider_config=config,
+            )
+
+            first_bytes = first_index.read_bytes()
+            second_bytes = second_index.read_bytes()
+
+            self.assertEqual(first_bytes, second_bytes)
+
+            payload = json.loads(first_index.read_text(encoding="utf-8"))
+            provider = payload["embedding_provider"]
+            self.assertEqual(provider["mode"], TEST_EMBEDDING_MODE)
+            self.assertEqual(provider["backend"], DETERMINISTIC_FIXTURE_BACKEND)
 
 
 if __name__ == "__main__":
