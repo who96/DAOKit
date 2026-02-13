@@ -1,0 +1,434 @@
+{
+  "backends": [
+    {
+      "backend_id": "local/token-signature",
+      "error": null,
+      "metrics": {
+        "hit_rate_at_1": 0.083333,
+        "hit_rate_at_3": 0.583333,
+        "hit_rate_at_5": 0.666667,
+        "mrr_at_1": 0.083333,
+        "mrr_at_3": 0.305556,
+        "mrr_at_5": 0.322222,
+        "ndcg_at_1": 0.083333,
+        "ndcg_at_3": 0.349947,
+        "ndcg_at_5": 0.382185,
+        "precision_at_1": 0.083333,
+        "precision_at_3": 0.222222,
+        "precision_at_5": 0.15,
+        "recall_at_1": 0.083333,
+        "recall_at_3": 0.5,
+        "recall_at_5": 0.583333
+      },
+      "provider_name": "local/token-signature",
+      "queries": [
+        {
+          "first_relevant_rank": 2,
+          "query": "How many executable steps should planner output for text task input?",
+          "query_id": "q01",
+          "relevant_chunk_ids": [
+            "chunk-planning-steps"
+          ],
+          "retrieved_chunk_ids": [
+            "chunk-release-check-command",
+            "chunk-planning-steps",
+            "chunk-global-fallback",
+            "chunk-verification-markers",
+            "chunk-production-nonhash"
+          ]
+        },
+        {
+          "first_relevant_rank": 2,
+          "query": "Which command runs release-check and writes summary json?",
+          "query_id": "q02",
+          "relevant_chunk_ids": [
+            "chunk-release-check-command"
+          ],
+          "retrieved_chunk_ids": [
+            "chunk-dispatch-retries",
+            "chunk-release-check-command",
+            "chunk-runtime-policy",
+            "chunk-verification-markers",
+            "chunk-production-nonhash"
+          ]
+        },
+        {
+          "first_relevant_rank": null,
+          "query": "What markers keep verification log parser-compatible?",
+          "query_id": "q03",
+          "relevant_chunk_ids": [
+            "chunk-verification-markers"
+          ],
+          "retrieved_chunk_ids": [
+            "chunk-test-fixture-backend",
+            "chunk-reliability-gate",
+            "chunk-production-nonhash",
+            "chunk-acceptance-outputs",
+            "chunk-global-fallback"
+          ]
+        },
+        {
+          "first_relevant_rank": 1,
+          "query": "What is the runtime default and what is legacy runtime policy?",
+          "query_id": "q04",
+          "relevant_chunk_ids": [
+            "chunk-runtime-policy"
+          ],
+          "retrieved_chunk_ids": [
+            "chunk-runtime-policy",
+            "chunk-dispatch-retries",
+            "chunk-global-fallback",
+            "chunk-release-check-command",
+            "chunk-benchmark-goal"
+          ]
+        },
+        {
+          "first_relevant_rank": null,
+          "query": "Which local embedding candidates are supported by EmbeddingProvider?",
+          "query_id": "q05",
+          "relevant_chunk_ids": [
+            "chunk-embedding-candidates"
+          ],
+          "retrieved_chunk_ids": [
+            "chunk-test-fixture-backend",
+            "chunk-acceptance-outputs",
+            "chunk-production-nonhash",
+            "chunk-reliability-gate",
+            "chunk-global-fallback"
+          ]
+        },
+        {
+          "first_relevant_rank": 5,
+          "query": "Which backend keeps test mode deterministic for regression tests?",
+          "query_id": "q06",
+          "relevant_chunk_ids": [
+            "chunk-test-fixture-backend"
+          ],
+          "retrieved_chunk_ids": [
+            "chunk-index-determinism",
+            "chunk-planning-steps",
+            "chunk-verification-markers",
+            "chunk-release-check-command",
+            "chunk-test-fixture-backend"
+          ]
+        },
+        {
+          "first_relevant_rank": 3,
+          "query": "How does production retrieval differ from toy hash vectors?",
+          "query_id": "q07",
+          "relevant_chunk_ids": [
+            "chunk-production-nonhash",
+            "chunk-embedding-candidates"
+          ],
+          "retrieved_chunk_ids": [
+            "chunk-test-fixture-backend",
+            "chunk-release-check-command",
+            "chunk-production-nonhash",
+            "chunk-planning-steps",
+            "chunk-global-fallback"
+          ]
+        },
+        {
+          "first_relevant_rank": 3,
+          "query": "Which retrieval policy fields control top-k threshold and fallback behavior?",
+          "query_id": "q08",
+          "relevant_chunk_ids": [
+            "chunk-retrieval-policy-fields",
+            "chunk-global-fallback"
+          ],
+          "retrieved_chunk_ids": [
+            "chunk-runtime-policy",
+            "chunk-production-nonhash",
+            "chunk-global-fallback",
+            "chunk-benchmark-goal",
+            "chunk-acceptance-outputs"
+          ]
+        },
+        {
+          "first_relevant_rank": null,
+          "query": "How is deterministic index rebuild guaranteed?",
+          "query_id": "q09",
+          "relevant_chunk_ids": [
+            "chunk-index-determinism"
+          ],
+          "retrieved_chunk_ids": [
+            "chunk-global-fallback",
+            "chunk-acceptance-outputs",
+            "chunk-production-nonhash",
+            "chunk-test-fixture-backend",
+            "chunk-benchmark-goal"
+          ]
+        },
+        {
+          "first_relevant_rank": null,
+          "query": "Which compatibility anchors must remain unchanged for v1.3?",
+          "query_id": "q10",
+          "relevant_chunk_ids": [
+            "chunk-compat-anchors"
+          ],
+          "retrieved_chunk_ids": [
+            "chunk-global-fallback",
+            "chunk-release-check-command",
+            "chunk-planning-steps",
+            "chunk-verification-markers",
+            "chunk-benchmark-goal"
+          ]
+        },
+        {
+          "first_relevant_rank": 2,
+          "query": "Why does DKT-061 need a 10 to 20 query benchmark with top-k metrics?",
+          "query_id": "q11",
+          "relevant_chunk_ids": [
+            "chunk-benchmark-goal"
+          ],
+          "retrieved_chunk_ids": [
+            "chunk-planning-steps",
+            "chunk-benchmark-goal",
+            "chunk-test-fixture-backend",
+            "chunk-release-check-command",
+            "chunk-global-fallback"
+          ]
+        },
+        {
+          "first_relevant_rank": 2,
+          "query": "Which required acceptance artifacts must every run produce?",
+          "query_id": "q12",
+          "relevant_chunk_ids": [
+            "chunk-acceptance-outputs",
+            "chunk-verification-markers"
+          ],
+          "retrieved_chunk_ids": [
+            "chunk-production-nonhash",
+            "chunk-verification-markers",
+            "chunk-acceptance-outputs",
+            "chunk-planning-steps",
+            "chunk-runtime-policy"
+          ]
+        }
+      ],
+      "rank": 1,
+      "status": "ok"
+    },
+    {
+      "backend_id": "local/char-trigram",
+      "error": null,
+      "metrics": {
+        "hit_rate_at_1": 0.333333,
+        "hit_rate_at_3": 0.333333,
+        "hit_rate_at_5": 0.416667,
+        "mrr_at_1": 0.333333,
+        "mrr_at_3": 0.333333,
+        "mrr_at_5": 0.354167,
+        "ndcg_at_1": 0.333333,
+        "ndcg_at_3": 0.268858,
+        "ndcg_at_5": 0.304748,
+        "precision_at_1": 0.333333,
+        "precision_at_3": 0.111111,
+        "precision_at_5": 0.083333,
+        "recall_at_1": 0.25,
+        "recall_at_3": 0.25,
+        "recall_at_5": 0.333333
+      },
+      "provider_name": "local/char-trigram",
+      "queries": [
+        {
+          "first_relevant_rank": 1,
+          "query": "How many executable steps should planner output for text task input?",
+          "query_id": "q01",
+          "relevant_chunk_ids": [
+            "chunk-planning-steps"
+          ],
+          "retrieved_chunk_ids": [
+            "chunk-planning-steps",
+            "chunk-index-determinism",
+            "chunk-global-fallback",
+            "chunk-dispatch-retries",
+            "chunk-production-nonhash"
+          ]
+        },
+        {
+          "first_relevant_rank": null,
+          "query": "Which command runs release-check and writes summary json?",
+          "query_id": "q02",
+          "relevant_chunk_ids": [
+            "chunk-release-check-command"
+          ],
+          "retrieved_chunk_ids": [
+            "chunk-index-determinism",
+            "chunk-global-fallback",
+            "chunk-verification-markers",
+            "chunk-dispatch-retries",
+            "chunk-benchmark-goal"
+          ]
+        },
+        {
+          "first_relevant_rank": null,
+          "query": "What markers keep verification log parser-compatible?",
+          "query_id": "q03",
+          "relevant_chunk_ids": [
+            "chunk-verification-markers"
+          ],
+          "retrieved_chunk_ids": [
+            "chunk-acceptance-outputs",
+            "chunk-release-check-command",
+            "chunk-runtime-policy",
+            "chunk-test-fixture-backend",
+            "chunk-production-nonhash"
+          ]
+        },
+        {
+          "first_relevant_rank": 4,
+          "query": "What is the runtime default and what is legacy runtime policy?",
+          "query_id": "q04",
+          "relevant_chunk_ids": [
+            "chunk-runtime-policy"
+          ],
+          "retrieved_chunk_ids": [
+            "chunk-release-check-command",
+            "chunk-planning-steps",
+            "chunk-test-fixture-backend",
+            "chunk-runtime-policy",
+            "chunk-dispatch-retries"
+          ]
+        },
+        {
+          "first_relevant_rank": null,
+          "query": "Which local embedding candidates are supported by EmbeddingProvider?",
+          "query_id": "q05",
+          "relevant_chunk_ids": [
+            "chunk-embedding-candidates"
+          ],
+          "retrieved_chunk_ids": [
+            "chunk-test-fixture-backend",
+            "chunk-release-check-command",
+            "chunk-acceptance-outputs",
+            "chunk-production-nonhash",
+            "chunk-planning-steps"
+          ]
+        },
+        {
+          "first_relevant_rank": null,
+          "query": "Which backend keeps test mode deterministic for regression tests?",
+          "query_id": "q06",
+          "relevant_chunk_ids": [
+            "chunk-test-fixture-backend"
+          ],
+          "retrieved_chunk_ids": [
+            "chunk-global-fallback",
+            "chunk-dispatch-retries",
+            "chunk-index-determinism",
+            "chunk-production-nonhash",
+            "chunk-benchmark-goal"
+          ]
+        },
+        {
+          "first_relevant_rank": 1,
+          "query": "How does production retrieval differ from toy hash vectors?",
+          "query_id": "q07",
+          "relevant_chunk_ids": [
+            "chunk-production-nonhash",
+            "chunk-embedding-candidates"
+          ],
+          "retrieved_chunk_ids": [
+            "chunk-production-nonhash",
+            "chunk-global-fallback",
+            "chunk-benchmark-goal",
+            "chunk-dispatch-retries",
+            "chunk-planning-steps"
+          ]
+        },
+        {
+          "first_relevant_rank": 1,
+          "query": "Which retrieval policy fields control top-k threshold and fallback behavior?",
+          "query_id": "q08",
+          "relevant_chunk_ids": [
+            "chunk-retrieval-policy-fields",
+            "chunk-global-fallback"
+          ],
+          "retrieved_chunk_ids": [
+            "chunk-global-fallback",
+            "chunk-benchmark-goal",
+            "chunk-index-determinism",
+            "chunk-dispatch-retries",
+            "chunk-verification-markers"
+          ]
+        },
+        {
+          "first_relevant_rank": null,
+          "query": "How is deterministic index rebuild guaranteed?",
+          "query_id": "q09",
+          "relevant_chunk_ids": [
+            "chunk-index-determinism"
+          ],
+          "retrieved_chunk_ids": [
+            "chunk-reliability-gate",
+            "chunk-release-check-command",
+            "chunk-runtime-policy",
+            "chunk-acceptance-outputs",
+            "chunk-test-fixture-backend"
+          ]
+        },
+        {
+          "first_relevant_rank": null,
+          "query": "Which compatibility anchors must remain unchanged for v1.3?",
+          "query_id": "q10",
+          "relevant_chunk_ids": [
+            "chunk-compat-anchors"
+          ],
+          "retrieved_chunk_ids": [
+            "chunk-benchmark-goal",
+            "chunk-verification-markers",
+            "chunk-index-determinism",
+            "chunk-dispatch-retries",
+            "chunk-global-fallback"
+          ]
+        },
+        {
+          "first_relevant_rank": 1,
+          "query": "Why does DKT-061 need a 10 to 20 query benchmark with top-k metrics?",
+          "query_id": "q11",
+          "relevant_chunk_ids": [
+            "chunk-benchmark-goal"
+          ],
+          "retrieved_chunk_ids": [
+            "chunk-benchmark-goal",
+            "chunk-global-fallback",
+            "chunk-compat-anchors",
+            "chunk-index-determinism",
+            "chunk-verification-markers"
+          ]
+        },
+        {
+          "first_relevant_rank": null,
+          "query": "Which required acceptance artifacts must every run produce?",
+          "query_id": "q12",
+          "relevant_chunk_ids": [
+            "chunk-acceptance-outputs",
+            "chunk-verification-markers"
+          ],
+          "retrieved_chunk_ids": [
+            "chunk-production-nonhash",
+            "chunk-runtime-policy",
+            "chunk-dispatch-retries",
+            "chunk-test-fixture-backend",
+            "chunk-planning-steps"
+          ]
+        }
+      ],
+      "rank": 2,
+      "status": "ok"
+    }
+  ],
+  "chunk_count": 15,
+  "dataset_id": "dkt-061-retrieval-benchmark-v1",
+  "dimensions": 64,
+  "query_count": 12,
+  "run_id": "DKT-061_20260213T122642Z_8z7kr4t",
+  "schema_version": "retrieval-benchmark.v1",
+  "task_id": "DKT-061",
+  "top_ks": [
+    1,
+    3,
+    5
+  ]
+}

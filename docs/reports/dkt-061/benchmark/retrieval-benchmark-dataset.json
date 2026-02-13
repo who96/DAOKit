@@ -1,0 +1,221 @@
+{
+  "chunks": [
+    {
+      "chunk_id": "chunk-planning-steps",
+      "run_id": "RUN-PLANNING",
+      "source_path": "specs/006-v1-3-real-workload-proof/tasks.md",
+      "source_type": "markdown",
+      "task_id": "DKT-057",
+      "text": "Planner contracts for text task input require two to three executable steps in the generated plan."
+    },
+    {
+      "chunk_id": "chunk-dispatch-retries",
+      "run_id": "RUN-DISPATCH",
+      "source_path": "src/orchestrator/runtime.py",
+      "source_type": "markdown",
+      "task_id": "DKT-018",
+      "text": "Dispatch lane supports resume retries and rework attempts with explicit retry counters in runtime state."
+    },
+    {
+      "chunk_id": "chunk-acceptance-outputs",
+      "run_id": "RUN-ACCEPT",
+      "source_path": "specs/006-v1-3-real-workload-proof/requirements.md",
+      "source_type": "markdown",
+      "task_id": "DKT-058",
+      "text": "Acceptance requires report.md, verification.log, and audit-summary.md outputs with deterministic artifact structure."
+    },
+    {
+      "chunk_id": "chunk-retrieval-policy-fields",
+      "run_id": "RUN-RAG",
+      "source_path": "src/rag/retrieval/policy.py",
+      "source_type": "markdown",
+      "task_id": "DKT-011",
+      "text": "RetrievalPolicyConfig includes top_k, min_relevance_score, and allow_global_fallback controls for query filtering."
+    },
+    {
+      "chunk_id": "chunk-release-check-command",
+      "run_id": "RUN-RELEASE",
+      "source_path": "Makefile",
+      "source_type": "markdown",
+      "task_id": "DKT-055",
+      "text": "Release readiness checks run with make release-check and write summary JSON plus verification evidence logs."
+    },
+    {
+      "chunk_id": "chunk-verification-markers",
+      "run_id": "RUN-EVIDENCE",
+      "source_path": "docs/reports/dkt-055/verification.log",
+      "source_type": "markdown",
+      "task_id": "DKT-056",
+      "text": "Verification logs must keep parser-compatible markers: COMMAND ENTRY START END and Command lines."
+    },
+    {
+      "chunk_id": "chunk-runtime-policy",
+      "run_id": "RUN-RUNTIME",
+      "source_path": "specs/006-v1-3-real-workload-proof/requirements.md",
+      "source_type": "markdown",
+      "task_id": "DKT-056",
+      "text": "Runtime policy keeps LangGraph as default while legacy runtime remains maintenance-only without new features."
+    },
+    {
+      "chunk_id": "chunk-embedding-candidates",
+      "run_id": "RUN-EMBEDS",
+      "source_path": "src/rag/index/providers.py",
+      "source_type": "markdown",
+      "task_id": "DKT-059",
+      "text": "EmbeddingProvider supports local/token-signature and local/char-trigram plus optional openai/text-embedding-3-small."
+    },
+    {
+      "chunk_id": "chunk-test-fixture-backend",
+      "run_id": "RUN-TESTMODE",
+      "source_path": "src/rag/index/providers.py",
+      "source_type": "markdown",
+      "task_id": "DKT-060",
+      "text": "Test mode must stay deterministic and use deterministic hash fixture embeddings for regression stability."
+    },
+    {
+      "chunk_id": "chunk-production-nonhash",
+      "run_id": "RUN-PRODMODE",
+      "source_path": "tests/rag/test_ingestion_pipeline.py",
+      "source_type": "markdown",
+      "task_id": "DKT-060",
+      "text": "Production retrieval should avoid toy hash vectors and instead rely on provider-backed local embeddings."
+    },
+    {
+      "chunk_id": "chunk-index-determinism",
+      "run_id": "RUN-DETERMINISM",
+      "source_path": "src/rag/ingest/pipeline.py",
+      "source_type": "markdown",
+      "task_id": "DKT-011",
+      "text": "Deterministic index rebuild sorts by task run path and chunk order before persisting stable JSON keys."
+    },
+    {
+      "chunk_id": "chunk-compat-anchors",
+      "run_id": "RUN-COMPAT",
+      "source_path": "specs/006-v1-3-real-workload-proof/requirements.md",
+      "source_type": "markdown",
+      "task_id": "DKT-056",
+      "text": "Compatibility guardrails preserve schema_version 1.0.0 semantics, v1.0.0-rc1 anchors, and final-run topology."
+    },
+    {
+      "chunk_id": "chunk-global-fallback",
+      "run_id": "RUN-FALLBACK",
+      "source_path": "src/rag/retrieval/policy.py",
+      "source_type": "markdown",
+      "task_id": "DKT-011",
+      "text": "If scoped retrieval has no hits, policy can allow global fallback search for troubleshooting context."
+    },
+    {
+      "chunk_id": "chunk-reliability-gate",
+      "run_id": "RUN-RELIABILITY",
+      "source_path": "Makefile",
+      "source_type": "markdown",
+      "task_id": "DKT-052",
+      "text": "Reliability gate uses make gate-reliability-readiness and checks continuity assertions before release decisions."
+    },
+    {
+      "chunk_id": "chunk-benchmark-goal",
+      "run_id": "RUN-BENCHMARK",
+      "source_path": "specs/006-v1-3-real-workload-proof/tasks.md",
+      "source_type": "markdown",
+      "task_id": "DKT-061",
+      "text": "DKT-061 benchmark requires ten to twenty representative queries and top-k retrieval quality metrics per backend."
+    }
+  ],
+  "dataset_id": "dkt-061-retrieval-benchmark-v1",
+  "description": "Representative DAOKit retrieval benchmark set for embedding backend comparison.",
+  "queries": [
+    {
+      "query": "How many executable steps should planner output for text task input?",
+      "query_id": "q01",
+      "relevant_chunk_ids": [
+        "chunk-planning-steps"
+      ]
+    },
+    {
+      "query": "Which command runs release-check and writes summary json?",
+      "query_id": "q02",
+      "relevant_chunk_ids": [
+        "chunk-release-check-command"
+      ]
+    },
+    {
+      "query": "What markers keep verification log parser-compatible?",
+      "query_id": "q03",
+      "relevant_chunk_ids": [
+        "chunk-verification-markers"
+      ]
+    },
+    {
+      "query": "What is the runtime default and what is legacy runtime policy?",
+      "query_id": "q04",
+      "relevant_chunk_ids": [
+        "chunk-runtime-policy"
+      ]
+    },
+    {
+      "query": "Which local embedding candidates are supported by EmbeddingProvider?",
+      "query_id": "q05",
+      "relevant_chunk_ids": [
+        "chunk-embedding-candidates"
+      ]
+    },
+    {
+      "query": "Which backend keeps test mode deterministic for regression tests?",
+      "query_id": "q06",
+      "relevant_chunk_ids": [
+        "chunk-test-fixture-backend"
+      ]
+    },
+    {
+      "query": "How does production retrieval differ from toy hash vectors?",
+      "query_id": "q07",
+      "relevant_chunk_ids": [
+        "chunk-production-nonhash",
+        "chunk-embedding-candidates"
+      ]
+    },
+    {
+      "query": "Which retrieval policy fields control top-k threshold and fallback behavior?",
+      "query_id": "q08",
+      "relevant_chunk_ids": [
+        "chunk-retrieval-policy-fields",
+        "chunk-global-fallback"
+      ]
+    },
+    {
+      "query": "How is deterministic index rebuild guaranteed?",
+      "query_id": "q09",
+      "relevant_chunk_ids": [
+        "chunk-index-determinism"
+      ]
+    },
+    {
+      "query": "Which compatibility anchors must remain unchanged for v1.3?",
+      "query_id": "q10",
+      "relevant_chunk_ids": [
+        "chunk-compat-anchors"
+      ]
+    },
+    {
+      "query": "Why does DKT-061 need a 10 to 20 query benchmark with top-k metrics?",
+      "query_id": "q11",
+      "relevant_chunk_ids": [
+        "chunk-benchmark-goal"
+      ]
+    },
+    {
+      "query": "Which required acceptance artifacts must every run produce?",
+      "query_id": "q12",
+      "relevant_chunk_ids": [
+        "chunk-acceptance-outputs",
+        "chunk-verification-markers"
+      ]
+    }
+  ],
+  "schema_version": "rag-benchmark.v1",
+  "top_ks": [
+    1,
+    3,
+    5
+  ]
+}
