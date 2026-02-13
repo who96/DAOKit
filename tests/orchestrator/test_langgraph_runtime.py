@@ -100,6 +100,19 @@ class _FakeLangGraphModule:
         self.last_graph: _FakeStateGraph | None = None
 
 
+class _FirstVerifyFailsRuntime(LangGraphOrchestratorRuntime):
+    def __init__(self, **kwargs: Any) -> None:
+        super().__init__(**kwargs)
+        self._verify_count = 0
+
+    def _mutate_verify(self, state: dict[str, Any]) -> None:
+        super()._mutate_verify(state)
+        self._verify_count += 1
+        if self._verify_count == 1:
+            state.setdefault("role_lifecycle", {})
+            state["role_lifecycle"]["acceptance"] = "failed"
+
+
 class LangGraphOrchestratorRuntimeTests(unittest.TestCase):
     def _new_runtime(self, root: Path, run_id: str = "RUN-LG-001") -> LangGraphOrchestratorRuntime:
         return LangGraphOrchestratorRuntime(
@@ -114,6 +127,22 @@ class LangGraphOrchestratorRuntimeTests(unittest.TestCase):
 
     def _contracts_dir(self) -> Path:
         return Path(__file__).resolve().parents[2] / "contracts"
+
+    def _route_payloads(self, runtime: LangGraphOrchestratorRuntime) -> list[dict[str, Any]]:
+        payloads: list[dict[str, Any]] = []
+        for line in runtime.state_store.events_path.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            event = json.loads(line)
+            payload = event.get("payload")
+            if (
+                isinstance(payload, dict)
+                and payload.get("node") in {"extract", "plan", "dispatch", "verify", "transition"}
+                and isinstance(payload.get("route_id"), str)
+            ):
+                payloads.append(payload)
+        return payloads
 
     def test_happy_path_runs_end_to_end(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
@@ -192,6 +221,105 @@ class LangGraphOrchestratorRuntimeTests(unittest.TestCase):
                     "transition.acceptance_not_failed.done",
                 ],
             )
+
+    def test_langgraph_route_events_are_auditable_for_success_path(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            graph_module = _FakeLangGraphModule()
+            runtime = LangGraphOrchestratorRuntime(
+                task_id="DKT-066",
+                run_id="RUN-LG-PROD-001",
+                goal="Exercise production conditional routing path",
+                state_store=StateStore(Path(tmp) / "state"),
+                step_id="S1",
+                langgraph_available=True,
+                missing_optional_dependencies=(),
+                import_module=lambda _name: graph_module,
+            )
+
+            final_state = runtime.run()
+            payloads = self._route_payloads(runtime)
+
+            self.assertEqual(runtime.graph_backend, "langgraph")
+            self.assertEqual(final_state["status"], "DONE")
+            self.assertEqual([payload["node"] for payload in payloads], ["extract", "plan", "dispatch", "verify", "transition"])
+
+            expected_route_ids = [
+                "extract.default.analysis",
+                "plan.default.freeze",
+                "dispatch.default.execute",
+                "verify.default.accept",
+                "transition.acceptance_not_failed.done",
+            ]
+            self.assertEqual([payload["route_id"] for payload in payloads], expected_route_ids)
+            self.assertEqual(
+                [int(payload["branch_trace_index"]) for payload in payloads],
+                list(range(len(expected_route_ids))),
+            )
+            self.assertEqual(
+                [payload["branch_trace"] for payload in payloads],
+                [expected_route_ids[: index + 1] for index in range(len(expected_route_ids))],
+            )
+            self.assertEqual(
+                {payload["correlation_id"] for payload in payloads},
+                {"corr:DKT-066:RUN-LG-PROD-001:S1"},
+            )
+            self.assertEqual(
+                {payload["branch_trace_id"] for payload in payloads},
+                {"trace:DKT-066:RUN-LG-PROD-001:S1"},
+            )
+
+    def test_langgraph_route_events_preserve_correlation_across_rework_branch(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            graph_module = _FakeLangGraphModule()
+            runtime = _FirstVerifyFailsRuntime(
+                task_id="DKT-066",
+                run_id="RUN-LG-FAIL-001",
+                goal="Exercise conditional rework branch path",
+                state_store=StateStore(Path(tmp) / "state"),
+                step_id="S1",
+                langgraph_available=True,
+                missing_optional_dependencies=(),
+                import_module=lambda _name: graph_module,
+            )
+
+            final_state = runtime.run()
+            payloads = self._route_payloads(runtime)
+            route_ids = [payload["route_id"] for payload in payloads]
+            expected_route_ids = [
+                "extract.default.analysis",
+                "plan.default.freeze",
+                "dispatch.default.execute",
+                "verify.default.accept",
+                "transition.acceptance_failed.rework",
+                "verify.default.accept",
+                "transition.acceptance_not_failed.done",
+            ]
+
+            self.assertEqual(runtime.graph_backend, "langgraph")
+            self.assertEqual(final_state["status"], "DONE")
+            self.assertEqual(route_ids, expected_route_ids)
+            self.assertEqual(
+                [payload["node"] for payload in payloads],
+                ["extract", "plan", "dispatch", "verify", "transition", "verify", "transition"],
+            )
+            self.assertEqual(
+                [int(payload["branch_trace_index"]) for payload in payloads],
+                list(range(len(expected_route_ids))),
+            )
+            self.assertEqual(
+                [payload["branch_trace"] for payload in payloads],
+                [expected_route_ids[: index + 1] for index in range(len(expected_route_ids))],
+            )
+            self.assertEqual(
+                {payload["correlation_id"] for payload in payloads},
+                {"corr:DKT-066:RUN-LG-FAIL-001:S1"},
+            )
+            self.assertEqual(
+                {payload["branch_trace_id"] for payload in payloads},
+                {"trace:DKT-066:RUN-LG-FAIL-001:S1"},
+            )
+            self.assertEqual(final_state["role_lifecycle"]["route:last_id"], "transition.acceptance_not_failed.done")
+            self.assertEqual(final_state["role_lifecycle"]["route:last_reason"], "acceptance_not_failed_finalize")
 
     def test_ledger_writes_stay_contract_compatible(self) -> None:
         with tempfile.TemporaryDirectory() as tmp:
