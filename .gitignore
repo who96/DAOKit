@@ -23,3 +23,13 @@ venv/
 /state/
 $tmpdir/
 subagent.log
+
+# Environment secrets
+.env
+
+# Session handoff / scratch docs
+*冷启动提示词*.md
+*窗口交接*.md
+findings.md
+progress.md
+task_plan.md
