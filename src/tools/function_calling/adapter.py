@@ -179,6 +179,16 @@ class FunctionCallingAdapter:
     def invocation_logs(self) -> tuple[InvocationLogEntry, ...]:
         return tuple(self._invocation_logs)
 
+    def registered_tool_names(self) -> tuple[str, ...]:
+        return tuple(self._registry.keys())
+
+    def tool_schema(self, name: str) -> dict[str, Any]:
+        normalized_name = _expect_non_empty_string(name, name="name")
+        registered = self._registry.get(normalized_name)
+        if registered is None:
+            raise FunctionCallingAdapterError(f"tool '{normalized_name}' is not registered")
+        return _copy_json_schema(registered.args_schema)
+
     def _invoke_callable(
         self,
         *,

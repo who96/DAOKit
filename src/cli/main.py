@@ -16,7 +16,13 @@ from cli.bundle import (
     reverify_bundle,
 )
 from daokit.bootstrap import RepositoryInitError, initialize_repository
-from orchestrator.engine import create_runtime
+from artifacts.dispatch_artifacts import DispatchArtifactStore
+from orchestrator.engine import (
+    DispatchBackend,
+    create_dispatch_adapter,
+    create_runtime,
+    resolve_dispatch_backend,
+)
 from reliability.handoff import HandoffPackageError, HandoffPackageStore
 from reliability.heartbeat import (
     HeartbeatEvaluatorError,
@@ -299,6 +305,15 @@ def _cmd_check(args: argparse.Namespace) -> int:
 
 def _cmd_run(args: argparse.Namespace) -> int:
     root = Path(args.root).resolve()
+    run_id = args.run_id or _generate_run_id(args.task_id)
+
+    # Load .env so DAOKIT_* variables are available in os.environ
+    try:
+        from dotenv import load_dotenv
+        load_dotenv(root / ".env", override=False)
+    except ImportError:
+        pass  # python-dotenv not installed; rely on real env vars
+
     runtime_settings = _load_optional_runtime_settings(root)
     state_store = create_state_backend(
         root / "state",
@@ -306,7 +321,37 @@ def _cmd_run(args: argparse.Namespace) -> int:
         config=runtime_settings,
     )
 
-    run_id = args.run_id or _generate_run_id(args.task_id)
+    selected_dispatch_backend = resolve_dispatch_backend(
+        explicit_backend=None,
+        env=os.environ,
+        config=runtime_settings,
+    )
+    llm_client: Any | None = None
+    workspace = None
+    if selected_dispatch_backend == DispatchBackend.LLM:
+        from llm.client import LLMClient, resolve_llm_config
+        from tools.workspace import create_dispatch_workspace
+
+        llm_config = resolve_llm_config(env=os.environ, config=runtime_settings)
+        llm_client = LLMClient(llm_config)
+        workspace = create_dispatch_workspace(
+            root / "artifacts",
+            args.task_id,
+            run_id,
+            args.step_id,
+        )
+
+    # Create dispatch adapter from env config (reads DAOKIT_DISPATCH_BACKEND, etc.)
+    artifact_store = DispatchArtifactStore(root=root / "artifacts")
+    dispatch_adapter = create_dispatch_adapter(
+        artifact_store=artifact_store,
+        llm_client=llm_client,
+        workspace=workspace,
+        explicit_backend=selected_dispatch_backend.value,
+        env=os.environ,
+        config=runtime_settings,
+    )
+
     try:
         runtime = create_runtime(
             task_id=args.task_id,
@@ -314,6 +359,9 @@ def _cmd_run(args: argparse.Namespace) -> int:
             goal=args.goal,
             step_id=args.step_id,
             state_store=state_store,
+            dispatch_adapter=dispatch_adapter,
+            llm_client=llm_client,
+            workspace_base_dir=workspace.root if workspace is not None else None,
             env=os.environ,
             config=runtime_settings,
         )

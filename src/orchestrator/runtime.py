@@ -101,6 +101,8 @@ class OrchestratorRuntime:
         dispatch_adapter: RuntimeDispatchAdapter | None = None,
         dispatch_max_resume_retries: int = DEFAULT_DISPATCH_MAX_RESUME_RETRIES,
         dispatch_max_rework_attempts: int = DEFAULT_DISPATCH_MAX_REWORK_ATTEMPTS,
+        llm_client: Any | None = None,
+        workspace_base_dir: str | Path | None = None,
     ) -> None:
         self.task_id = task_id
         self.run_id = run_id
@@ -116,6 +118,12 @@ class OrchestratorRuntime:
         self.dispatch_max_rework_attempts = self._normalize_non_negative_int(
             dispatch_max_rework_attempts,
             name="dispatch_max_rework_attempts",
+        )
+        self._llm_client = llm_client
+        self._workspace_base_dir = (
+            Path(workspace_base_dir)
+            if workspace_base_dir is not None
+            else None
         )
         self.retriever = retriever or PolicyAwareRetriever(index_path=retrieval_index_path)
         self._retrieval_cache: dict[str, RetrievalResult] = {}
@@ -243,7 +251,37 @@ class OrchestratorRuntime:
                 raise IllegalTransitionError(
                     f"No deterministic node mapping for status '{status.value}'."
                 )
+            self.state_store.append_event(
+                task_id=str(state.get("task_id") or self.task_id),
+                run_id=str(state.get("run_id") or self.run_id),
+                step_id=state.get("current_step"),
+                event_type="SYSTEM",
+                severity="INFO",
+                payload={
+                    "node": next_node,
+                    "phase": "heartbeat",
+                    "moment": "before",
+                    "status": status.value,
+                },
+                dedup_key=None,
+            )
             getattr(self, next_node)()
+            post_state = self.recover_state()
+            post_status = parse_status(str(post_state.get("status")))
+            self.state_store.append_event(
+                task_id=str(post_state.get("task_id") or self.task_id),
+                run_id=str(post_state.get("run_id") or self.run_id),
+                step_id=post_state.get("current_step"),
+                event_type="SYSTEM",
+                severity="INFO",
+                payload={
+                    "node": next_node,
+                    "phase": "heartbeat",
+                    "moment": "after",
+                    "status": post_status.value,
+                },
+                dedup_key=None,
+            )
 
     def extract(self) -> dict[str, Any]:
         return self._execute_node("extract", self._mutate_extract)
@@ -453,6 +491,22 @@ class OrchestratorRuntime:
 
     def _mutate_extract(self, state: dict[str, Any]) -> None:
         state.setdefault("role_lifecycle", {})
+        if self._llm_client is not None:
+            from orchestrator.agent_prompts import EXTRACT_SYSTEM_PROMPT
+
+            result = self._llm_client.chat_completion(
+                messages=[
+                    {"role": "system", "content": EXTRACT_SYSTEM_PROMPT},
+                    {"role": "user", "content": f"任务目标: {self.goal}"},
+                ]
+            )
+            try:
+                analysis = json.loads(result.content)
+            except json.JSONDecodeError:
+                analysis = {"raw_response": result.content}
+            state["role_lifecycle"]["analysis_result"] = analysis
+            state["role_lifecycle"]["analysis"] = "prepared"
+            return
         state["role_lifecycle"]["analysis"] = "prepared"
 
     def _mutate_plan(self, state: dict[str, Any]) -> None:
@@ -466,6 +520,64 @@ class OrchestratorRuntime:
             raw_policy = active_step.get("retrieval_policy")
             if isinstance(raw_policy, Mapping):
                 inherited_policy = raw_policy
+
+        if self._llm_client is not None:
+            from orchestrator.agent_prompts import PLAN_REVIEW_SYSTEM_PROMPT, PLAN_SYSTEM_PROMPT
+
+            goal_text = self._normalize_optional_string(state.get("goal")) or self.goal
+            analysis_result = state.get("role_lifecycle", {}).get("analysis_result", {})
+            for _attempt in range(3):
+                plan_result = self._llm_client.chat_completion(
+                    messages=[
+                        {"role": "system", "content": PLAN_SYSTEM_PROMPT},
+                        {
+                            "role": "user",
+                            "content": (
+                                f"目标: {goal_text}\n"
+                                f"分析结果: {json.dumps(analysis_result, ensure_ascii=False)}"
+                            ),
+                        },
+                    ]
+                )
+                try:
+                    generated_steps = json.loads(plan_result.content)
+                    if not isinstance(generated_steps, list):
+                        generated_steps = [generated_steps]
+                except json.JSONDecodeError:
+                    continue
+
+                review_result = self._llm_client.chat_completion(
+                    messages=[
+                        {"role": "system", "content": PLAN_REVIEW_SYSTEM_PROMPT},
+                        {
+                            "role": "user",
+                            "content": f"计划:\n{json.dumps(generated_steps, ensure_ascii=False)}",
+                        },
+                    ]
+                )
+                if "APPROVED" not in review_result.content:
+                    continue
+
+                validated_steps: list[dict[str, Any]] = []
+                for index, step in enumerate(generated_steps):
+                    candidate = step if isinstance(step, Mapping) else {}
+                    validated: dict[str, Any] = {}
+                    for field in STEP_CONTRACT_FIELDS:
+                        if field in candidate:
+                            validated[field] = candidate[field]
+                    if "id" not in validated:
+                        validated["id"] = f"S{index + 1}"
+                    if inherited_policy is not None:
+                        validated["retrieval_policy"] = json.loads(json.dumps(inherited_policy))
+                    validated["planner_source"] = "llm_agent_v1"
+                    validated_steps.append(validated)
+
+                if validated_steps:
+                    state["steps"] = validated_steps
+                    state["current_step"] = str(validated_steps[0]["id"])
+                    state["role_lifecycle"]["planner_mode"] = "llm_agent_v1"
+                    state["role_lifecycle"]["planner_step_count"] = str(len(validated_steps))
+                    return
 
         if self._should_generate_minimal_text_plan(state):
             generated_steps = [
@@ -487,6 +599,7 @@ class OrchestratorRuntime:
 
         if not state.get("steps"):
             state["steps"] = [self._default_step_contract()]
+
     def _mutate_dispatch(self, state: dict[str, Any]) -> None:
         if state.get("current_step") is None and state.get("steps"):
             first_step = state["steps"][0]
@@ -646,6 +759,13 @@ class OrchestratorRuntime:
             "correlation_id": correlation_id,
             "invocation_index": invocation_index,
         }
+        if self._workspace_base_dir is not None:
+            request["workspace_root"] = str(self._workspace_base_dir)
+        role_lifecycle = state.get("role_lifecycle")
+        if isinstance(role_lifecycle, Mapping):
+            analysis_result = role_lifecycle.get("analysis_result")
+            if analysis_result is not None:
+                request["analysis_result"] = json.loads(json.dumps(analysis_result))
         if step_contract is None:
             return request
 
@@ -817,7 +937,48 @@ class OrchestratorRuntime:
             query=None,
         )
         state.setdefault("role_lifecycle", {})
-        state["role_lifecycle"]["acceptance"] = "passed"
+        if self._llm_client is not None:
+            from orchestrator.agent_prompts import VERIFY_SYSTEM_PROMPT
+
+            step = self._active_step(state)
+            criteria = step.get("acceptance_criteria", []) if step else []
+            dispatch_status = state.get("role_lifecycle", {}).get("dispatch_last_status", "unknown")
+            evidence_lines = [
+                f"验收标准: {json.dumps(criteria, ensure_ascii=False)}",
+                f"执行状态: {dispatch_status}",
+            ]
+            if self._workspace_base_dir is not None:
+                workspace_path = self._workspace_base_dir
+                if workspace_path.exists():
+                    files = [
+                        str(path.relative_to(workspace_path))
+                        for path in workspace_path.rglob("*")
+                        if path.is_file()
+                    ]
+                    evidence_lines.append(f"Workspace 文件列表: {files[:20]}")
+
+            result = self._llm_client.chat_completion(
+                messages=[
+                    {"role": "system", "content": VERIFY_SYSTEM_PROMPT},
+                    {"role": "user", "content": "\n".join(evidence_lines)},
+                ]
+            )
+            try:
+                verify_result = json.loads(result.content)
+                acceptance = str(verify_result.get("acceptance", "passed"))
+                reason = str(verify_result.get("reason", ""))
+            except json.JSONDecodeError:
+                lowered = result.content.lower()
+                if "failed" in lowered or "rework" in lowered:
+                    acceptance = "rework_required"
+                    reason = result.content
+                else:
+                    acceptance = "passed"
+                    reason = result.content
+            state["role_lifecycle"]["acceptance"] = acceptance
+            state["role_lifecycle"]["verify_reason"] = reason
+        else:
+            state["role_lifecycle"]["acceptance"] = "passed"
         state["role_lifecycle"]["troubleshooting_retrieval"] = self._summarize_retrieval(
             troubleshooting_context
         )

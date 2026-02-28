@@ -1,18 +1,25 @@
 from __future__ import annotations
 
+import json
 import unittest
 
 from llm.client import LLMCallError, LLMClient, resolve_llm_config
 
 
 class _FakeMessage:
-    def __init__(self, content: str) -> None:
+    def __init__(self, content: str, tool_calls: list[object] | None = None) -> None:
         self.content = content
+        self.tool_calls = tool_calls
 
 
 class _FakeChoice:
-    def __init__(self, content: str, finish_reason: str = "stop") -> None:
-        self.message = _FakeMessage(content)
+    def __init__(
+        self,
+        content: str,
+        finish_reason: str = "stop",
+        tool_calls: list[object] | None = None,
+    ) -> None:
+        self.message = _FakeMessage(content, tool_calls=tool_calls)
         self.finish_reason = finish_reason
 
 
@@ -24,13 +31,30 @@ class _FakeUsage:
 
 
 class _FakeResponse:
-    def __init__(self, content: str = "ok", model: str = "deepseek-chat") -> None:
-        self.choices = [_FakeChoice(content)]
+    def __init__(
+        self,
+        content: str = "ok",
+        model: str = "deepseek-chat",
+        tool_calls: list[object] | None = None,
+    ) -> None:
+        self.choices = [_FakeChoice(content, tool_calls=tool_calls)]
         self.model = model
         self.usage = _FakeUsage()
 
     def model_dump(self) -> dict[str, str]:
         return {"id": "fake", "model": self.model}
+
+
+class _FakeToolFunction:
+    def __init__(self, name: str, arguments: dict[str, object]) -> None:
+        self.name = name
+        self.arguments = json.dumps(arguments)
+
+
+class _FakeToolCall:
+    def __init__(self, *, call_id: str, function_name: str, arguments: dict[str, object]) -> None:
+        self.id = call_id
+        self.function = _FakeToolFunction(function_name, arguments)
 
 
 class _FakeCompletions:
@@ -162,6 +186,78 @@ class LLMClientTests(unittest.TestCase):
         self.assertEqual(calls[0]["messages"], messages)
         self.assertEqual(calls[0]["max_tokens"], 333)
         self.assertEqual(calls[0]["temperature"], 0.3)
+
+    def test_chat_completion_with_tools_passes_to_sdk(self) -> None:
+        fake_client = _FakeOpenAIClient()
+        client = LLMClient(
+            resolve_llm_config(explicit_api_key="k"),
+            openai_client=fake_client,
+        )
+
+        tools = [
+            {
+                "type": "function",
+                "function": {
+                    "name": "write_file",
+                    "parameters": {"type": "object"},
+                },
+            }
+        ]
+        client.chat_completion(
+            messages=[{"role": "user", "content": "use tools"}],
+            tools=tools,
+        )
+
+        self.assertEqual(len(fake_client.chat.completions.calls), 1)
+        call = fake_client.chat.completions.calls[0]
+        self.assertEqual(call["tools"], tools)
+
+    def test_chat_completion_without_tools_backward_compatible(self) -> None:
+        fake_client = _FakeOpenAIClient()
+        client = LLMClient(
+            resolve_llm_config(explicit_api_key="k"),
+            openai_client=fake_client,
+        )
+
+        client.chat_completion(messages=[{"role": "user", "content": "no tools"}])
+
+        self.assertEqual(len(fake_client.chat.completions.calls), 1)
+        call = fake_client.chat.completions.calls[0]
+        self.assertNotIn("tools", call)
+
+    def test_tool_calls_parsed_from_response(self) -> None:
+        fake_response = _FakeResponse(
+            content="tool requested",
+            model="m-tools",
+            tool_calls=[
+                _FakeToolCall(
+                    call_id="call-1",
+                    function_name="read_file",
+                    arguments={"path": "notes/todo.txt"},
+                )
+            ],
+        )
+        fake_client = _FakeOpenAIClient(response=fake_response)
+        client = LLMClient(
+            resolve_llm_config(explicit_api_key="k", explicit_model="m-tools"),
+            openai_client=fake_client,
+        )
+
+        result = client.chat_completion(
+            messages=[{"role": "user", "content": "read file"}],
+            tools=[{"type": "function", "function": {"name": "read_file", "parameters": {"type": "object"}}}],
+        )
+
+        self.assertEqual(
+            result.tool_calls,
+            (
+                {
+                    "id": "call-1",
+                    "function_name": "read_file",
+                    "arguments": {"path": "notes/todo.txt"},
+                },
+            ),
+        )
 
     def test_chat_completion_error_wraps_as_llm_call_error(self) -> None:
         client = LLMClient(

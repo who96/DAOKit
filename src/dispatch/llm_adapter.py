@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import json
 from typing import TYPE_CHECKING, Any, Mapping
 
 from artifacts.dispatch_artifacts import DispatchArtifactStore
@@ -12,8 +13,8 @@ if TYPE_CHECKING:
 
 
 DEFAULT_SYSTEM_PROMPT = (
-    "You are a coding agent executing a single step in an orchestrated pipeline. "
-    "Return a concise implementation status and next action. Keep output short and actionable."
+    "你是一个编排流水线中的执行代理，负责完成当前分配的步骤。"
+    "请用中文简要回复当前步骤的实现状态和下一步行动。保持输出简洁、可操作。"
 )
 
 
@@ -52,11 +53,23 @@ class LLMDispatchAdapter:
         artifact_store: DispatchArtifactStore,
         relay_policy: RelayModePolicy | None = None,
         system_prompt: str | None = None,
+        tool_orchestration_layer: Any | None = None,
+        tools_schema: list[dict[str, Any]] | None = None,
+        max_agent_iterations: int = 20,
     ) -> None:
+        if max_agent_iterations <= 0:
+            raise DispatchError("max_agent_iterations must be > 0")
         self._llm_client = llm_client
         self._artifact_store = artifact_store
         self._relay_policy = relay_policy or RelayModePolicy(relay_mode_enabled=False)
         self._system_prompt = system_prompt or DEFAULT_SYSTEM_PROMPT
+        self._tool_orchestration_layer = tool_orchestration_layer
+        self._tools_schema = (
+            list(tools_schema)
+            if isinstance(tools_schema, list)
+            else []
+        )
+        self._max_agent_iterations = max_agent_iterations
 
     def create(
         self,
@@ -203,8 +216,23 @@ class LLMDispatchAdapter:
             from llm.client import LLMCallError as _LLMCallError
 
             try:
-                completion = self._llm_client.chat_completion(messages=messages)
-                parsed_output = self._build_success_output(action=action, completion=completion)
+                if self._tool_orchestration_layer is not None:
+                    completion, tool_call_log, iterations = self._run_agent_loop(
+                        messages=messages,
+                        task_id=normalized_task_id,
+                        run_id=normalized_run_id,
+                        step_id=normalized_step_id,
+                    )
+                    parsed_output = self._build_success_output(
+                        action=action,
+                        completion=completion,
+                        execution_mode="llm_agent_loop",
+                        tool_call_log=tool_call_log,
+                        iterations=iterations,
+                    )
+                else:
+                    completion = self._llm_client.chat_completion(messages=messages)
+                    parsed_output = self._build_success_output(action=action, completion=completion)
                 status = "success"
                 error_message = None
             except _LLMCallError as exc:
@@ -262,8 +290,8 @@ class LLMDispatchAdapter:
         action: str,
         request: Mapping[str, Any] | None,
         rework_context: Mapping[str, Any] | None,
-    ) -> list[dict[str, str]]:
-        messages = [{"role": "system", "content": self._system_prompt}]
+    ) -> list[dict[str, Any]]:
+        messages: list[dict[str, Any]] = [{"role": "system", "content": self._system_prompt}]
 
         req = _as_mapping(request)
         title = str(req.get("step_title") or "Complete the assigned step").strip()
@@ -314,6 +342,91 @@ class LLMDispatchAdapter:
 
         return messages
 
+    def _run_agent_loop(
+        self,
+        *,
+        messages: list[dict[str, Any]],
+        task_id: str,
+        run_id: str,
+        step_id: str,
+    ) -> tuple[LLMCompletionResult, list[dict[str, Any]], int]:
+        if self._tool_orchestration_layer is None:
+            return (
+                self._llm_client.chat_completion(messages=messages),
+                [],
+                1,
+            )
+
+        loop_messages = [dict(message) for message in messages]
+        tool_call_log: list[dict[str, Any]] = []
+        iterations = 0
+        completion: LLMCompletionResult | None = None
+
+        while iterations < self._max_agent_iterations:
+            completion = self._llm_client.chat_completion(
+                messages=loop_messages,
+                tools=self._tools_schema,
+            )
+            iterations += 1
+            if not completion.tool_calls:
+                break
+
+            assistant_tool_calls = [
+                {
+                    "id": str(tool_call["id"]),
+                    "type": "function",
+                    "function": {
+                        "name": str(tool_call["function_name"]),
+                        "arguments": json.dumps(tool_call["arguments"], ensure_ascii=False),
+                    },
+                }
+                for tool_call in completion.tool_calls
+            ]
+            loop_messages.append(
+                {
+                    "role": "assistant",
+                    "content": completion.content,
+                    "tool_calls": assistant_tool_calls,
+                }
+            )
+
+            for tool_call in completion.tool_calls:
+                tool_name = str(tool_call["function_name"])
+                arguments = tool_call["arguments"] if isinstance(tool_call["arguments"], dict) else {}
+                invocation = self._tool_orchestration_layer.invoke_function_tool(
+                    task_id=task_id,
+                    run_id=run_id,
+                    step_id=step_id,
+                    tool_name=tool_name,
+                    arguments=arguments,
+                )
+                invocation_result = getattr(invocation, "result", None)
+                invocation_status = getattr(invocation, "status", None)
+                invocation_error = getattr(invocation, "error", None)
+                tool_call_id = str(tool_call["id"])
+                tool_call_log.append(
+                    {
+                        "tool_call_id": tool_call_id,
+                        "tool_name": tool_name,
+                        "arguments": arguments,
+                        "status": invocation_status,
+                        "error": invocation_error,
+                        "result": invocation_result,
+                    }
+                )
+                loop_messages.append(
+                    {
+                        "role": "tool",
+                        "tool_call_id": tool_call_id,
+                        "content": json.dumps(invocation_result, ensure_ascii=False, default=str),
+                    }
+                )
+
+        if completion is None:  # pragma: no cover - defensive guard
+            completion = self._llm_client.chat_completion(messages=loop_messages, tools=self._tools_schema)
+            iterations = 1
+        return completion, tool_call_log, iterations
+
     def _guard_execution_action(self, action: str) -> None:
         try:
             self._relay_policy.guard_action(action=action)
@@ -321,14 +434,26 @@ class LLMDispatchAdapter:
             raise DispatchError(str(exc)) from exc
 
     @staticmethod
-    def _build_success_output(*, action: str, completion: LLMCompletionResult) -> dict[str, Any]:
-        return {
+    def _build_success_output(
+        *,
+        action: str,
+        completion: LLMCompletionResult,
+        execution_mode: str = "llm_direct",
+        tool_call_log: list[dict[str, Any]] | None = None,
+        iterations: int | None = None,
+    ) -> dict[str, Any]:
+        payload: dict[str, Any] = {
             "status": "success",
             "action": action,
-            "execution_mode": "llm_direct",
+            "execution_mode": execution_mode,
             "llm_invoked": True,
             "message": completion.content,
             "model": completion.model,
             "usage": completion.usage,
             "finish_reason": completion.finish_reason,
         }
+        if tool_call_log is not None:
+            payload["tool_call_log"] = tool_call_log
+        if iterations is not None:
+            payload["iterations"] = iterations
+        return payload

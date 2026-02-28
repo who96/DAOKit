@@ -93,6 +93,8 @@ def create_runtime(
     dispatch_adapter: RuntimeDispatchAdapter | None = None,
     dispatch_max_resume_retries: int = DEFAULT_DISPATCH_MAX_RESUME_RETRIES,
     dispatch_max_rework_attempts: int = DEFAULT_DISPATCH_MAX_REWORK_ATTEMPTS,
+    llm_client: Any | None = None,
+    workspace_base_dir: str | Path | None = None,
     explicit_engine: str | None = None,
     env: Mapping[str, str] | None = None,
     config: Mapping[str, Any] | None = None,
@@ -120,6 +122,8 @@ def create_runtime(
             dispatch_adapter=dispatch_adapter,
             dispatch_max_resume_retries=dispatch_max_resume_retries,
             dispatch_max_rework_attempts=dispatch_max_rework_attempts,
+            llm_client=llm_client,
+            workspace_base_dir=workspace_base_dir,
         )
 
     dependencies_available, missing_optional_dependencies = _inspect_langgraph_optional_dependencies(
@@ -139,6 +143,8 @@ def create_runtime(
         dispatch_adapter=dispatch_adapter,
         dispatch_max_resume_retries=dispatch_max_resume_retries,
         dispatch_max_rework_attempts=dispatch_max_rework_attempts,
+        llm_client=llm_client,
+        workspace_base_dir=workspace_base_dir,
         langgraph_available=dependencies_available,
         missing_optional_dependencies=missing_optional_dependencies,
         import_module=import_module,
@@ -309,6 +315,8 @@ def create_dispatch_adapter(
     relay_policy: Any | None = None,
     llm_client: Any | None = None,
     llm_system_prompt: str | None = None,
+    workspace: Any | None = None,
+    tool_orchestration_layer: Any | None = None,
     explicit_llm_api_key: str | None = None,
     explicit_llm_base_url: str | None = None,
     explicit_llm_model: str | None = None,
@@ -334,6 +342,29 @@ def create_dispatch_adapter(
 
     from dispatch.llm_adapter import LLMDispatchAdapter
 
+    tools_schema: list[dict[str, Any]] | None = None
+    active_tool_layer = tool_orchestration_layer
+    if workspace is not None:
+        from tools.agent_tools import agent_tools_openai_schema, register_agent_tools
+        from tools.function_calling.adapter import FunctionCallingAdapter
+        from tools.mcp.adapter import McpAdapter
+
+        if active_tool_layer is None:
+            function_calling_adapter = FunctionCallingAdapter()
+            register_agent_tools(function_calling_adapter, workspace)
+            active_tool_layer = create_tool_orchestration_layer(
+                function_calling_adapter=function_calling_adapter,
+                mcp_adapter=McpAdapter(),
+                env=env,
+                config=config,
+            )
+            tools_schema = agent_tools_openai_schema(function_calling_adapter)
+        else:
+            adapters = getattr(active_tool_layer, "adapters", None)
+            function_calling_adapter = getattr(adapters, "function_calling", None)
+            if function_calling_adapter is not None:
+                tools_schema = agent_tools_openai_schema(function_calling_adapter)
+
     if llm_client is None:
         from llm.client import LLMClient, resolve_llm_config
 
@@ -350,4 +381,6 @@ def create_dispatch_adapter(
         artifact_store=artifact_store,
         relay_policy=relay_policy,
         system_prompt=llm_system_prompt,
+        tool_orchestration_layer=active_tool_layer,
+        tools_schema=tools_schema,
     )

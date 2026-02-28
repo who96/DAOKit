@@ -23,14 +23,21 @@ class _FakeLLMClient:
         self._content = content
         self._model = model
         self._config = config or LLMConfig(api_key="test-key", model=model)
-        self.calls: list[list[dict[str, str]]] = []
+        self.calls: list[list[dict[str, object]]] = []
+        self.tools_calls: list[list[dict[str, object]] | None] = []
 
     @property
     def config(self) -> LLMConfig:
         return self._config
 
-    def chat_completion(self, *, messages: list[dict[str, str]]) -> LLMCompletionResult:
+    def chat_completion(
+        self,
+        *,
+        messages: list[dict[str, object]],
+        tools: list[dict[str, object]] | None = None,
+    ) -> LLMCompletionResult:
         self.calls.append(messages)
+        self.tools_calls.append(tools)
         return LLMCompletionResult(
             content=self._content,
             model=self._model,
@@ -41,9 +48,73 @@ class _FakeLLMClient:
 
 
 class _RaisingLLMClient(_FakeLLMClient):
-    def chat_completion(self, *, messages: list[dict[str, str]]) -> LLMCompletionResult:
+    def chat_completion(
+        self,
+        *,
+        messages: list[dict[str, object]],
+        tools: list[dict[str, object]] | None = None,
+    ) -> LLMCompletionResult:
         self.calls.append(messages)
+        self.tools_calls.append(tools)
         raise LLMCallError("llm error")
+
+
+class _SequenceLLMClient(_FakeLLMClient):
+    def __init__(
+        self,
+        *,
+        completions: list[LLMCompletionResult],
+        config: LLMConfig | None = None,
+    ) -> None:
+        model = completions[0].model if completions else "test-model"
+        super().__init__(content="", model=model, config=config)
+        self._completions = list(completions)
+
+    def chat_completion(
+        self,
+        *,
+        messages: list[dict[str, object]],
+        tools: list[dict[str, object]] | None = None,
+    ) -> LLMCompletionResult:
+        self.calls.append(messages)
+        self.tools_calls.append(tools)
+        if not self._completions:
+            raise AssertionError("no scripted completion left")
+        return self._completions.pop(0)
+
+
+class _ToolInvocationResult:
+    def __init__(self, *, result: dict[str, object]) -> None:
+        self.result = result
+
+
+class _FakeToolOrchestrationLayer:
+    def __init__(self) -> None:
+        self.calls: list[dict[str, object]] = []
+
+    def invoke_function_tool(
+        self,
+        *,
+        task_id: str,
+        run_id: str,
+        step_id: str,
+        tool_name: str,
+        arguments: dict[str, object] | None,
+        correlation_id: str | None = None,
+        timeout_seconds: float | None = None,
+    ) -> _ToolInvocationResult:
+        self.calls.append(
+            {
+                "task_id": task_id,
+                "run_id": run_id,
+                "step_id": step_id,
+                "tool_name": tool_name,
+                "arguments": arguments,
+                "correlation_id": correlation_id,
+                "timeout_seconds": timeout_seconds,
+            }
+        )
+        return _ToolInvocationResult(result={"ok": True, "tool_name": tool_name, "arguments": arguments or {}})
 
 
 class LLMDispatchAdapterTests(unittest.TestCase):
@@ -242,6 +313,148 @@ class LLMDispatchAdapterTests(unittest.TestCase):
             request_payload = request_doc["request"]
             self.assertIn("messages", request_payload)
             self.assertIsInstance(request_payload["messages"], list)
+
+    def test_agent_loop_iterates_with_tools(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            llm_client = _SequenceLLMClient(
+                completions=[
+                    LLMCompletionResult(
+                        content="",
+                        model="agent-model",
+                        usage={"prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2},
+                        finish_reason="tool_calls",
+                        raw_response={"id": "c1"},
+                        tool_calls=(
+                            {
+                                "id": "call-1",
+                                "function_name": "write_file",
+                                "arguments": {"path": "out.txt", "content": "hello"},
+                            },
+                        ),
+                    ),
+                    LLMCompletionResult(
+                        content="done",
+                        model="agent-model",
+                        usage={"prompt_tokens": 2, "completion_tokens": 1, "total_tokens": 3},
+                        finish_reason="stop",
+                        raw_response={"id": "c2"},
+                    ),
+                ],
+            )
+            tool_layer = _FakeToolOrchestrationLayer()
+            tools_schema = [
+                {
+                    "type": "function",
+                    "function": {"name": "write_file", "parameters": {"type": "object"}},
+                }
+            ]
+            adapter = LLMDispatchAdapter(
+                llm_client=llm_client,
+                artifact_store=DispatchArtifactStore(Path(tmp) / "artifacts"),
+                tool_orchestration_layer=tool_layer,
+                tools_schema=tools_schema,
+            )
+
+            result = adapter.create(task_id="DKT-211", run_id="RUN-1", step_id="S1")
+
+            self.assertEqual(result.status, "success")
+            self.assertEqual(result.parsed_output.get("message"), "done")
+            self.assertEqual(len(llm_client.calls), 2)
+            self.assertEqual(len(tool_layer.calls), 1)
+            self.assertEqual(tool_layer.calls[0]["tool_name"], "write_file")
+            self.assertEqual(llm_client.tools_calls[0], tools_schema)
+
+    def test_agent_loop_max_iterations_breaker(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            llm_client = _SequenceLLMClient(
+                completions=[
+                    LLMCompletionResult(
+                        content="still running",
+                        model="agent-model",
+                        usage={"prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2},
+                        finish_reason="tool_calls",
+                        raw_response={"id": "c1"},
+                        tool_calls=(
+                            {
+                                "id": "call-1",
+                                "function_name": "read_file",
+                                "arguments": {"path": "in.txt"},
+                            },
+                        ),
+                    )
+                ],
+            )
+            tool_layer = _FakeToolOrchestrationLayer()
+            adapter = LLMDispatchAdapter(
+                llm_client=llm_client,
+                artifact_store=DispatchArtifactStore(Path(tmp) / "artifacts"),
+                tool_orchestration_layer=tool_layer,
+                tools_schema=[{"type": "function", "function": {"name": "read_file", "parameters": {"type": "object"}}}],
+                max_agent_iterations=1,
+            )
+
+            result = adapter.create(task_id="DKT-212", run_id="RUN-1", step_id="S1")
+
+            self.assertEqual(result.status, "success")
+            self.assertEqual(result.parsed_output.get("iterations"), 1)
+            self.assertEqual(len(llm_client.calls), 1)
+            self.assertEqual(len(tool_layer.calls), 1)
+
+    def test_agent_loop_records_tool_call_log(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            llm_client = _SequenceLLMClient(
+                completions=[
+                    LLMCompletionResult(
+                        content="",
+                        model="agent-model",
+                        usage={"prompt_tokens": 1, "completion_tokens": 1, "total_tokens": 2},
+                        finish_reason="tool_calls",
+                        raw_response={"id": "c1"},
+                        tool_calls=(
+                            {
+                                "id": "call-1",
+                                "function_name": "execute_command",
+                                "arguments": {"command": "echo ok"},
+                            },
+                        ),
+                    ),
+                    LLMCompletionResult(
+                        content="ok",
+                        model="agent-model",
+                        usage={"prompt_tokens": 2, "completion_tokens": 1, "total_tokens": 3},
+                        finish_reason="stop",
+                        raw_response={"id": "c2"},
+                    ),
+                ],
+            )
+            tool_layer = _FakeToolOrchestrationLayer()
+            adapter = LLMDispatchAdapter(
+                llm_client=llm_client,
+                artifact_store=DispatchArtifactStore(Path(tmp) / "artifacts"),
+                tool_orchestration_layer=tool_layer,
+                tools_schema=[{"type": "function", "function": {"name": "execute_command", "parameters": {"type": "object"}}}],
+            )
+
+            result = adapter.create(task_id="DKT-213", run_id="RUN-1", step_id="S1")
+
+            tool_call_log = result.parsed_output.get("tool_call_log")
+            self.assertIsInstance(tool_call_log, list)
+            self.assertEqual(len(tool_call_log), 1)
+            self.assertEqual(tool_call_log[0]["tool_name"], "execute_command")
+            self.assertEqual(tool_call_log[0]["tool_call_id"], "call-1")
+
+    def test_no_tool_layer_keeps_existing_behavior(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            llm_client = _FakeLLMClient(content="plain response")
+            adapter = self._build_adapter(root=Path(tmp), llm_client=llm_client)
+
+            result = adapter.create(task_id="DKT-214", run_id="RUN-1", step_id="S1")
+
+            self.assertEqual(result.status, "success")
+            self.assertEqual(result.parsed_output.get("execution_mode"), "llm_direct")
+            self.assertNotIn("tool_call_log", result.parsed_output)
+            self.assertNotIn("iterations", result.parsed_output)
+            self.assertEqual(llm_client.tools_calls, [None])
 
     def _build_adapter(self, *, root: Path, llm_client: _FakeLLMClient) -> LLMDispatchAdapter:
         return LLMDispatchAdapter(

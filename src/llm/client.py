@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import json
 import os
 from typing import Any, Mapping
 
@@ -32,6 +33,7 @@ class LLMCompletionResult:
     usage: dict[str, int]
     finish_reason: str
     raw_response: dict[str, Any]
+    tool_calls: tuple[dict[str, Any], ...] = ()
 
 
 class LLMCallError(RuntimeError):
@@ -134,14 +136,22 @@ class LLMClient:
     def config(self) -> LLMConfig:
         return self._config
 
-    def chat_completion(self, *, messages: list[dict[str, str]]) -> LLMCompletionResult:
+    def chat_completion(
+        self,
+        *,
+        messages: list[dict[str, Any]],
+        tools: list[dict[str, Any]] | None = None,
+    ) -> LLMCompletionResult:
         try:
-            response = self._client.chat.completions.create(
-                model=self._config.model,
-                messages=messages,
-                max_tokens=self._config.max_tokens,
-                temperature=self._config.temperature,
-            )
+            request_payload: dict[str, Any] = {
+                "model": self._config.model,
+                "messages": messages,
+                "max_tokens": self._config.max_tokens,
+                "temperature": self._config.temperature,
+            }
+            if tools is not None:
+                request_payload["tools"] = tools
+            response = self._client.chat.completions.create(**request_payload)
             choice = response.choices[0]
             usage_data: dict[str, int] = {}
             if response.usage is not None:
@@ -150,12 +160,14 @@ class LLMClient:
                     "completion_tokens": response.usage.completion_tokens,
                     "total_tokens": response.usage.total_tokens,
                 }
+            tool_calls = _extract_tool_calls(getattr(choice.message, "tool_calls", None))
             return LLMCompletionResult(
                 content=choice.message.content or "",
                 model=response.model,
                 usage=usage_data,
                 finish_reason=choice.finish_reason or "stop",
                 raw_response=response.model_dump() if hasattr(response, "model_dump") else {},
+                tool_calls=tool_calls,
             )
         except Exception as exc:
             raise LLMCallError(str(exc)) from exc
@@ -231,3 +243,46 @@ def _coerce_float(value: Any, *, setting_name: str) -> float:
         except ValueError as exc:
             raise LLMCallError(f"{setting_name} must be a float.") from exc
     raise LLMCallError(f"{setting_name} must be a float.")
+
+
+def _extract_tool_calls(tool_calls: Any) -> tuple[dict[str, Any], ...]:
+    if not isinstance(tool_calls, list):
+        return ()
+    normalized: list[dict[str, Any]] = []
+    for call in tool_calls:
+        if call is None:
+            continue
+        call_id = getattr(call, "id", None)
+        function = getattr(call, "function", None)
+        function_name = getattr(function, "name", None)
+        raw_arguments = getattr(function, "arguments", None)
+        if not isinstance(call_id, str) or not call_id.strip():
+            continue
+        if not isinstance(function_name, str) or not function_name.strip():
+            continue
+        arguments = _parse_tool_arguments(raw_arguments)
+        normalized.append(
+            {
+                "id": call_id.strip(),
+                "function_name": function_name.strip(),
+                "arguments": arguments,
+            }
+        )
+    return tuple(normalized)
+
+
+def _parse_tool_arguments(raw_arguments: Any) -> dict[str, Any]:
+    if isinstance(raw_arguments, dict):
+        return dict(raw_arguments)
+    if not isinstance(raw_arguments, str):
+        return {}
+    text = raw_arguments.strip()
+    if not text:
+        return {}
+    try:
+        parsed = json.loads(text)
+    except json.JSONDecodeError:
+        return {}
+    if isinstance(parsed, dict):
+        return parsed
+    return {}

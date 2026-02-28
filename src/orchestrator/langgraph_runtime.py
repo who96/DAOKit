@@ -44,6 +44,8 @@ class LangGraphOrchestratorRuntime(OrchestratorRuntime):
         dispatch_adapter: RuntimeDispatchAdapter | None = None,
         dispatch_max_resume_retries: int = DEFAULT_DISPATCH_MAX_RESUME_RETRIES,
         dispatch_max_rework_attempts: int = DEFAULT_DISPATCH_MAX_REWORK_ATTEMPTS,
+        llm_client: Any | None = None,
+        workspace_base_dir: str | Path | None = None,
         langgraph_available: bool = False,
         missing_optional_dependencies: tuple[str, ...] = (),
         import_module: ImportModule | None = None,
@@ -61,6 +63,8 @@ class LangGraphOrchestratorRuntime(OrchestratorRuntime):
             dispatch_adapter=dispatch_adapter,
             dispatch_max_resume_retries=dispatch_max_resume_retries,
             dispatch_max_rework_attempts=dispatch_max_rework_attempts,
+            llm_client=llm_client,
+            workspace_base_dir=workspace_base_dir,
         )
         self.langgraph_available = bool(langgraph_available)
         self.missing_optional_dependencies = tuple(missing_optional_dependencies)
