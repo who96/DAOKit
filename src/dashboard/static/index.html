@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -21,16 +21,23 @@
     <header class="border-b border-gray-800 bg-gray-950/80">
       <div class="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
         <div>
-          <h1 class="text-xl font-semibold tracking-tight">DAOKit Agent Dashboard</h1>
-          <p class="text-sm text-gray-400">Read-only orchestration runtime view</p>
+          <h1 id="dashboardTitle" class="text-xl font-semibold tracking-tight">DAOKit Agent Dashboard</h1>
+          <p id="dashboardSubtitle" class="text-sm text-gray-400">Read-only orchestration runtime view</p>
         </div>
         <div class="flex items-center gap-3 text-sm">
-          <label for="refreshInterval" class="text-gray-300">Auto refresh</label>
+          <button
+            id="langToggle"
+            type="button"
+            class="rounded-md border border-gray-700 bg-gray-800 px-2 py-1 text-sm text-gray-100"
+          >
+            EN
+          </button>
+          <label id="refreshLabel" for="refreshInterval" class="text-gray-300">Auto refresh</label>
           <select
             id="refreshInterval"
             class="rounded-md border border-gray-700 bg-gray-800 px-2 py-1 text-gray-100"
           >
-            <option value="0">Off</option>
+            <option id="refreshOffOption" value="0">Off</option>
             <option value="3000">3s</option>
             <option value="5000" selected>5s</option>
             <option value="10000">10s</option>
@@ -46,7 +53,7 @@
       <section class="grid gap-6 lg:grid-cols-2">
         <div class="space-y-6">
           <article class="rounded-xl border border-gray-800 bg-gray-800/40 p-5">
-            <h2 class="mb-4 text-lg font-semibold">Pipeline State</h2>
+            <h2 id="pipelineStateTitle" class="mb-4 text-lg font-semibold">Pipeline State</h2>
             <div class="grid grid-cols-1 gap-3 text-sm">
               <div class="flex items-center justify-between gap-3">
                 <span class="text-gray-400">task_id</span>
@@ -80,10 +87,10 @@
           </article>
 
           <article class="rounded-xl border border-gray-800 bg-gray-800/40 p-5">
-            <h2 class="mb-4 text-lg font-semibold">Heartbeat + Leases</h2>
+            <h2 id="heartbeatLeasesTitle" class="mb-4 text-lg font-semibold">Heartbeat + Leases</h2>
             <div class="mb-4 flex items-center gap-3 rounded-lg border border-gray-700 bg-gray-900/60 px-3 py-2">
               <span id="heartbeatDot" class="h-3 w-3 rounded-full bg-gray-500"></span>
-              <span class="text-sm text-gray-300">Heartbeat</span>
+              <span id="heartbeatLabel" class="text-sm text-gray-300">Heartbeat</span>
               <span id="heartbeatStatus" class="text-sm font-semibold">IDLE</span>
             </div>
             <div class="overflow-x-auto">
@@ -104,7 +111,7 @@
         </div>
 
         <article class="rounded-xl border border-gray-800 bg-gray-800/40 p-5">
-          <h2 class="mb-4 text-lg font-semibold">State Flow</h2>
+          <h2 id="stateFlowTitle" class="mb-4 text-lg font-semibold">State Flow</h2>
           <div id="flowGraph" class="space-y-2"></div>
           <div class="mt-4 text-xs text-gray-400">
             <span id="snapshotCount">Snapshots: 0</span>
@@ -113,7 +120,7 @@
       </section>
 
       <section class="mt-6 rounded-xl border border-gray-800 bg-gray-800/40 p-5">
-        <h2 class="mb-4 text-lg font-semibold">Event Timeline</h2>
+        <h2 id="eventTimelineTitle" class="mb-4 text-lg font-semibold">Event Timeline</h2>
         <div class="overflow-x-auto">
           <table class="min-w-full text-left text-xs">
             <thead class="text-gray-400">
@@ -132,6 +139,46 @@
     </main>
 
     <script>
+      const translations = {
+        en: {
+          dashboardTitle: "DAOKit Agent Dashboard",
+          dashboardSubtitle: "Read-only orchestration runtime view",
+          autoRefresh: "Auto refresh",
+          off: "Off",
+          pipelineState: "Pipeline State",
+          heartbeatLeases: "Heartbeat + Leases",
+          heartbeat: "Heartbeat",
+          noActiveLeases: "No active leases",
+          stateFlow: "State Flow",
+          branchStates: "Branch states",
+          snapshots: "Snapshots:",
+          eventTimeline: "Event Timeline",
+          noEventsRecorded: "No events recorded",
+          dashboardRefreshError: "Dashboard refresh error:",
+        },
+        zh: {
+          dashboardTitle: "DAOKit 智能体仪表盘",
+          dashboardSubtitle: "只读编排运行时视图",
+          autoRefresh: "自动刷新",
+          off: "关闭",
+          pipelineState: "流水线状态",
+          heartbeatLeases: "心跳 + 租约",
+          heartbeat: "心跳",
+          noActiveLeases: "无活跃租约",
+          stateFlow: "状态流",
+          branchStates: "分支状态",
+          snapshots: "快照：",
+          eventTimeline: "事件时间线",
+          noEventsRecorded: "暂无事件记录",
+          dashboardRefreshError: "仪表盘刷新错误：",
+        },
+      };
+
+      let currentLang = localStorage.getItem("daokit-lang") || "zh";
+      if (currentLang !== "en" && currentLang !== "zh") {
+        currentLang = "zh";
+      }
+
       const flowMain = ["PLANNING", "ANALYSIS", "FREEZE", "EXECUTE", "ACCEPT", "DONE"];
       const flowBranches = ["DRAINING", "BLOCKED", "FAILED"];
 
@@ -162,6 +209,32 @@
       };
 
       let refreshTimer = null;
+      let lastSnapshotCount = 0;
+
+      function t(key) {
+        return (translations[currentLang] && translations[currentLang][key]) || translations.en[key] || key;
+      }
+
+      function formatSnapshotCount(count) {
+        const spacer = currentLang === "zh" ? "" : " ";
+        return `${t("snapshots")}${spacer}${count}`;
+      }
+
+      function applyStaticTranslations() {
+        document.documentElement.lang = currentLang === "zh" ? "zh-CN" : "en";
+        document.title = t("dashboardTitle");
+        document.getElementById("dashboardTitle").textContent = t("dashboardTitle");
+        document.getElementById("dashboardSubtitle").textContent = t("dashboardSubtitle");
+        document.getElementById("refreshLabel").textContent = t("autoRefresh");
+        document.getElementById("refreshOffOption").textContent = t("off");
+        document.getElementById("pipelineStateTitle").textContent = t("pipelineState");
+        document.getElementById("heartbeatLeasesTitle").textContent = t("heartbeatLeases");
+        document.getElementById("heartbeatLabel").textContent = t("heartbeat");
+        document.getElementById("stateFlowTitle").textContent = t("stateFlow");
+        document.getElementById("eventTimelineTitle").textContent = t("eventTimeline");
+        document.getElementById("snapshotCount").textContent = formatSnapshotCount(lastSnapshotCount);
+        document.getElementById("langToggle").textContent = currentLang === "zh" ? "EN" : "中";
+      }
 
       function statusBadgeClass(status) {
         return statusBadgeClasses[status] || "border-gray-700 bg-gray-700/30 text-gray-200";
@@ -249,7 +322,7 @@
         graph.innerHTML = `
           <div class="space-y-1">${happyPathHtml}</div>
           <div class="mt-4 border-t border-gray-800 pt-3">
-            <p class="mb-2 text-xs uppercase tracking-wide text-gray-500">Branch states</p>
+            <p class="mb-2 text-xs uppercase tracking-wide text-gray-500">${t("branchStates")}</p>
             <div class="space-y-1">${branchHtml}</div>
           </div>
         `;
@@ -268,7 +341,7 @@
         if (leases.length === 0) {
           body.innerHTML = `
             <tr>
-              <td colspan="5" class="px-2 py-3 text-center text-gray-500">No active leases</td>
+              <td colspan="5" class="px-2 py-3 text-center text-gray-500">${t("noActiveLeases")}</td>
             </tr>
           `;
           return;
@@ -294,7 +367,7 @@
         if (!Array.isArray(events) || events.length === 0) {
           body.innerHTML = `
             <tr>
-              <td colspan="5" class="px-2 py-3 text-center text-gray-500">No events recorded</td>
+              <td colspan="5" class="px-2 py-3 text-center text-gray-500">${t("noEventsRecorded")}</td>
             </tr>
           `;
           return;
@@ -328,8 +401,8 @@
       }
 
       function renderSnapshots(snapshots) {
-        const count = Array.isArray(snapshots) ? snapshots.length : 0;
-        document.getElementById("snapshotCount").textContent = `Snapshots: ${count}`;
+        lastSnapshotCount = Array.isArray(snapshots) ? snapshots.length : 0;
+        document.getElementById("snapshotCount").textContent = formatSnapshotCount(lastSnapshotCount);
       }
 
       function setError(message) {
@@ -340,7 +413,11 @@
           return;
         }
         banner.classList.remove("hidden");
-        banner.textContent = `Dashboard refresh error: ${message}`;
+        if (currentLang === "zh") {
+          banner.textContent = `${t("dashboardRefreshError")}${message}`;
+          return;
+        }
+        banner.textContent = `${t("dashboardRefreshError")} ${message}`;
       }
 
       async function refreshDashboard() {
@@ -377,6 +454,15 @@
         }
       }
 
+      function toggleLanguage() {
+        currentLang = currentLang === "zh" ? "en" : "zh";
+        localStorage.setItem("daokit-lang", currentLang);
+        applyStaticTranslations();
+        refreshDashboard();
+      }
+
+      applyStaticTranslations();
+      document.getElementById("langToggle").addEventListener("click", toggleLanguage);
       document.getElementById("refreshInterval").addEventListener("change", updateRefreshTimer);
       updateRefreshTimer();
       refreshDashboard();
