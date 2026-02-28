@@ -2,9 +2,13 @@ from __future__ import annotations
 
 from pathlib import Path
 import json
+import subprocess
+import sys
+import time
 from typing import Any
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, JSONResponse
 
 from state.store import create_state_backend
@@ -15,7 +19,13 @@ _DEFAULT_SNAPSHOTS_LIMIT = 20
 
 def create_app(state_root: Path) -> FastAPI:
     backend = create_state_backend(state_root)
-    app = FastAPI(title="DAOKit Dashboard", version="0.1.0")
+    app = FastAPI(title="DAOKit Dashboard", version="0.2.0")
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
     static_root = Path(__file__).parent / "static"
 
     @app.get("/api/state", response_model=None)
@@ -53,6 +63,50 @@ def create_app(state_root: Path) -> FastAPI:
             normalized_limit = max(limit, 1)
             return snapshots[-normalized_limit:]
         except Exception as exc:  # pragma: no cover - boundary guard
+            return _error_response(exc)
+
+    @app.post("/api/message", response_model=None)
+    async def post_message(request: Request) -> Any:
+        try:
+            body = await request.json()
+            message = body.get("message", "").strip()
+            if not message:
+                return JSONResponse({"error": "message is required"}, status_code=400)
+            state = backend.load_state()
+            event = backend.append_event(
+                task_id=str(state.get("task_id") or "unknown"),
+                run_id=str(state.get("run_id") or "unknown"),
+                step_id=body.get("step_id"),
+                event_type="HUMAN",
+                severity="INFO",
+                payload={"message": message, "sender": "human"},
+            )
+            return event
+        except Exception as exc:
+            return _error_response(exc)
+
+    @app.post("/api/run", response_model=None)
+    async def post_run(request: Request) -> Any:
+        try:
+            body = await request.json()
+            goal = body.get("goal", "").strip()
+            if not goal:
+                return JSONResponse({"error": "goal is required"}, status_code=400)
+            task_id = body.get("task_id") or f"DKT-DASH-{int(time.time())}"
+            root = state_root.parent
+            subprocess.Popen(
+                [
+                    sys.executable, "-m", "cli", "run",
+                    "--root", str(root),
+                    "--task-id", task_id,
+                    "--goal", goal,
+                    "--no-lease",
+                ],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+            )
+            return {"task_id": task_id, "status": "started"}
+        except Exception as exc:
             return _error_response(exc)
 
     @app.get("/", response_model=None)

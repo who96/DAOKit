@@ -13,16 +13,27 @@
     />
     <style>
       body {
-        font-family: "Inter", sans-serif;
+        font-family: "Inter", sans-serif !important;
+      }
+      .chat-scroll::-webkit-scrollbar {
+        width: 6px;
+      }
+      .chat-scroll::-webkit-scrollbar-track {
+        background: transparent;
+      }
+      .chat-scroll::-webkit-scrollbar-thumb {
+        background: #374151;
+        border-radius: 3px;
       }
     </style>
   </head>
-  <body class="min-h-screen bg-gray-900 text-gray-100">
-    <header class="border-b border-gray-800 bg-gray-950/80">
-      <div class="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+  <body class="h-screen bg-gray-900 text-gray-100 flex flex-col overflow-hidden">
+    <!-- Header -->
+    <header class="border-b border-gray-800 bg-gray-950/80 shrink-0">
+      <div class="flex items-center justify-between px-6 py-3">
         <div>
-          <h1 id="dashboardTitle" class="text-xl font-semibold tracking-tight">DAOKit Agent Dashboard</h1>
-          <p id="dashboardSubtitle" class="text-sm text-gray-400">Read-only orchestration runtime view</p>
+          <h1 id="dashboardTitle" class="text-lg font-semibold tracking-tight">DAOKit Agent Dashboard</h1>
+          <p id="dashboardSubtitle" class="text-xs text-gray-400">Agent orchestration console</p>
         </div>
         <div class="flex items-center gap-3 text-sm">
           <button
@@ -47,151 +58,182 @@
       </div>
     </header>
 
-    <main class="mx-auto max-w-7xl px-6 py-6">
-      <p id="errorBanner" class="mb-4 hidden rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200"></p>
+    <!-- Error banner -->
+    <p
+      id="errorBanner"
+      class="mx-6 mt-2 hidden rounded-md border border-red-500/30 bg-red-500/10 p-2 text-sm text-red-200 shrink-0"
+    ></p>
 
-      <section class="grid gap-6 lg:grid-cols-2">
-        <div class="space-y-6">
-          <article class="rounded-xl border border-gray-800 bg-gray-800/40 p-5">
-            <h2 id="pipelineStateTitle" class="mb-4 text-lg font-semibold">Pipeline State</h2>
-            <div class="grid grid-cols-1 gap-3 text-sm">
-              <div class="flex items-center justify-between gap-3">
-                <span class="text-gray-400">task_id</span>
-                <span id="stateTaskId" class="font-medium text-gray-100">-</span>
-              </div>
-              <div class="flex items-center justify-between gap-3">
-                <span class="text-gray-400">run_id</span>
-                <span id="stateRunId" class="font-medium text-gray-100">-</span>
-              </div>
-              <div class="flex items-center justify-between gap-3">
-                <span class="text-gray-400">status</span>
-                <span
-                  id="stateStatusBadge"
-                  class="rounded-full border border-gray-700 px-2 py-1 text-xs font-semibold uppercase tracking-wide text-gray-200"
-                  >UNKNOWN</span
-                >
-              </div>
-              <div class="flex items-center justify-between gap-3">
-                <span class="text-gray-400">goal</span>
-                <span id="stateGoal" class="max-w-[26rem] truncate text-right font-medium text-gray-100">-</span>
-              </div>
-              <div class="flex items-center justify-between gap-3">
-                <span class="text-gray-400">current_step</span>
-                <span id="stateStep" class="font-medium text-gray-100">-</span>
-              </div>
-              <div class="flex items-center justify-between gap-3">
-                <span class="text-gray-400">updated_at</span>
-                <span id="stateUpdatedAt" class="font-medium text-gray-100">-</span>
-              </div>
-            </div>
-          </article>
-
-          <article class="rounded-xl border border-gray-800 bg-gray-800/40 p-5">
-            <h2 id="heartbeatLeasesTitle" class="mb-4 text-lg font-semibold">Heartbeat + Leases</h2>
-            <div class="mb-4 flex items-center gap-3 rounded-lg border border-gray-700 bg-gray-900/60 px-3 py-2">
-              <span id="heartbeatDot" class="h-3 w-3 rounded-full bg-gray-500"></span>
-              <span id="heartbeatLabel" class="text-sm text-gray-300">Heartbeat</span>
-              <span id="heartbeatStatus" class="text-sm font-semibold">IDLE</span>
-            </div>
-            <div class="overflow-x-auto">
-              <table class="min-w-full text-left text-xs">
-                <thead class="text-gray-400">
-                  <tr>
-                    <th class="px-2 py-2 font-medium">task_id</th>
-                    <th class="px-2 py-2 font-medium">run_id</th>
-                    <th class="px-2 py-2 font-medium">pid</th>
-                    <th class="px-2 py-2 font-medium">ttl</th>
-                    <th class="px-2 py-2 font-medium">expires_at</th>
-                  </tr>
-                </thead>
-                <tbody id="leasesBody" class="divide-y divide-gray-800 text-gray-200"></tbody>
-              </table>
-            </div>
-          </article>
+    <!-- Main content: two columns -->
+    <main class="flex-1 flex overflow-hidden">
+      <!-- Left: Step Board -->
+      <aside class="w-72 border-r border-gray-800 flex flex-col shrink-0">
+        <div class="px-4 py-3 border-b border-gray-800 bg-gray-950/50">
+          <h2
+            id="stepBoardTitle"
+            class="text-sm font-semibold uppercase tracking-wide text-gray-400"
+          >
+            Step Board
+          </h2>
         </div>
+        <div id="stepList" class="flex-1 overflow-y-auto p-3 space-y-2 chat-scroll"></div>
+      </aside>
 
-        <article class="rounded-xl border border-gray-800 bg-gray-800/40 p-5">
-          <h2 id="stateFlowTitle" class="mb-4 text-lg font-semibold">State Flow</h2>
-          <div id="flowGraph" class="space-y-2"></div>
-          <div class="mt-4 text-xs text-gray-400">
-            <span id="snapshotCount">Snapshots: 0</span>
-          </div>
-        </article>
-      </section>
-
-      <section class="mt-6 rounded-xl border border-gray-800 bg-gray-800/40 p-5">
-        <h2 id="eventTimelineTitle" class="mb-4 text-lg font-semibold">Event Timeline</h2>
-        <div class="overflow-x-auto">
-          <table class="min-w-full text-left text-xs">
-            <thead class="text-gray-400">
-              <tr>
-                <th class="px-2 py-2 font-medium">timestamp</th>
-                <th class="px-2 py-2 font-medium">event_type</th>
-                <th class="px-2 py-2 font-medium">severity</th>
-                <th class="px-2 py-2 font-medium">step_id</th>
-                <th class="px-2 py-2 font-medium">payload</th>
-              </tr>
-            </thead>
-            <tbody id="eventsBody" class="divide-y divide-gray-800 text-gray-200"></tbody>
-          </table>
+      <!-- Right: Agent Messages -->
+      <section class="flex-1 flex flex-col min-w-0">
+        <div class="px-4 py-3 border-b border-gray-800 bg-gray-950/50">
+          <h2
+            id="agentMessagesTitle"
+            class="text-sm font-semibold uppercase tracking-wide text-gray-400"
+          >
+            Agent Messages
+          </h2>
+        </div>
+        <div id="messageFlow" class="flex-1 overflow-y-auto p-4 space-y-3 chat-scroll"></div>
+        <!-- Input -->
+        <div class="border-t border-gray-800 px-4 py-3 bg-gray-950/50 shrink-0">
+          <form id="messageForm" class="flex gap-2">
+            <input
+              id="messageInput"
+              type="text"
+              class="flex-1 rounded-lg border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-gray-100 placeholder-gray-500 focus:outline-none focus:border-gray-500"
+            />
+            <button
+              type="submit"
+              id="sendBtn"
+              class="rounded-lg bg-blue-600 px-4 py-2 text-sm font-medium text-white hover:bg-blue-500 transition-colors"
+            >
+              Send
+            </button>
+          </form>
         </div>
       </section>
     </main>
+
+    <!-- Bottom status bar -->
+    <footer
+      id="statusBar"
+      class="border-t border-gray-800 bg-gray-950/80 px-6 py-2 flex items-center gap-4 text-xs text-gray-400 shrink-0"
+    >
+      <span class="flex items-center gap-1.5">
+        <span id="footerStatusDot" class="h-2 w-2 rounded-full bg-gray-500"></span>
+        <span id="footerStatus">UNKNOWN</span>
+      </span>
+      <span class="text-gray-700">|</span>
+      <span class="flex items-center gap-1.5">
+        <span id="footerHeartbeatDot" class="h-2 w-2 rounded-full bg-gray-500"></span>
+        <span id="footerHeartbeat">IDLE</span>
+      </span>
+      <span class="text-gray-700">|</span>
+      <span id="footerLeases">Leases: 0</span>
+      <span class="text-gray-700">|</span>
+      <span id="footerUpdated">-</span>
+    </footer>
+
+    <!-- Step Detail Modal -->
+    <div
+      id="stepModal"
+      class="fixed inset-0 bg-black/60 items-center justify-center z-50 hidden"
+      style="display: none"
+    >
+      <div
+        class="bg-gray-900 border border-gray-700 rounded-xl max-w-lg w-full mx-4 max-h-[80vh] overflow-y-auto"
+      >
+        <div class="flex items-center justify-between px-5 py-4 border-b border-gray-800">
+          <h3 id="modalTitle" class="text-lg font-semibold">Step Details</h3>
+          <button id="modalClose" class="text-gray-400 hover:text-gray-200 text-xl">&times;</button>
+        </div>
+        <div id="modalBody" class="px-5 py-4 space-y-4 text-sm"></div>
+      </div>
+    </div>
 
     <script>
       const translations = {
         en: {
           dashboardTitle: "DAOKit Agent Dashboard",
-          dashboardSubtitle: "Read-only orchestration runtime view",
+          dashboardSubtitle: "Agent orchestration console",
           autoRefresh: "Auto refresh",
           off: "Off",
-          pipelineState: "Pipeline State",
-          heartbeatLeases: "Heartbeat + Leases",
-          heartbeat: "Heartbeat",
-          noActiveLeases: "No active leases",
-          stateFlow: "State Flow",
-          branchStates: "Branch states",
-          snapshots: "Snapshots:",
-          eventTimeline: "Event Timeline",
-          noEventsRecorded: "No events recorded",
+          stepBoard: "Step Board",
+          agentMessages: "Agent Messages",
+          sendMessage: "Send",
+          inputPlaceholder: "Type a message...",
+          noSteps: "No steps defined",
+          stepDetails: "Step Details",
+          goal: "Goal",
+          category: "Category",
+          acceptanceCriteria: "Acceptance Criteria",
+          expectedOutputs: "Expected Outputs",
+          dependencies: "Dependencies",
+          retrievalPolicy: "Retrieval Policy",
+          noMessages: "No messages yet",
           dashboardRefreshError: "Dashboard refresh error:",
+          leases: "Leases",
+          updated: "Updated",
+          heartbeat: "Heartbeat",
         },
         zh: {
           dashboardTitle: "DAOKit 智能体仪表盘",
-          dashboardSubtitle: "只读编排运行时视图",
+          dashboardSubtitle: "智能体编排控制台",
           autoRefresh: "自动刷新",
           off: "关闭",
-          pipelineState: "流水线状态",
-          heartbeatLeases: "心跳 + 租约",
-          heartbeat: "心跳",
-          noActiveLeases: "无活跃租约",
-          stateFlow: "状态流",
-          branchStates: "分支状态",
-          snapshots: "快照：",
-          eventTimeline: "事件时间线",
-          noEventsRecorded: "暂无事件记录",
+          stepBoard: "步骤看板",
+          agentMessages: "Agent 消息流",
+          sendMessage: "发送",
+          inputPlaceholder: "输入消息...",
+          noSteps: "暂无步骤",
+          stepDetails: "步骤详情",
+          goal: "目标",
+          category: "分类",
+          acceptanceCriteria: "验收标准",
+          expectedOutputs: "预期产出",
+          dependencies: "依赖",
+          retrievalPolicy: "检索策略",
+          noMessages: "暂无消息",
           dashboardRefreshError: "仪表盘刷新错误：",
+          leases: "租约",
+          updated: "更新",
+          heartbeat: "心跳",
         },
       };
 
       let currentLang = localStorage.getItem("daokit-lang") || "zh";
-      if (currentLang !== "en" && currentLang !== "zh") {
-        currentLang = "zh";
-      }
+      if (currentLang !== "en" && currentLang !== "zh") currentLang = "zh";
 
-      const flowMain = ["PLANNING", "ANALYSIS", "FREEZE", "EXECUTE", "ACCEPT", "DONE"];
-      const flowBranches = ["DRAINING", "BLOCKED", "FAILED"];
+      let refreshTimer = null;
+      let cachedState = {};
 
-      const statusBadgeClasses = {
-        PLANNING: "border-blue-500/40 bg-blue-500/10 text-blue-200",
-        ANALYSIS: "border-cyan-500/40 bg-cyan-500/10 text-cyan-200",
-        FREEZE: "border-indigo-500/40 bg-indigo-500/10 text-indigo-200",
-        EXECUTE: "border-teal-500/40 bg-teal-500/10 text-teal-200",
-        ACCEPT: "border-emerald-500/40 bg-emerald-500/10 text-emerald-200",
-        DONE: "border-green-500/40 bg-green-500/10 text-green-200",
-        DRAINING: "border-amber-500/40 bg-amber-500/10 text-amber-200",
-        BLOCKED: "border-orange-500/40 bg-orange-500/10 text-orange-200",
-        FAILED: "border-red-500/40 bg-red-500/10 text-red-200",
+      const statusColors = {
+        PLANNING: { dot: "bg-blue-400", badge: "border-blue-500/40 bg-blue-500/10 text-blue-200" },
+        ANALYSIS: {
+          dot: "bg-cyan-400",
+          badge: "border-cyan-500/40 bg-cyan-500/10 text-cyan-200",
+        },
+        FREEZE: {
+          dot: "bg-indigo-400",
+          badge: "border-indigo-500/40 bg-indigo-500/10 text-indigo-200",
+        },
+        EXECUTE: {
+          dot: "bg-teal-400",
+          badge: "border-teal-500/40 bg-teal-500/10 text-teal-200",
+        },
+        ACCEPT: {
+          dot: "bg-emerald-400",
+          badge: "border-emerald-500/40 bg-emerald-500/10 text-emerald-200",
+        },
+        DONE: {
+          dot: "bg-green-400",
+          badge: "border-green-500/40 bg-green-500/10 text-green-200",
+        },
+        DRAINING: {
+          dot: "bg-amber-400",
+          badge: "border-amber-500/40 bg-amber-500/10 text-amber-200",
+        },
+        BLOCKED: {
+          dot: "bg-orange-400",
+          badge: "border-orange-500/40 bg-orange-500/10 text-orange-200",
+        },
+        FAILED: { dot: "bg-red-400", badge: "border-red-500/40 bg-red-500/10 text-red-200" },
       };
 
       const heartbeatDotClasses = {
@@ -202,268 +244,435 @@
         CRITICAL: "bg-red-500 animate-pulse",
       };
 
-      const severityClasses = {
-        INFO: "text-blue-300",
-        WARNING: "text-amber-300",
-        ERROR: "text-red-300",
-      };
-
-      let refreshTimer = null;
-      let lastSnapshotCount = 0;
-
       function t(key) {
-        return (translations[currentLang] && translations[currentLang][key]) || translations.en[key] || key;
+        return (
+          (translations[currentLang] && translations[currentLang][key]) ||
+          translations.en[key] ||
+          key
+        );
       }
 
-      function formatSnapshotCount(count) {
-        const spacer = currentLang === "zh" ? "" : " ";
-        return `${t("snapshots")}${spacer}${count}`;
+      function safe(v) {
+        return v === null || v === undefined || v === "" ? "-" : String(v);
       }
 
-      function applyStaticTranslations() {
+      function escapeHtml(str) {
+        const div = document.createElement("div");
+        div.textContent = str;
+        return div.innerHTML;
+      }
+
+      function formatTime(ts) {
+        if (!ts) return "-";
+        try {
+          return new Date(ts).toLocaleTimeString();
+        } catch {
+          return ts;
+        }
+      }
+
+      async function fetchJson(url) {
+        const r = await fetch(url, { cache: "no-store" });
+        const p = await r.json();
+        if (!r.ok) throw new Error(p.error || "HTTP " + r.status);
+        return p;
+      }
+
+      function applyTranslations() {
         document.documentElement.lang = currentLang === "zh" ? "zh-CN" : "en";
         document.title = t("dashboardTitle");
         document.getElementById("dashboardTitle").textContent = t("dashboardTitle");
         document.getElementById("dashboardSubtitle").textContent = t("dashboardSubtitle");
         document.getElementById("refreshLabel").textContent = t("autoRefresh");
         document.getElementById("refreshOffOption").textContent = t("off");
-        document.getElementById("pipelineStateTitle").textContent = t("pipelineState");
-        document.getElementById("heartbeatLeasesTitle").textContent = t("heartbeatLeases");
-        document.getElementById("heartbeatLabel").textContent = t("heartbeat");
-        document.getElementById("stateFlowTitle").textContent = t("stateFlow");
-        document.getElementById("eventTimelineTitle").textContent = t("eventTimeline");
-        document.getElementById("snapshotCount").textContent = formatSnapshotCount(lastSnapshotCount);
+        document.getElementById("stepBoardTitle").textContent = t("stepBoard");
+        document.getElementById("agentMessagesTitle").textContent = t("agentMessages");
+        document.getElementById("sendBtn").textContent = t("sendMessage");
+        document.getElementById("messageInput").placeholder = t("inputPlaceholder");
         document.getElementById("langToggle").textContent = currentLang === "zh" ? "EN" : "中";
       }
 
-      function statusBadgeClass(status) {
-        return statusBadgeClasses[status] || "border-gray-700 bg-gray-700/30 text-gray-200";
-      }
+      /* ── Step Board ──────────────────────────────────── */
 
-      function safeText(value) {
-        if (value === null || value === undefined || value === "") {
-          return "-";
-        }
-        return String(value);
-      }
+      function renderSteps(state) {
+        const steps = Array.isArray(state.steps) ? state.steps : [];
+        const currentStep = state.current_step;
+        const container = document.getElementById("stepList");
 
-      async function fetchJson(url) {
-        const response = await fetch(url, { cache: "no-store" });
-        const payload = await response.json();
-        if (!response.ok) {
-          const message = payload && payload.error ? payload.error : `HTTP ${response.status}`;
-          throw new Error(message);
-        }
-        return payload;
-      }
-
-      function renderPipelineState(state) {
-        const status = safeText(state.status).toUpperCase();
-        document.getElementById("stateTaskId").textContent = safeText(state.task_id);
-        document.getElementById("stateRunId").textContent = safeText(state.run_id);
-        document.getElementById("stateGoal").textContent = safeText(state.goal);
-        document.getElementById("stateStep").textContent = safeText(state.current_step);
-        document.getElementById("stateUpdatedAt").textContent = safeText(state.updated_at);
-
-        const badge = document.getElementById("stateStatusBadge");
-        badge.textContent = status;
-        badge.className = `rounded-full border px-2 py-1 text-xs font-semibold uppercase tracking-wide ${statusBadgeClass(status)}`;
-      }
-
-      function renderFlow(currentStatus) {
-        const current = safeText(currentStatus).toUpperCase();
-        const graph = document.getElementById("flowGraph");
-        const currentMainIndex = flowMain.indexOf(current);
-
-        function nodeState(status, index, isMain) {
-          if (status === current) {
-            return "current";
-          }
-          if (isMain && currentMainIndex >= 0 && index < currentMainIndex) {
-            return "past";
-          }
-          return "future";
-        }
-
-        function nodeHtml(status, stateKind) {
-          let circleClass = "border border-gray-700 bg-gray-900";
-          let textClass = "text-gray-300";
-          if (stateKind === "current") {
-            circleClass = "border border-green-300 bg-green-500";
-            textClass = "text-green-200";
-          } else if (stateKind === "past") {
-            circleClass = "border border-gray-500 bg-gray-500";
-            textClass = "text-gray-200";
-          }
-
-          return `
-            <div class="flex items-center gap-3">
-              <span class="h-3 w-3 rounded-full ${circleClass}"></span>
-              <span class="text-sm font-medium ${textClass}">${status}</span>
-            </div>
-          `;
-        }
-
-        const happyPathHtml = flowMain
-          .map((status, index) => {
-            const stateKind = nodeState(status, index, true);
-            const arrow = index < flowMain.length - 1 ? `<div class="ml-1 text-xs text-gray-600">|</div>` : "";
-            return nodeHtml(status, stateKind) + arrow;
-          })
-          .join("");
-
-        const branchHtml = flowBranches
-          .map((status) => {
-            const stateKind = status === current ? "current" : "future";
-            return nodeHtml(status, stateKind);
-          })
-          .join("");
-
-        graph.innerHTML = `
-          <div class="space-y-1">${happyPathHtml}</div>
-          <div class="mt-4 border-t border-gray-800 pt-3">
-            <p class="mb-2 text-xs uppercase tracking-wide text-gray-500">${t("branchStates")}</p>
-            <div class="space-y-1">${branchHtml}</div>
-          </div>
-        `;
-      }
-
-      function renderHeartbeat(heartbeat) {
-        const status = safeText(heartbeat.status).toUpperCase();
-        const dot = document.getElementById("heartbeatDot");
-        dot.className = `h-3 w-3 rounded-full ${heartbeatDotClasses[status] || "bg-gray-500"}`;
-        document.getElementById("heartbeatStatus").textContent = status;
-      }
-
-      function renderLeases(leasesPayload) {
-        const leases = Array.isArray(leasesPayload.leases) ? leasesPayload.leases : [];
-        const body = document.getElementById("leasesBody");
-        if (leases.length === 0) {
-          body.innerHTML = `
-            <tr>
-              <td colspan="5" class="px-2 py-3 text-center text-gray-500">${t("noActiveLeases")}</td>
-            </tr>
-          `;
+        if (steps.length === 0) {
+          container.innerHTML =
+            '<p class="text-sm text-gray-500 text-center py-4">' +
+            escapeHtml(t("noSteps")) +
+            "</p>";
           return;
         }
 
-        body.innerHTML = leases
-          .map(
-            (lease) => `
-            <tr>
-              <td class="px-2 py-2">${safeText(lease.task_id)}</td>
-              <td class="px-2 py-2">${safeText(lease.run_id)}</td>
-              <td class="px-2 py-2">${safeText(lease.pid)}</td>
-              <td class="px-2 py-2">${safeText(lease.ttl_seconds)}</td>
-              <td class="px-2 py-2">${safeText(lease.expires_at)}</td>
-            </tr>
-          `,
-          )
+        container.innerHTML = steps
+          .map(function (step, i) {
+            var id = step.id || step.step_id || "S" + (i + 1);
+            var title = step.title || step.goal || id;
+            var status = (step.status || "").toUpperCase();
+            var isCurrent = id === currentStep;
+            var colors = statusColors[status] || {
+              dot: "bg-gray-500",
+              badge: "border-gray-700 bg-gray-700/30 text-gray-200",
+            };
+            var borderClass = isCurrent
+              ? "border-blue-500/60 ring-1 ring-blue-500/30"
+              : "border-gray-800";
+
+            return (
+              '<div class="rounded-lg border ' +
+              borderClass +
+              ' bg-gray-800/50 p-3 cursor-pointer hover:bg-gray-800/80 transition-colors" onclick="showStepDetail(' +
+              i +
+              ')">' +
+              '<div class="flex items-center justify-between mb-1">' +
+              '<span class="text-xs font-mono text-gray-400">' +
+              escapeHtml(id) +
+              "</span>" +
+              '<span class="rounded-full border px-1.5 py-0.5 text-[10px] font-semibold uppercase ' +
+              colors.badge +
+              '">' +
+              escapeHtml(status || "--") +
+              "</span>" +
+              "</div>" +
+              '<p class="text-sm text-gray-200 truncate">' +
+              escapeHtml(title) +
+              "</p>" +
+              "</div>"
+            );
+          })
           .join("");
       }
 
-      function renderEvents(events) {
-        const body = document.getElementById("eventsBody");
+      function showStepDetail(index) {
+        var steps = Array.isArray(cachedState.steps) ? cachedState.steps : [];
+        if (index >= steps.length) return;
+        var step = steps[index];
+        var id = step.id || step.step_id || "S" + (index + 1);
+        document.getElementById("modalTitle").textContent = t("stepDetails") + " — " + id;
+
+        var html = "";
+        var textFields = [
+          { key: "goal", label: t("goal") },
+          { key: "category", label: t("category") },
+        ];
+        for (var fi = 0; fi < textFields.length; fi++) {
+          var f = textFields[fi];
+          if (step[f.key]) {
+            html +=
+              '<div><h4 class="text-xs font-semibold uppercase text-gray-400 mb-1">' +
+              escapeHtml(f.label) +
+              '</h4><p class="text-gray-200">' +
+              escapeHtml(step[f.key]) +
+              "</p></div>";
+          }
+        }
+
+        var criteria = step.acceptance_criteria;
+        if (Array.isArray(criteria) && criteria.length > 0) {
+          html +=
+            '<div><h4 class="text-xs font-semibold uppercase text-gray-400 mb-1">' +
+            escapeHtml(t("acceptanceCriteria")) +
+            '</h4><ul class="space-y-1">';
+          for (var ci = 0; ci < criteria.length; ci++) {
+            var c = criteria[ci];
+            html +=
+              '<li class="flex items-start gap-2"><span class="text-gray-500 mt-0.5">&#9633;</span><span class="text-gray-200">' +
+              escapeHtml(typeof c === "string" ? c : JSON.stringify(c)) +
+              "</span></li>";
+          }
+          html += "</ul></div>";
+        }
+
+        var outputs = step.expected_outputs;
+        if (Array.isArray(outputs) && outputs.length > 0) {
+          html +=
+            '<div><h4 class="text-xs font-semibold uppercase text-gray-400 mb-1">' +
+            escapeHtml(t("expectedOutputs")) +
+            '</h4><ul class="list-disc list-inside space-y-1 text-gray-200">';
+          for (var oi = 0; oi < outputs.length; oi++) {
+            var o = outputs[oi];
+            html += "<li>" + escapeHtml(typeof o === "string" ? o : JSON.stringify(o)) + "</li>";
+          }
+          html += "</ul></div>";
+        }
+
+        var deps = step.dependencies;
+        if (Array.isArray(deps) && deps.length > 0) {
+          html +=
+            '<div><h4 class="text-xs font-semibold uppercase text-gray-400 mb-1">' +
+            escapeHtml(t("dependencies")) +
+            '</h4><p class="text-gray-200">' +
+            escapeHtml(deps.join(", ")) +
+            "</p></div>";
+        }
+
+        var rp = step.retrieval_policy;
+        if (rp && typeof rp === "object") {
+          html +=
+            '<div><h4 class="text-xs font-semibold uppercase text-gray-400 mb-1">' +
+            escapeHtml(t("retrievalPolicy")) +
+            '</h4><pre class="text-xs text-gray-300 bg-gray-950 rounded p-2 overflow-x-auto">' +
+            escapeHtml(JSON.stringify(rp, null, 2)) +
+            "</pre></div>";
+        }
+
+        if (!html) {
+          html =
+            '<pre class="text-xs text-gray-300 bg-gray-950 rounded p-2 overflow-x-auto">' +
+            escapeHtml(JSON.stringify(step, null, 2)) +
+            "</pre>";
+        }
+
+        document.getElementById("modalBody").innerHTML = html;
+        var modal = document.getElementById("stepModal");
+        modal.style.display = "flex";
+        modal.classList.remove("hidden");
+      }
+
+      function closeModal() {
+        var modal = document.getElementById("stepModal");
+        modal.style.display = "none";
+        modal.classList.add("hidden");
+      }
+
+      /* ── Message Bubbles ─────────────────────────────── */
+
+      function inferSender(event) {
+        if (event.event_type === "HUMAN") return "human";
+        var payload = event.payload || {};
+        if (
+          payload.call_sequence !== undefined ||
+          payload.controller_lane !== undefined ||
+          event.event_type === "DISPATCH"
+        )
+          return "dispatch";
+        return "orchestrator";
+      }
+
+      function renderBubbleContent(event) {
+        var sender = inferSender(event);
+        var payload = event.payload || {};
+
+        if (sender === "human") {
+          return escapeHtml(payload.message || JSON.stringify(payload));
+        }
+
+        if (sender === "dispatch") {
+          var dp = [];
+          if (payload.call_sequence) dp.push("call: " + payload.call_sequence);
+          if (payload.controller_lane) dp.push("lane: " + payload.controller_lane);
+          if (payload.model) dp.push("model: " + payload.model);
+          if (payload.total_tokens) dp.push("tokens: " + payload.total_tokens);
+          if (payload.status) dp.push("status: " + payload.status);
+          return dp.length > 0 ? escapeHtml(dp.join(" | ")) : escapeHtml(JSON.stringify(payload));
+        }
+
+        var parts = [];
+        if (payload.node) parts.push("node: " + payload.node);
+        if (payload.from_status && payload.to_status)
+          parts.push(payload.from_status + " → " + payload.to_status);
+        if (payload.route) parts.push("route: " + payload.route);
+        if (payload.reason) parts.push("reason: " + payload.reason);
+        if (parts.length === 0) {
+          var s = JSON.stringify(payload);
+          return escapeHtml(s.length > 200 ? s.slice(0, 197) + "..." : s);
+        }
+        return escapeHtml(parts.join(" | "));
+      }
+
+      function renderMessages(events) {
+        var container = document.getElementById("messageFlow");
         if (!Array.isArray(events) || events.length === 0) {
-          body.innerHTML = `
-            <tr>
-              <td colspan="5" class="px-2 py-3 text-center text-gray-500">${t("noEventsRecorded")}</td>
-            </tr>
-          `;
+          container.innerHTML =
+            '<p class="text-sm text-gray-500 text-center py-8">' +
+            escapeHtml(t("noMessages")) +
+            "</p>";
           return;
         }
 
-        body.innerHTML = events
-          .map((event) => {
-            const severity = safeText(event.severity).toUpperCase();
-            const severityClass = severityClasses[severity] || "text-gray-300";
-            let payloadSummary = "-";
-            if (event.payload && typeof event.payload === "object") {
-              payloadSummary = JSON.stringify(event.payload);
-            } else if (event.payload !== undefined && event.payload !== null) {
-              payloadSummary = safeText(event.payload);
-            }
-            if (payloadSummary.length > 120) {
-              payloadSummary = `${payloadSummary.slice(0, 117)}...`;
+        var sorted = events.slice().reverse();
+
+        container.innerHTML = sorted
+          .map(function (event) {
+            var sender = inferSender(event);
+            var severity = (event.severity || "").toUpperCase();
+            var time = formatTime(event.timestamp);
+            var content = renderBubbleContent(event);
+
+            var alignClass, bgClass, borderExtra, labelColor, senderLabel;
+            if (sender === "human") {
+              alignClass = "ml-auto";
+              bgClass = "bg-gray-700/50";
+              labelColor = "text-gray-400";
+              senderLabel = "human";
+            } else if (sender === "dispatch") {
+              alignClass = "mr-auto";
+              bgClass = "bg-emerald-900/30";
+              labelColor = "text-emerald-400";
+              senderLabel = "dispatch";
+            } else {
+              alignClass = "mr-auto";
+              bgClass = "bg-blue-900/30";
+              labelColor = "text-blue-400";
+              senderLabel = "orchestrator";
             }
 
-            return `
-              <tr>
-                <td class="px-2 py-2">${safeText(event.timestamp)}</td>
-                <td class="px-2 py-2">${safeText(event.event_type)}</td>
-                <td class="px-2 py-2 font-semibold ${severityClass}">${severity}</td>
-                <td class="px-2 py-2">${safeText(event.step_id)}</td>
-                <td class="px-2 py-2 text-gray-300">${payloadSummary}</td>
-              </tr>
-            `;
+            borderExtra = "";
+            if (severity === "ERROR") borderExtra = " border-l-2 border-red-500";
+            else if (severity === "WARNING") borderExtra = " border-l-2 border-amber-500";
+
+            var stepTag = event.step_id
+              ? '<span class="inline-block mt-1 text-[10px] text-gray-500 bg-gray-800 rounded px-1">' +
+                escapeHtml(event.step_id) +
+                "</span>"
+              : "";
+
+            return (
+              '<div class="max-w-[85%] ' +
+              alignClass +
+              '">' +
+              '<div class="rounded-lg ' +
+              bgClass +
+              borderExtra +
+              ' px-3 py-2">' +
+              '<div class="flex items-center justify-between gap-3 mb-1">' +
+              '<span class="text-xs font-semibold ' +
+              labelColor +
+              '">' +
+              escapeHtml(senderLabel) +
+              "</span>" +
+              '<span class="text-[10px] text-gray-500">' +
+              escapeHtml(time) +
+              "</span>" +
+              "</div>" +
+              '<p class="text-sm text-gray-200 whitespace-pre-wrap break-words">' +
+              content +
+              "</p>" +
+              stepTag +
+              "</div>" +
+              "</div>"
+            );
           })
           .join("");
+
+        container.scrollTop = container.scrollHeight;
       }
 
-      function renderSnapshots(snapshots) {
-        lastSnapshotCount = Array.isArray(snapshots) ? snapshots.length : 0;
-        document.getElementById("snapshotCount").textContent = formatSnapshotCount(lastSnapshotCount);
+      /* ── Status Bar ──────────────────────────────────── */
+
+      function renderStatusBar(state, heartbeat, leases) {
+        var status = safe(state.status).toUpperCase();
+        var hbStatus = safe(heartbeat.status).toUpperCase();
+        var leaseCount = Array.isArray(leases.leases) ? leases.leases.length : 0;
+
+        var dotColors = statusColors[status] || { dot: "bg-gray-500" };
+        document.getElementById("footerStatusDot").className =
+          "h-2 w-2 rounded-full " + dotColors.dot;
+        document.getElementById("footerStatus").textContent = status;
+
+        var hbDot = heartbeatDotClasses[hbStatus] || "bg-gray-500";
+        document.getElementById("footerHeartbeatDot").className = "h-2 w-2 rounded-full " + hbDot;
+        document.getElementById("footerHeartbeat").textContent =
+          t("heartbeat") + ": " + hbStatus;
+
+        document.getElementById("footerLeases").textContent = t("leases") + ": " + leaseCount;
+        document.getElementById("footerUpdated").textContent =
+          t("updated") + ": " + formatTime(state.updated_at);
       }
+
+      /* ── Send Message ────────────────────────────────── */
+
+      async function sendMessage(e) {
+        e.preventDefault();
+        var input = document.getElementById("messageInput");
+        var message = input.value.trim();
+        if (!message) return;
+
+        try {
+          await fetch("/api/message", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message: message }),
+          });
+          fetch("/api/run", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ goal: message }),
+          });
+          input.value = "";
+          await refreshDashboard();
+        } catch (err) {
+          setError(err.message || String(err));
+        }
+      }
+
+      /* ── Error ───────────────────────────────────────── */
 
       function setError(message) {
-        const banner = document.getElementById("errorBanner");
+        var banner = document.getElementById("errorBanner");
         if (!message) {
           banner.classList.add("hidden");
           banner.textContent = "";
           return;
         }
         banner.classList.remove("hidden");
-        if (currentLang === "zh") {
-          banner.textContent = `${t("dashboardRefreshError")}${message}`;
-          return;
-        }
-        banner.textContent = `${t("dashboardRefreshError")} ${message}`;
+        banner.textContent = t("dashboardRefreshError") + " " + message;
       }
+
+      /* ── Refresh ─────────────────────────────────────── */
 
       async function refreshDashboard() {
         try {
-          const [state, heartbeat, leases, events, snapshots] = await Promise.all([
+          var results = await Promise.all([
             fetchJson("/api/state"),
             fetchJson("/api/heartbeat"),
             fetchJson("/api/leases"),
-            fetchJson("/api/events?limit=50"),
-            fetchJson("/api/snapshots?limit=20"),
+            fetchJson("/api/events?limit=100"),
           ]);
+          var state = results[0];
+          var heartbeat = results[1];
+          var leases = results[2];
+          var events = results[3];
 
-          renderPipelineState(state);
-          renderFlow(state.status);
-          renderHeartbeat(heartbeat);
-          renderLeases(leases);
-          renderEvents(events);
-          renderSnapshots(snapshots);
+          cachedState = state;
+          renderSteps(state);
+          renderMessages(events);
+          renderStatusBar(state, heartbeat, leases);
           setError("");
-        } catch (error) {
-          const message = error instanceof Error ? error.message : String(error);
-          setError(message);
+        } catch (err) {
+          setError(err instanceof Error ? err.message : String(err));
         }
       }
 
       function updateRefreshTimer() {
-        const value = Number(document.getElementById("refreshInterval").value);
+        var value = Number(document.getElementById("refreshInterval").value);
         if (refreshTimer) {
           clearInterval(refreshTimer);
           refreshTimer = null;
         }
-        if (value > 0) {
-          refreshTimer = setInterval(refreshDashboard, value);
-        }
+        if (value > 0) refreshTimer = setInterval(refreshDashboard, value);
       }
 
       function toggleLanguage() {
         currentLang = currentLang === "zh" ? "en" : "zh";
         localStorage.setItem("daokit-lang", currentLang);
-        applyStaticTranslations();
+        applyTranslations();
         refreshDashboard();
       }
 
-      applyStaticTranslations();
+      /* ── Init ────────────────────────────────────────── */
+
+      applyTranslations();
       document.getElementById("langToggle").addEventListener("click", toggleLanguage);
       document.getElementById("refreshInterval").addEventListener("change", updateRefreshTimer);
+      document.getElementById("messageForm").addEventListener("submit", sendMessage);
+      document.getElementById("modalClose").addEventListener("click", closeModal);
+      document.getElementById("stepModal").addEventListener("click", function (e) {
+        if (e.target === document.getElementById("stepModal")) closeModal();
+      });
       updateRefreshTimer();
       refreshDashboard();
     </script>

@@ -158,6 +158,46 @@ class DashboardServerTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn("text/html", response.headers.get("content-type", ""))
 
+    def test_post_message(self) -> None:
+        response = self.client.post("/api/message", json={"message": "hello"})
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["event_type"], "HUMAN")
+        self.assertIn("event_id", payload)
+        self.assertEqual(payload["payload"]["message"], "hello")
+        self.assertEqual(payload["payload"]["sender"], "human")
+
+    def test_post_message_empty(self) -> None:
+        response = self.client.post("/api/message", json={"message": ""})
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("error", response.json())
+
+    def test_post_message_with_step_id(self) -> None:
+        response = self.client.post(
+            "/api/message", json={"message": "check S1", "step_id": "S1"}
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["step_id"], "S1")
+
+    def test_post_message_persisted_in_events(self) -> None:
+        self.client.post("/api/message", json={"message": "test msg"})
+        events_response = self.client.get("/api/events")
+        events = events_response.json()
+        self.assertTrue(any(e["event_type"] == "HUMAN" for e in events))
+
+    def test_post_run_empty_goal(self) -> None:
+        response = self.client.post("/api/run", json={"goal": ""})
+        self.assertEqual(response.status_code, 400)
+        self.assertIn("error", response.json())
+
+    def test_post_run_returns_started(self) -> None:
+        response = self.client.post("/api/run", json={"goal": "test orchestration"})
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertIn("task_id", payload)
+        self.assertTrue(payload["task_id"].startswith("DKT-DASH-"))
+        self.assertEqual(payload["status"], "started")
+
     def test_state_error_handling(self) -> None:
         (self.state_root / "pipeline_state.json").write_text("{invalid json}\n", encoding="utf-8")
 
