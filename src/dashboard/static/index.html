@@ -1,0 +1,385 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DAOKit Agent Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        font-family: "Inter", sans-serif;
+      }
+    </style>
+  </head>
+  <body class="min-h-screen bg-gray-900 text-gray-100">
+    <header class="border-b border-gray-800 bg-gray-950/80">
+      <div class="mx-auto flex max-w-7xl items-center justify-between px-6 py-4">
+        <div>
+          <h1 class="text-xl font-semibold tracking-tight">DAOKit Agent Dashboard</h1>
+          <p class="text-sm text-gray-400">Read-only orchestration runtime view</p>
+        </div>
+        <div class="flex items-center gap-3 text-sm">
+          <label for="refreshInterval" class="text-gray-300">Auto refresh</label>
+          <select
+            id="refreshInterval"
+            class="rounded-md border border-gray-700 bg-gray-800 px-2 py-1 text-gray-100"
+          >
+            <option value="0">Off</option>
+            <option value="3000">3s</option>
+            <option value="5000" selected>5s</option>
+            <option value="10000">10s</option>
+            <option value="30000">30s</option>
+          </select>
+        </div>
+      </div>
+    </header>
+
+    <main class="mx-auto max-w-7xl px-6 py-6">
+      <p id="errorBanner" class="mb-4 hidden rounded-md border border-red-500/30 bg-red-500/10 p-3 text-sm text-red-200"></p>
+
+      <section class="grid gap-6 lg:grid-cols-2">
+        <div class="space-y-6">
+          <article class="rounded-xl border border-gray-800 bg-gray-800/40 p-5">
+            <h2 class="mb-4 text-lg font-semibold">Pipeline State</h2>
+            <div class="grid grid-cols-1 gap-3 text-sm">
+              <div class="flex items-center justify-between gap-3">
+                <span class="text-gray-400">task_id</span>
+                <span id="stateTaskId" class="font-medium text-gray-100">-</span>
+              </div>
+              <div class="flex items-center justify-between gap-3">
+                <span class="text-gray-400">run_id</span>
+                <span id="stateRunId" class="font-medium text-gray-100">-</span>
+              </div>
+              <div class="flex items-center justify-between gap-3">
+                <span class="text-gray-400">status</span>
+                <span
+                  id="stateStatusBadge"
+                  class="rounded-full border border-gray-700 px-2 py-1 text-xs font-semibold uppercase tracking-wide text-gray-200"
+                  >UNKNOWN</span
+                >
+              </div>
+              <div class="flex items-center justify-between gap-3">
+                <span class="text-gray-400">goal</span>
+                <span id="stateGoal" class="max-w-[26rem] truncate text-right font-medium text-gray-100">-</span>
+              </div>
+              <div class="flex items-center justify-between gap-3">
+                <span class="text-gray-400">current_step</span>
+                <span id="stateStep" class="font-medium text-gray-100">-</span>
+              </div>
+              <div class="flex items-center justify-between gap-3">
+                <span class="text-gray-400">updated_at</span>
+                <span id="stateUpdatedAt" class="font-medium text-gray-100">-</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="rounded-xl border border-gray-800 bg-gray-800/40 p-5">
+            <h2 class="mb-4 text-lg font-semibold">Heartbeat + Leases</h2>
+            <div class="mb-4 flex items-center gap-3 rounded-lg border border-gray-700 bg-gray-900/60 px-3 py-2">
+              <span id="heartbeatDot" class="h-3 w-3 rounded-full bg-gray-500"></span>
+              <span class="text-sm text-gray-300">Heartbeat</span>
+              <span id="heartbeatStatus" class="text-sm font-semibold">IDLE</span>
+            </div>
+            <div class="overflow-x-auto">
+              <table class="min-w-full text-left text-xs">
+                <thead class="text-gray-400">
+                  <tr>
+                    <th class="px-2 py-2 font-medium">task_id</th>
+                    <th class="px-2 py-2 font-medium">run_id</th>
+                    <th class="px-2 py-2 font-medium">pid</th>
+                    <th class="px-2 py-2 font-medium">ttl</th>
+                    <th class="px-2 py-2 font-medium">expires_at</th>
+                  </tr>
+                </thead>
+                <tbody id="leasesBody" class="divide-y divide-gray-800 text-gray-200"></tbody>
+              </table>
+            </div>
+          </article>
+        </div>
+
+        <article class="rounded-xl border border-gray-800 bg-gray-800/40 p-5">
+          <h2 class="mb-4 text-lg font-semibold">State Flow</h2>
+          <div id="flowGraph" class="space-y-2"></div>
+          <div class="mt-4 text-xs text-gray-400">
+            <span id="snapshotCount">Snapshots: 0</span>
+          </div>
+        </article>
+      </section>
+
+      <section class="mt-6 rounded-xl border border-gray-800 bg-gray-800/40 p-5">
+        <h2 class="mb-4 text-lg font-semibold">Event Timeline</h2>
+        <div class="overflow-x-auto">
+          <table class="min-w-full text-left text-xs">
+            <thead class="text-gray-400">
+              <tr>
+                <th class="px-2 py-2 font-medium">timestamp</th>
+                <th class="px-2 py-2 font-medium">event_type</th>
+                <th class="px-2 py-2 font-medium">severity</th>
+                <th class="px-2 py-2 font-medium">step_id</th>
+                <th class="px-2 py-2 font-medium">payload</th>
+              </tr>
+            </thead>
+            <tbody id="eventsBody" class="divide-y divide-gray-800 text-gray-200"></tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <script>
+      const flowMain = ["PLANNING", "ANALYSIS", "FREEZE", "EXECUTE", "ACCEPT", "DONE"];
+      const flowBranches = ["DRAINING", "BLOCKED", "FAILED"];
+
+      const statusBadgeClasses = {
+        PLANNING: "border-blue-500/40 bg-blue-500/10 text-blue-200",
+        ANALYSIS: "border-cyan-500/40 bg-cyan-500/10 text-cyan-200",
+        FREEZE: "border-indigo-500/40 bg-indigo-500/10 text-indigo-200",
+        EXECUTE: "border-teal-500/40 bg-teal-500/10 text-teal-200",
+        ACCEPT: "border-emerald-500/40 bg-emerald-500/10 text-emerald-200",
+        DONE: "border-green-500/40 bg-green-500/10 text-green-200",
+        DRAINING: "border-amber-500/40 bg-amber-500/10 text-amber-200",
+        BLOCKED: "border-orange-500/40 bg-orange-500/10 text-orange-200",
+        FAILED: "border-red-500/40 bg-red-500/10 text-red-200",
+      };
+
+      const heartbeatDotClasses = {
+        IDLE: "bg-gray-500",
+        RUNNING: "bg-green-400",
+        WARNING: "bg-amber-400",
+        STALE: "bg-red-500",
+        CRITICAL: "bg-red-500 animate-pulse",
+      };
+
+      const severityClasses = {
+        INFO: "text-blue-300",
+        WARNING: "text-amber-300",
+        ERROR: "text-red-300",
+      };
+
+      let refreshTimer = null;
+
+      function statusBadgeClass(status) {
+        return statusBadgeClasses[status] || "border-gray-700 bg-gray-700/30 text-gray-200";
+      }
+
+      function safeText(value) {
+        if (value === null || value === undefined || value === "") {
+          return "-";
+        }
+        return String(value);
+      }
+
+      async function fetchJson(url) {
+        const response = await fetch(url, { cache: "no-store" });
+        const payload = await response.json();
+        if (!response.ok) {
+          const message = payload && payload.error ? payload.error : `HTTP ${response.status}`;
+          throw new Error(message);
+        }
+        return payload;
+      }
+
+      function renderPipelineState(state) {
+        const status = safeText(state.status).toUpperCase();
+        document.getElementById("stateTaskId").textContent = safeText(state.task_id);
+        document.getElementById("stateRunId").textContent = safeText(state.run_id);
+        document.getElementById("stateGoal").textContent = safeText(state.goal);
+        document.getElementById("stateStep").textContent = safeText(state.current_step);
+        document.getElementById("stateUpdatedAt").textContent = safeText(state.updated_at);
+
+        const badge = document.getElementById("stateStatusBadge");
+        badge.textContent = status;
+        badge.className = `rounded-full border px-2 py-1 text-xs font-semibold uppercase tracking-wide ${statusBadgeClass(status)}`;
+      }
+
+      function renderFlow(currentStatus) {
+        const current = safeText(currentStatus).toUpperCase();
+        const graph = document.getElementById("flowGraph");
+        const currentMainIndex = flowMain.indexOf(current);
+
+        function nodeState(status, index, isMain) {
+          if (status === current) {
+            return "current";
+          }
+          if (isMain && currentMainIndex >= 0 && index < currentMainIndex) {
+            return "past";
+          }
+          return "future";
+        }
+
+        function nodeHtml(status, stateKind) {
+          let circleClass = "border border-gray-700 bg-gray-900";
+          let textClass = "text-gray-300";
+          if (stateKind === "current") {
+            circleClass = "border border-green-300 bg-green-500";
+            textClass = "text-green-200";
+          } else if (stateKind === "past") {
+            circleClass = "border border-gray-500 bg-gray-500";
+            textClass = "text-gray-200";
+          }
+
+          return `
+            <div class="flex items-center gap-3">
+              <span class="h-3 w-3 rounded-full ${circleClass}"></span>
+              <span class="text-sm font-medium ${textClass}">${status}</span>
+            </div>
+          `;
+        }
+
+        const happyPathHtml = flowMain
+          .map((status, index) => {
+            const stateKind = nodeState(status, index, true);
+            const arrow = index < flowMain.length - 1 ? `<div class="ml-1 text-xs text-gray-600">|</div>` : "";
+            return nodeHtml(status, stateKind) + arrow;
+          })
+          .join("");
+
+        const branchHtml = flowBranches
+          .map((status) => {
+            const stateKind = status === current ? "current" : "future";
+            return nodeHtml(status, stateKind);
+          })
+          .join("");
+
+        graph.innerHTML = `
+          <div class="space-y-1">${happyPathHtml}</div>
+          <div class="mt-4 border-t border-gray-800 pt-3">
+            <p class="mb-2 text-xs uppercase tracking-wide text-gray-500">Branch states</p>
+            <div class="space-y-1">${branchHtml}</div>
+          </div>
+        `;
+      }
+
+      function renderHeartbeat(heartbeat) {
+        const status = safeText(heartbeat.status).toUpperCase();
+        const dot = document.getElementById("heartbeatDot");
+        dot.className = `h-3 w-3 rounded-full ${heartbeatDotClasses[status] || "bg-gray-500"}`;
+        document.getElementById("heartbeatStatus").textContent = status;
+      }
+
+      function renderLeases(leasesPayload) {
+        const leases = Array.isArray(leasesPayload.leases) ? leasesPayload.leases : [];
+        const body = document.getElementById("leasesBody");
+        if (leases.length === 0) {
+          body.innerHTML = `
+            <tr>
+              <td colspan="5" class="px-2 py-3 text-center text-gray-500">No active leases</td>
+            </tr>
+          `;
+          return;
+        }
+
+        body.innerHTML = leases
+          .map(
+            (lease) => `
+            <tr>
+              <td class="px-2 py-2">${safeText(lease.task_id)}</td>
+              <td class="px-2 py-2">${safeText(lease.run_id)}</td>
+              <td class="px-2 py-2">${safeText(lease.pid)}</td>
+              <td class="px-2 py-2">${safeText(lease.ttl_seconds)}</td>
+              <td class="px-2 py-2">${safeText(lease.expires_at)}</td>
+            </tr>
+          `,
+          )
+          .join("");
+      }
+
+      function renderEvents(events) {
+        const body = document.getElementById("eventsBody");
+        if (!Array.isArray(events) || events.length === 0) {
+          body.innerHTML = `
+            <tr>
+              <td colspan="5" class="px-2 py-3 text-center text-gray-500">No events recorded</td>
+            </tr>
+          `;
+          return;
+        }
+
+        body.innerHTML = events
+          .map((event) => {
+            const severity = safeText(event.severity).toUpperCase();
+            const severityClass = severityClasses[severity] || "text-gray-300";
+            let payloadSummary = "-";
+            if (event.payload && typeof event.payload === "object") {
+              payloadSummary = JSON.stringify(event.payload);
+            } else if (event.payload !== undefined && event.payload !== null) {
+              payloadSummary = safeText(event.payload);
+            }
+            if (payloadSummary.length > 120) {
+              payloadSummary = `${payloadSummary.slice(0, 117)}...`;
+            }
+
+            return `
+              <tr>
+                <td class="px-2 py-2">${safeText(event.timestamp)}</td>
+                <td class="px-2 py-2">${safeText(event.event_type)}</td>
+                <td class="px-2 py-2 font-semibold ${severityClass}">${severity}</td>
+                <td class="px-2 py-2">${safeText(event.step_id)}</td>
+                <td class="px-2 py-2 text-gray-300">${payloadSummary}</td>
+              </tr>
+            `;
+          })
+          .join("");
+      }
+
+      function renderSnapshots(snapshots) {
+        const count = Array.isArray(snapshots) ? snapshots.length : 0;
+        document.getElementById("snapshotCount").textContent = `Snapshots: ${count}`;
+      }
+
+      function setError(message) {
+        const banner = document.getElementById("errorBanner");
+        if (!message) {
+          banner.classList.add("hidden");
+          banner.textContent = "";
+          return;
+        }
+        banner.classList.remove("hidden");
+        banner.textContent = `Dashboard refresh error: ${message}`;
+      }
+
+      async function refreshDashboard() {
+        try {
+          const [state, heartbeat, leases, events, snapshots] = await Promise.all([
+            fetchJson("/api/state"),
+            fetchJson("/api/heartbeat"),
+            fetchJson("/api/leases"),
+            fetchJson("/api/events?limit=50"),
+            fetchJson("/api/snapshots?limit=20"),
+          ]);
+
+          renderPipelineState(state);
+          renderFlow(state.status);
+          renderHeartbeat(heartbeat);
+          renderLeases(leases);
+          renderEvents(events);
+          renderSnapshots(snapshots);
+          setError("");
+        } catch (error) {
+          const message = error instanceof Error ? error.message : String(error);
+          setError(message);
+        }
+      }
+
+      function updateRefreshTimer() {
+        const value = Number(document.getElementById("refreshInterval").value);
+        if (refreshTimer) {
+          clearInterval(refreshTimer);
+          refreshTimer = null;
+        }
+        if (value > 0) {
+          refreshTimer = setInterval(refreshDashboard, value);
+        }
+      }
+
+      document.getElementById("refreshInterval").addEventListener("change", updateRefreshTimer);
+      updateRefreshTimer();
+      refreshDashboard();
+    </script>
+  </body>
+</html>

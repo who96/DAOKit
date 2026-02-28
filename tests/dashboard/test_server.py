@@ -1,0 +1,171 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+import tempfile
+import unittest
+
+from starlette.testclient import TestClient
+
+from dashboard.server import create_app
+
+
+class DashboardServerTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self._tmpdir = tempfile.TemporaryDirectory()
+        self.root = Path(self._tmpdir.name)
+        self.state_root = self.root / "state"
+        self.state_root.mkdir(parents=True, exist_ok=True)
+        self._write_default_state_files()
+        self.client = TestClient(create_app(self.state_root))
+
+    def tearDown(self) -> None:
+        self._tmpdir.cleanup()
+
+    def _write_default_state_files(self) -> None:
+        pipeline_state = {
+            "schema_version": "1.0.0",
+            "task_id": "DKT-9000",
+            "run_id": "RUN-9000",
+            "goal": "Test dashboard API wiring",
+            "status": "PLANNING",
+            "current_step": "S1",
+            "steps": [],
+            "role_lifecycle": {"orchestrator": "idle"},
+            "succession": {"enabled": True, "last_takeover_at": None},
+            "updated_at": "2026-02-28T00:00:00+00:00",
+        }
+        heartbeat_status = {
+            "schema_version": "1.0.0",
+            "status": "IDLE",
+            "last_heartbeat_at": None,
+            "reason_code": None,
+            "updated_at": "2026-02-28T00:00:00+00:00",
+        }
+        process_leases = {
+            "schema_version": "1.0.0",
+            "leases": [],
+            "updated_at": "2026-02-28T00:00:00+00:00",
+        }
+        (self.state_root / "pipeline_state.json").write_text(
+            json.dumps(pipeline_state, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        (self.state_root / "heartbeat_status.json").write_text(
+            json.dumps(heartbeat_status, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        (self.state_root / "process_leases.json").write_text(
+            json.dumps(process_leases, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        (self.state_root / "events.jsonl").write_text("", encoding="utf-8")
+        (self.state_root / "snapshots.jsonl").write_text("", encoding="utf-8")
+        (self.state_root / "checkpoints.jsonl").write_text("", encoding="utf-8")
+
+    def test_get_state(self) -> None:
+        response = self.client.get("/api/state")
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["schema_version"], "1.0.0")
+        self.assertEqual(payload["status"], "PLANNING")
+
+    def test_get_heartbeat(self) -> None:
+        response = self.client.get("/api/heartbeat")
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(payload["schema_version"], "1.0.0")
+        self.assertEqual(payload["status"], "IDLE")
+
+    def test_get_leases(self) -> None:
+        response = self.client.get("/api/leases")
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertIn("leases", payload)
+        self.assertEqual(payload["leases"], [])
+
+    def test_get_events_empty(self) -> None:
+        response = self.client.get("/api/events")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), [])
+
+    def test_get_events_with_data(self) -> None:
+        events_path = self.state_root / "events.jsonl"
+        events_path.write_text(
+            "\n".join(
+                [
+                    json.dumps(
+                        {
+                            "event_id": "evt_1",
+                            "timestamp": "2026-02-28T00:00:01+00:00",
+                            "event_type": "SYSTEM",
+                        }
+                    ),
+                    json.dumps(
+                        {
+                            "event_id": "evt_2",
+                            "timestamp": "2026-02-28T00:00:02+00:00",
+                            "event_type": "SYSTEM",
+                        }
+                    ),
+                    json.dumps(
+                        {
+                            "event_id": "evt_3",
+                            "timestamp": "2026-02-28T00:00:03+00:00",
+                            "event_type": "SYSTEM",
+                        }
+                    ),
+                ]
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+
+        response = self.client.get("/api/events?limit=2")
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(len(payload), 2)
+        self.assertEqual(payload[0]["event_id"], "evt_3")
+        self.assertEqual(payload[1]["event_id"], "evt_2")
+
+    def test_get_events_limit(self) -> None:
+        lines = []
+        for idx in range(1, 6):
+            lines.append(
+                json.dumps(
+                    {
+                        "event_id": f"evt_{idx}",
+                        "timestamp": f"2026-02-28T00:00:0{idx}+00:00",
+                        "event_type": "SYSTEM",
+                    }
+                )
+            )
+        (self.state_root / "events.jsonl").write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+        response = self.client.get("/api/events?limit=3")
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(len(payload), 3)
+        self.assertEqual([item["event_id"] for item in payload], ["evt_5", "evt_4", "evt_3"])
+
+    def test_get_snapshots_empty(self) -> None:
+        response = self.client.get("/api/snapshots")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), [])
+
+    def test_get_index(self) -> None:
+        response = self.client.get("/")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("text/html", response.headers.get("content-type", ""))
+
+    def test_state_error_handling(self) -> None:
+        (self.state_root / "pipeline_state.json").write_text("{invalid json}\n", encoding="utf-8")
+
+        response = self.client.get("/api/state")
+        self.assertEqual(response.status_code, 500)
+        payload = response.json()
+        self.assertIn("error", payload)
+
+
+if __name__ == "__main__":
+    unittest.main()

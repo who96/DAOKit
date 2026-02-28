@@ -28,6 +28,10 @@ rag = [
 llm = [
     "openai>=1.0.0",
 ]
+dashboard = [
+    "fastapi>=0.100.0",
+    "uvicorn[standard]>=0.20.0",
+]
 
 [project.scripts]
 daokit = "daokit.cli:main"

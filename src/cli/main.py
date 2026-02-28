@@ -182,6 +182,11 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     bundle_parser.add_argument("--json", action="store_true", help="Print JSON payload")
 
+    dash_parser = subparsers.add_parser("dashboard", help="Launch web dashboard")
+    dash_parser.add_argument("--root", default=".", help="Repository root path")
+    dash_parser.add_argument("--host", default="127.0.0.1")
+    dash_parser.add_argument("--port", type=int, default=8420)
+
     return parser
 
 
@@ -198,6 +203,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         "takeover": _cmd_takeover,
         "handoff": _cmd_handoff,
         "bundle": _cmd_bundle,
+        "dashboard": _cmd_dashboard,
     }
 
     try:
@@ -630,6 +636,27 @@ def _cmd_bundle(args: argparse.Namespace) -> int:
                 )
             )
     return exit_code
+
+
+def _cmd_dashboard(args: argparse.Namespace) -> int:
+    root = Path(args.root).resolve()
+    state_root = root / "state"
+
+    try:
+        import uvicorn
+        from dashboard.server import create_app
+    except ModuleNotFoundError as exc:
+        raise CliCommandError(
+            "E_DASHBOARD_MISSING_DEPENDENCY",
+            "dashboard dependencies are missing; install with: pip install daokit[dashboard]",
+        ) from exc
+
+    try:
+        app = create_app(state_root)
+        uvicorn.run(app, host=args.host, port=args.port)
+    except Exception as exc:  # pragma: no cover - runtime boundary
+        raise CliCommandError("E_DASHBOARD_FAILED", str(exc)) from exc
+    return 0
 
 
 def _validate_required_state_layout(root: Path) -> None:
