@@ -3,13 +3,19 @@ from __future__ import annotations
 import importlib
 from enum import Enum
 from pathlib import Path
-from typing import Any, Callable, Mapping
+from typing import TYPE_CHECKING, Any, Callable, Mapping
 
 from contracts.runtime_adapters import RuntimeRelayPolicy, RuntimeRetriever
-from rag.retrieval import RetrievalPolicyConfig
 from state.backend import StateBackend
 from tools.common.optional_dependencies import OptionalDependencyError, import_optional_dependency
-from .runtime import DEFAULT_DISPATCH_MAX_RESUME_RETRIES, DEFAULT_DISPATCH_MAX_REWORK_ATTEMPTS, RuntimeDispatchAdapter
+
+if TYPE_CHECKING:
+    from rag.retrieval import RetrievalPolicyConfig
+    from .runtime import RuntimeDispatchAdapter
+
+
+DEFAULT_DISPATCH_MAX_RESUME_RETRIES = 1
+DEFAULT_DISPATCH_MAX_REWORK_ATTEMPTS = 1
 
 
 ENV_RUNTIME_ENGINE = "DAOKIT_RUNTIME_ENGINE"
@@ -252,3 +258,96 @@ def _get_nested_config_value(config: Mapping[str, Any] | None, *, path: tuple[st
     if isinstance(node, str):
         return node
     return None
+
+
+# ---- Dispatch backend resolution ----
+
+ENV_DISPATCH_BACKEND = "DAOKIT_DISPATCH_BACKEND"
+CONFIG_DISPATCH_BACKEND_PATHS = (
+    ("dispatch", "backend"),
+    ("runtime", "dispatch_backend"),
+)
+
+
+class DispatchBackend(str, Enum):
+    SHIM = "shim"
+    LLM = "llm"
+
+
+def resolve_dispatch_backend(
+    *,
+    explicit_backend: str | None = None,
+    env: Mapping[str, str] | None = None,
+    config: Mapping[str, Any] | None = None,
+) -> DispatchBackend:
+    """Resolve which dispatch backend to use. Default: shim."""
+    source = explicit_backend
+    if source is None and env is not None:
+        source = env.get(ENV_DISPATCH_BACKEND)
+    if source is None:
+        source = _read_config_string(
+            config,
+            path_candidates=CONFIG_DISPATCH_BACKEND_PATHS,
+        )
+    normalized = "shim" if source is None else source.strip().lower()
+    if normalized == DispatchBackend.SHIM.value:
+        return DispatchBackend.SHIM
+    if normalized == DispatchBackend.LLM.value:
+        return DispatchBackend.LLM
+    raise RuntimeEngineError(
+        f"unsupported dispatch backend '{normalized}'. "
+        f"Supported values: shim, llm."
+    )
+
+
+def create_dispatch_adapter(
+    *,
+    artifact_store: Any,
+    shim_path: str | Path = "codex-worker-shim",
+    shim_command_prefix: tuple[str, ...] | None = None,
+    command_runner: Any | None = None,
+    relay_policy: Any | None = None,
+    llm_client: Any | None = None,
+    llm_system_prompt: str | None = None,
+    explicit_llm_api_key: str | None = None,
+    explicit_llm_base_url: str | None = None,
+    explicit_llm_model: str | None = None,
+    explicit_backend: str | None = None,
+    env: Mapping[str, str] | None = None,
+    config: Mapping[str, Any] | None = None,
+) -> RuntimeDispatchAdapter:
+    selected_backend = resolve_dispatch_backend(
+        explicit_backend=explicit_backend,
+        env=env,
+        config=config,
+    )
+    if selected_backend == DispatchBackend.SHIM:
+        from dispatch.shim_adapter import ShimDispatchAdapter
+
+        return ShimDispatchAdapter(
+            shim_path=shim_path,
+            shim_command_prefix=shim_command_prefix,
+            artifact_store=artifact_store,
+            command_runner=command_runner,
+            relay_policy=relay_policy,
+        )
+
+    from dispatch.llm_adapter import LLMDispatchAdapter
+
+    if llm_client is None:
+        from llm.client import LLMClient, resolve_llm_config
+
+        llm_config = resolve_llm_config(
+            explicit_api_key=explicit_llm_api_key,
+            explicit_base_url=explicit_llm_base_url,
+            explicit_model=explicit_llm_model,
+            env=env,
+            config=config,
+        )
+        llm_client = LLMClient(llm_config)
+    return LLMDispatchAdapter(
+        llm_client=llm_client,
+        artifact_store=artifact_store,
+        relay_policy=relay_policy,
+        system_prompt=llm_system_prompt,
+    )

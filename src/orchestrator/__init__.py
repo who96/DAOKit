@@ -1,11 +1,14 @@
 """Orchestrator runtime primitives for DAOKit."""
 
 from .engine import (
+    DispatchBackend,
     RuntimeEngine,
     RuntimeEngineError,
     ToolOrchestrationEngine,
+    create_dispatch_adapter,
     create_runtime,
     create_tool_orchestration_layer,
+    resolve_dispatch_backend,
     resolve_runtime_engine,
     resolve_tool_orchestration_engine,
 )
@@ -15,12 +18,15 @@ __all__ = [
     "IllegalTransitionError",
     "OrchestratorRuntime",
     "OrchestratorStatus",
+    "DispatchBackend",
     "RuntimeEngine",
     "RuntimeEngineError",
     "ToolOrchestrationEngine",
+    "create_dispatch_adapter",
     "create_runtime",
     "create_tool_orchestration_layer",
     "guard_transition",
+    "resolve_dispatch_backend",
     "resolve_runtime_engine",
     "resolve_tool_orchestration_engine",
 ]
