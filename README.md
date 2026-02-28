@@ -29,11 +29,15 @@ git clone <repository-url> DAOKit
 cd DAOKit
 ```
 
-### 2. Optional virtual environment
+### 2. Create virtual environment and install
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
+pip install -e .                # core only
+pip install -e ".[llm]"        # + LLM dispatch (OpenAI-compatible APIs)
+pip install -e ".[rag]"        # + RAG retrieval (Chroma + sentence-transformers)
+pip install -e ".[llm,rag]"    # both
 ```
 
 ### 3. Initialize runtime layout
@@ -59,6 +63,45 @@ PYTHONPATH=src python3 -m cli status --root . --task-id DKT-018-DEMO --run-id RU
 PYTHONPATH=src python3 -m cli replay --root . --source events --limit 10
 PYTHONPATH=src python3 -m cli check --root .
 ```
+
+## LLM Dispatch Backend
+
+By default, the orchestrator dispatches steps via an external subprocess (`shim` backend).
+To use a direct LLM API call instead (DeepSeek, OpenAI, or any OpenAI-compatible provider),
+configure the following environment variables in a `.env` file at the project root:
+
+```bash
+cp .env.example .env
+```
+
+Then edit `.env`:
+
+```bash
+DAOKIT_DISPATCH_BACKEND=llm
+DAOKIT_LLM_API_KEY=sk-your-api-key
+DAOKIT_LLM_BASE_URL=https://api.deepseek.com   # or https://api.openai.com/v1
+DAOKIT_LLM_MODEL=deepseek-chat                  # or gpt-4o, etc.
+DAOKIT_LLM_MAX_TOKENS=4096
+DAOKIT_LLM_TEMPERATURE=0.0
+DAOKIT_LLM_TIMEOUT_SECONDS=120
+```
+
+Run with the LLM backend:
+
+```bash
+PYTHONPATH=src python3 -m cli run \
+  --root . \
+  --task-id MY-TASK-001 \
+  --goal "Implement a config parser with validation"
+```
+
+The orchestrator will call the LLM API directly during the `dispatch` phase.
+All requests and responses are persisted as artifacts under `artifacts/dispatch/`.
+
+| Backend | How it works | When to use |
+|---------|-------------|-------------|
+| `shim` (default) | Runs `codex-worker-shim` subprocess | Codex CLI available, want sandboxed execution |
+| `llm` | Direct HTTP call to LLM API | No Codex, want lightweight DeepSeek/OpenAI integration |
 
 ## Demo Workflows
 

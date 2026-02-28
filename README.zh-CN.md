@@ -29,11 +29,15 @@ git clone <repository-url> DAOKit
 cd DAOKit
 ```
 
-### 2. 可选：创建虚拟环境
+### 2. 创建虚拟环境并安装
 
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
+pip install -e .                # 仅核心
+pip install -e ".[llm]"        # + LLM dispatch（OpenAI 兼容 API）
+pip install -e ".[rag]"        # + RAG 检索（Chroma + sentence-transformers）
+pip install -e ".[llm,rag]"    # 全部
 ```
 
 ### 3. 初始化运行目录结构
@@ -59,6 +63,45 @@ PYTHONPATH=src python3 -m cli status --root . --task-id DKT-018-DEMO --run-id RU
 PYTHONPATH=src python3 -m cli replay --root . --source events --limit 10
 PYTHONPATH=src python3 -m cli check --root .
 ```
+
+## LLM Dispatch 后端配置
+
+默认情况下，编排器通过外部子进程（`shim` 后端）执行步骤。
+如需直接调用 LLM API（DeepSeek、OpenAI 或任何 OpenAI 兼容供应商），
+在项目根目录创建 `.env` 文件并配置以下环境变量：
+
+```bash
+cp .env.example .env
+```
+
+编辑 `.env`：
+
+```bash
+DAOKIT_DISPATCH_BACKEND=llm
+DAOKIT_LLM_API_KEY=sk-your-api-key
+DAOKIT_LLM_BASE_URL=https://api.deepseek.com   # 或 https://api.openai.com/v1
+DAOKIT_LLM_MODEL=deepseek-chat                  # 或 gpt-4o 等
+DAOKIT_LLM_MAX_TOKENS=4096
+DAOKIT_LLM_TEMPERATURE=0.0
+DAOKIT_LLM_TIMEOUT_SECONDS=120
+```
+
+使用 LLM 后端运行：
+
+```bash
+PYTHONPATH=src python3 -m cli run \
+  --root . \
+  --task-id MY-TASK-001 \
+  --goal "实现一个带校验的配置解析器"
+```
+
+编排器将在 `dispatch` 阶段直接调用 LLM API。
+所有请求和响应都持久化为 `artifacts/dispatch/` 下的工件文件。
+
+| 后端 | 工作方式 | 适用场景 |
+|------|---------|---------|
+| `shim`（默认） | 运行 `codex-worker-shim` 子进程 | 有 Codex CLI，需要沙箱执行 |
+| `llm` | 直接 HTTP 调用 LLM API | 无 Codex，轻量接入 DeepSeek/OpenAI |
 
 ## 演示工作流
 
