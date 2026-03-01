@@ -166,6 +166,11 @@
           expectedOutputs: "Expected Outputs",
           dependencies: "Dependencies",
           retrievalPolicy: "Retrieval Policy",
+          roleExtract: "Extract",
+          rolePlanner: "Planner",
+          roleReviewer: "Reviewer",
+          roleDispatch: "Dispatch",
+          roleAuditor: "Auditor",
           noMessages: "No messages yet",
           dashboardRefreshError: "Dashboard refresh error:",
           leases: "Leases",
@@ -189,6 +194,11 @@
           expectedOutputs: "预期产出",
           dependencies: "依赖",
           retrievalPolicy: "检索策略",
+          roleExtract: "窗口分析",
+          rolePlanner: "计划制定",
+          roleReviewer: "计划审核",
+          roleDispatch: "任务执行",
+          roleAuditor: "验收审查",
           noMessages: "暂无消息",
           dashboardRefreshError: "仪表盘刷新错误：",
           leases: "租约",
@@ -441,6 +451,7 @@
       /* ── Message Bubbles ─────────────────────────────── */
 
       function inferSender(event) {
+        if (event.event_type === "AGENT") return (event.payload || {}).role || "agent";
         if (event.event_type === "HUMAN") return "human";
         var payload = event.payload || {};
         if (
@@ -460,14 +471,54 @@
           return escapeHtml(payload.message || JSON.stringify(payload));
         }
 
+        if (sender === "extract") {
+          var lines = [];
+          if (payload.summary) lines.push(payload.summary);
+          if (payload.content && payload.content !== payload.summary) lines.push(payload.content);
+          return lines.length > 0 ? escapeHtml(lines.join("\n")) : escapeHtml(JSON.stringify(payload));
+        }
+
+        if (sender === "planner") {
+          var lines = [];
+          if (payload.content) lines.push(payload.content);
+          if (Array.isArray(payload.steps)) {
+            for (var si = 0; si < payload.steps.length; si++) {
+              var st = payload.steps[si];
+              lines.push("  " + (st.id || "") + ": " + (st.title || ""));
+            }
+          }
+          if (payload.attempt) lines.push("(attempt " + payload.attempt + ")");
+          return lines.length > 0 ? escapeHtml(lines.join("\n")) : escapeHtml(JSON.stringify(payload));
+        }
+
+        if (sender === "reviewer") {
+          return escapeHtml(payload.content || JSON.stringify(payload));
+        }
+
+        if (sender === "auditor") {
+          var lines = [];
+          if (payload.content) lines.push(payload.content);
+          if (payload.reason) lines.push(payload.reason);
+          return lines.length > 0 ? escapeHtml(lines.join("\n")) : escapeHtml(JSON.stringify(payload));
+        }
+
         if (sender === "dispatch") {
           var dp = [];
           if (payload.call_sequence) dp.push("call: " + payload.call_sequence);
           if (payload.controller_lane) dp.push("lane: " + payload.controller_lane);
           if (payload.model) dp.push("model: " + payload.model);
-          if (payload.total_tokens) dp.push("tokens: " + payload.total_tokens);
+          if (payload.iterations) dp.push("iterations: " + payload.iterations);
           if (payload.status) dp.push("status: " + payload.status);
-          return dp.length > 0 ? escapeHtml(dp.join(" | ")) : escapeHtml(JSON.stringify(payload));
+          var header = dp.length > 0 ? dp.join(" | ") : "";
+          var parts = header ? [header] : [];
+          if (payload.message) parts.push(String(payload.message).slice(0, 200));
+          if (Array.isArray(payload.tool_call_log) && payload.tool_call_log.length > 0) {
+            var tools = payload.tool_call_log.map(function(tc) {
+              return (tc.function_name || tc.tool || "?") + (tc.success === false ? " x" : " ok");
+            });
+            parts.push("tools: " + tools.join(", "));
+          }
+          return parts.length > 0 ? escapeHtml(parts.join("\n")) : escapeHtml(JSON.stringify(payload));
         }
 
         var parts = [];
@@ -493,7 +544,9 @@
           return;
         }
 
-        var sorted = events.slice().reverse();
+        var sorted = events.slice().reverse().filter(function(event) {
+          return inferSender(event) !== "orchestrator";
+        });
 
         container.innerHTML = sorted
           .map(function (event) {
@@ -502,23 +555,20 @@
             var time = formatTime(event.timestamp);
             var content = renderBubbleContent(event);
 
-            var alignClass, bgClass, borderExtra, labelColor, senderLabel;
-            if (sender === "human") {
-              alignClass = "ml-auto";
-              bgClass = "bg-gray-700/50";
-              labelColor = "text-gray-400";
-              senderLabel = "human";
-            } else if (sender === "dispatch") {
-              alignClass = "mr-auto";
-              bgClass = "bg-emerald-900/30";
-              labelColor = "text-emerald-400";
-              senderLabel = "dispatch";
-            } else {
-              alignClass = "mr-auto";
-              bgClass = "bg-blue-900/30";
-              labelColor = "text-blue-400";
-              senderLabel = "orchestrator";
-            }
+            var senderStyles = {
+              human:        { align: "ml-auto", bg: "bg-gray-700/50",    color: "text-gray-400",    label: "human" },
+              extract:      { align: "mr-auto", bg: "bg-amber-900/30",   color: "text-amber-400",   label: t("roleExtract") },
+              planner:      { align: "mr-auto", bg: "bg-purple-900/30",  color: "text-purple-400",  label: t("rolePlanner") },
+              reviewer:     { align: "mr-auto", bg: "bg-indigo-900/30",  color: "text-indigo-400",  label: t("roleReviewer") },
+              dispatch:     { align: "mr-auto", bg: "bg-emerald-900/30", color: "text-emerald-400", label: t("roleDispatch") },
+              auditor:      { align: "mr-auto", bg: "bg-cyan-900/30",   color: "text-cyan-400",    label: t("roleAuditor") },
+              orchestrator: { align: "mr-auto", bg: "bg-blue-900/30",   color: "text-blue-400",    label: "orchestrator" },
+            };
+            var style = senderStyles[sender] || senderStyles.orchestrator;
+            var alignClass = style.align;
+            var bgClass = style.bg;
+            var labelColor = style.color;
+            var senderLabel = style.label;
 
             borderExtra = "";
             if (severity === "ERROR") borderExtra = " border-l-2 border-red-500";

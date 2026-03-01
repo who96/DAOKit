@@ -44,6 +44,17 @@ STEP_CONTRACT_FIELDS = (
 )
 
 
+def _strip_code_fence(text: str) -> str:
+    """Strip markdown code fence wrapper (```json...```) from LLM output."""
+    s = text.strip()
+    if s.startswith("```"):
+        first_nl = s.find("\n")
+        s = s[first_nl + 1:] if first_nl != -1 else s[3:]
+    if s.endswith("```"):
+        s = s[:-3]
+    return s.strip()
+
+
 class RuntimeDispatchAdapter(Protocol):
     def create(
         self,
@@ -501,11 +512,23 @@ class OrchestratorRuntime:
                 ]
             )
             try:
-                analysis = json.loads(result.content)
+                analysis = json.loads(_strip_code_fence(result.content))
             except json.JSONDecodeError:
                 analysis = {"raw_response": result.content}
             state["role_lifecycle"]["analysis_result"] = analysis
             state["role_lifecycle"]["analysis"] = "prepared"
+            self.state_store.append_event(
+                task_id=self.task_id,
+                run_id=self.run_id,
+                step_id=state.get("current_step") or self.step_id,
+                event_type="AGENT",
+                severity="INFO",
+                payload={
+                    "role": "extract",
+                    "content": json.dumps(analysis, ensure_ascii=False)[:500],
+                    "summary": f"任务类型: {analysis.get('task_type', '?')}, 复杂度: {analysis.get('complexity', '?')}",
+                },
+            )
             return
         state["role_lifecycle"]["analysis"] = "prepared"
 
@@ -540,7 +563,7 @@ class OrchestratorRuntime:
                     ]
                 )
                 try:
-                    generated_steps = json.loads(plan_result.content)
+                    generated_steps = json.loads(_strip_code_fence(plan_result.content))
                     if not isinstance(generated_steps, list):
                         generated_steps = [generated_steps]
                 except json.JSONDecodeError:
@@ -577,6 +600,30 @@ class OrchestratorRuntime:
                     state["current_step"] = str(validated_steps[0]["id"])
                     state["role_lifecycle"]["planner_mode"] = "llm_agent_v1"
                     state["role_lifecycle"]["planner_step_count"] = str(len(validated_steps))
+                    self.state_store.append_event(
+                        task_id=self.task_id,
+                        run_id=self.run_id,
+                        step_id=state.get("current_step") or self.step_id,
+                        event_type="AGENT",
+                        severity="INFO",
+                        payload={
+                            "role": "planner",
+                            "content": f"生成了 {len(validated_steps)} 个步骤",
+                            "steps": [{"id": s["id"], "title": s.get("title", "")} for s in validated_steps],
+                            "attempt": _attempt + 1,
+                        },
+                    )
+                    self.state_store.append_event(
+                        task_id=self.task_id,
+                        run_id=self.run_id,
+                        step_id=state.get("current_step") or self.step_id,
+                        event_type="AGENT",
+                        severity="INFO",
+                        payload={
+                            "role": "reviewer",
+                            "content": "计划审核通过" if "APPROVED" in review_result.content else review_result.content[:200],
+                        },
+                    )
                     return
 
         if self._should_generate_minimal_text_plan(state):
@@ -717,23 +764,38 @@ class OrchestratorRuntime:
         role_lifecycle["dispatch_thread_id"] = current_result.thread_id
         role_lifecycle["dispatch_correlation_id"] = current_result.correlation_id
 
+        dispatch_payload: dict[str, Any] = {
+            "node": "dispatch",
+            "invocation_index": invocation_index,
+            "controller_lane": controller_lane,
+            "correlation_id": current_result.correlation_id,
+            "thread_id": current_result.thread_id,
+            "call_count": len(call_entries),
+            "max_resume_retries": self.dispatch_max_resume_retries,
+            "max_rework_attempts": self.dispatch_max_rework_attempts,
+            "calls": call_entries,
+        }
+        parsed = current_result.parsed_output
+        if isinstance(parsed, Mapping):
+            _msg = parsed.get("message")
+            if _msg is not None:
+                dispatch_payload["message"] = str(_msg)[:500]
+            _tool_log = parsed.get("tool_call_log")
+            if isinstance(_tool_log, list):
+                dispatch_payload["tool_call_log"] = _tool_log
+            _iterations = parsed.get("iterations")
+            if _iterations is not None:
+                dispatch_payload["iterations"] = _iterations
+            _model = parsed.get("model")
+            if _model is not None:
+                dispatch_payload["model"] = str(_model)
         self.state_store.append_event(
             task_id=self.task_id,
             run_id=self.run_id,
             step_id=active_step,
             event_type="SYSTEM",
             severity="INFO",
-            payload={
-                "node": "dispatch",
-                "invocation_index": invocation_index,
-                "controller_lane": controller_lane,
-                "correlation_id": current_result.correlation_id,
-                "thread_id": current_result.thread_id,
-                "call_count": len(call_entries),
-                "max_resume_retries": self.dispatch_max_resume_retries,
-                "max_rework_attempts": self.dispatch_max_rework_attempts,
-                "calls": call_entries,
-            },
+            payload=dispatch_payload,
             dedup_key=(
                 f"dispatch-invocation:{self.task_id}:{self.run_id}:{active_step}:{invocation_index}"
             ),
@@ -964,7 +1026,7 @@ class OrchestratorRuntime:
                 ]
             )
             try:
-                verify_result = json.loads(result.content)
+                verify_result = json.loads(_strip_code_fence(result.content))
                 acceptance = str(verify_result.get("acceptance", "passed"))
                 reason = str(verify_result.get("reason", ""))
             except json.JSONDecodeError:
@@ -977,6 +1039,19 @@ class OrchestratorRuntime:
                     reason = result.content
             state["role_lifecycle"]["acceptance"] = acceptance
             state["role_lifecycle"]["verify_reason"] = reason
+            self.state_store.append_event(
+                task_id=self.task_id,
+                run_id=self.run_id,
+                step_id=state.get("current_step") or self.step_id,
+                event_type="AGENT",
+                severity="INFO",
+                payload={
+                    "role": "auditor",
+                    "acceptance": acceptance,
+                    "reason": reason[:300],
+                    "content": f"验收判定: {acceptance}",
+                },
+            )
         else:
             state["role_lifecycle"]["acceptance"] = "passed"
         state["role_lifecycle"]["troubleshooting_retrieval"] = self._summarize_retrieval(
