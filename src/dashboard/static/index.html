@@ -64,8 +64,28 @@
       class="mx-6 mt-2 hidden rounded-md border border-red-500/30 bg-red-500/10 p-2 text-sm text-red-200 shrink-0"
     ></p>
 
-    <!-- Main content: two columns -->
+    <!-- Main content: three columns -->
     <main class="flex-1 flex overflow-hidden">
+      <!-- Sessions Sidebar -->
+      <aside class="w-56 border-r border-gray-800 flex flex-col shrink-0">
+        <div class="px-3 py-3 border-b border-gray-800 bg-gray-950/50 flex items-center justify-between">
+          <h2
+            id="sessionsTitle"
+            class="text-sm font-semibold uppercase tracking-wide text-gray-400"
+          >
+            Sessions
+          </h2>
+          <button
+            id="newSessionBtn"
+            type="button"
+            class="rounded border border-gray-700 bg-gray-800 px-2 py-0.5 text-xs text-gray-300 hover:bg-gray-700 transition-colors"
+          >
+            + New
+          </button>
+        </div>
+        <div id="sessionList" class="flex-1 overflow-y-auto p-2 space-y-1 chat-scroll"></div>
+      </aside>
+
       <!-- Left: Step Board -->
       <aside class="w-72 border-r border-gray-800 flex flex-col shrink-0">
         <div class="px-4 py-3 border-b border-gray-800 bg-gray-950/50">
@@ -154,6 +174,9 @@
           dashboardSubtitle: "Agent orchestration console",
           autoRefresh: "Auto refresh",
           off: "Off",
+          sessions: "Sessions",
+          newSession: "+ New",
+          noSessions: "No sessions yet",
           stepBoard: "Step Board",
           agentMessages: "Agent Messages",
           sendMessage: "Send",
@@ -182,6 +205,9 @@
           dashboardSubtitle: "智能体编排控制台",
           autoRefresh: "自动刷新",
           off: "关闭",
+          sessions: "会话列表",
+          newSession: "+ 新建",
+          noSessions: "暂无会话",
           stepBoard: "步骤看板",
           agentMessages: "Agent 消息流",
           sendMessage: "发送",
@@ -212,6 +238,8 @@
 
       let refreshTimer = null;
       let cachedState = {};
+      let selectedSessionId = null;
+      let sessionsList = [];
 
       const statusColors = {
         PLANNING: { dot: "bg-blue-400", badge: "border-blue-500/40 bg-blue-500/10 text-blue-200" },
@@ -295,11 +323,97 @@
         document.getElementById("dashboardSubtitle").textContent = t("dashboardSubtitle");
         document.getElementById("refreshLabel").textContent = t("autoRefresh");
         document.getElementById("refreshOffOption").textContent = t("off");
+        document.getElementById("sessionsTitle").textContent = t("sessions");
+        document.getElementById("newSessionBtn").textContent = t("newSession");
         document.getElementById("stepBoardTitle").textContent = t("stepBoard");
         document.getElementById("agentMessagesTitle").textContent = t("agentMessages");
         document.getElementById("sendBtn").textContent = t("sendMessage");
         document.getElementById("messageInput").placeholder = t("inputPlaceholder");
         document.getElementById("langToggle").textContent = currentLang === "zh" ? "EN" : "中";
+      }
+
+      function formatRelativeTime(ts) {
+        if (!ts) return "-";
+        var dt = new Date(ts);
+        if (Number.isNaN(dt.getTime())) return ts;
+        var seconds = Math.floor((Date.now() - dt.getTime()) / 1000);
+        if (seconds < 60) return currentLang === "zh" ? "刚刚" : "just now";
+        var minutes = Math.floor(seconds / 60);
+        if (minutes < 60) return currentLang === "zh" ? minutes + "分钟前" : minutes + "m ago";
+        var hours = Math.floor(minutes / 60);
+        if (hours < 24) return currentLang === "zh" ? hours + "小时前" : hours + "h ago";
+        var days = Math.floor(hours / 24);
+        if (days < 7) return currentLang === "zh" ? days + "天前" : days + "d ago";
+        return dt.toLocaleDateString();
+      }
+
+      function renderSessions(sessions) {
+        var container = document.getElementById("sessionList");
+        if (!Array.isArray(sessions) || sessions.length === 0) {
+          container.innerHTML =
+            '<p class="text-xs text-gray-500 text-center py-3">' + escapeHtml(t("noSessions")) + "</p>";
+          return;
+        }
+
+        container.innerHTML = sessions
+          .map(function(session) {
+            var taskId = String(session.task_id || "unknown");
+            var goalText = session.goal ? String(session.goal) : taskId;
+            var truncatedGoal = goalText.length > 40 ? goalText.slice(0, 37) + "..." : goalText;
+            var isSelected = selectedSessionId === taskId;
+            var borderClass = isSelected
+              ? "border-blue-500 bg-blue-500/10"
+              : "border-gray-800 bg-gray-900/40 hover:bg-gray-800/60";
+
+            return (
+              '<button type="button" data-task-id="' +
+              escapeHtml(taskId) +
+              '" class="w-full rounded-md border p-2 text-left transition-colors ' +
+              borderClass +
+              '">' +
+              '<p class="text-xs text-gray-200 truncate">' +
+              escapeHtml(truncatedGoal) +
+              "</p>" +
+              '<div class="mt-1 flex items-center justify-between gap-2">' +
+              '<span class="text-[10px] text-gray-500">' +
+              escapeHtml(formatRelativeTime(session.updated_at)) +
+              "</span>" +
+              '<span class="rounded-full border border-gray-700 px-1.5 py-0.5 text-[10px] text-gray-400">' +
+              escapeHtml(String(session.event_count || 0)) +
+              "</span>" +
+              "</div>" +
+              "</button>"
+            );
+          })
+          .join("");
+
+        container.querySelectorAll("[data-task-id]").forEach(function(button) {
+          button.addEventListener("click", function() {
+            selectedSessionId = button.getAttribute("data-task-id");
+            renderSessions(sessionsList);
+            refreshDashboard();
+          });
+        });
+      }
+
+      async function refreshSessions() {
+        try {
+          sessionsList = await fetchJson("/api/sessions");
+          if (
+            selectedSessionId &&
+            !sessionsList.some(function(session) {
+              return session.task_id === selectedSessionId;
+            })
+          ) {
+            selectedSessionId = null;
+          }
+          if (!selectedSessionId && sessionsList.length > 0) {
+            selectedSessionId = sessionsList[0].task_id;
+          }
+          renderSessions(sessionsList);
+        } catch (err) {
+          // silently ignore session refresh errors
+        }
       }
 
       /* ── Step Board ──────────────────────────────────── */
@@ -642,17 +756,21 @@
         if (!message) return;
 
         try {
-          await fetch("/api/message", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ message: message }),
-          });
-          fetch("/api/run", {
+          var runResp = await fetch("/api/run", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ goal: message }),
           });
+          var runData = await runResp.json();
+          var taskId = runData.task_id || null;
+          await fetch("/api/message", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ message: message, task_id: taskId }),
+          });
           input.value = "";
+          if (taskId) selectedSessionId = taskId;
+          await refreshSessions();
           await refreshDashboard();
         } catch (err) {
           setError(err.message || String(err));
@@ -676,11 +794,15 @@
 
       async function refreshDashboard() {
         try {
+          var eventsUrl = "/api/events?limit=100";
+          if (selectedSessionId) {
+            eventsUrl += "&task_id=" + encodeURIComponent(selectedSessionId);
+          }
           var results = await Promise.all([
             fetchJson("/api/state"),
             fetchJson("/api/heartbeat"),
             fetchJson("/api/leases"),
-            fetchJson("/api/events?limit=100"),
+            fetchJson(eventsUrl),
           ]);
           var state = results[0];
           var heartbeat = results[1];
@@ -710,6 +832,7 @@
         currentLang = currentLang === "zh" ? "en" : "zh";
         localStorage.setItem("daokit-lang", currentLang);
         applyTranslations();
+        renderSessions(sessionsList);
         refreshDashboard();
       }
 
@@ -719,12 +842,17 @@
       document.getElementById("langToggle").addEventListener("click", toggleLanguage);
       document.getElementById("refreshInterval").addEventListener("change", updateRefreshTimer);
       document.getElementById("messageForm").addEventListener("submit", sendMessage);
+      document.getElementById("newSessionBtn").addEventListener("click", function () {
+        selectedSessionId = null;
+        renderSessions(sessionsList);
+        refreshDashboard();
+      });
       document.getElementById("modalClose").addEventListener("click", closeModal);
       document.getElementById("stepModal").addEventListener("click", function (e) {
         if (e.target === document.getElementById("stepModal")) closeModal();
       });
       updateRefreshTimer();
-      refreshDashboard();
+      refreshSessions().finally(refreshDashboard);
     </script>
   </body>
 </html>

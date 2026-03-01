@@ -17,7 +17,21 @@ _DEFAULT_EVENTS_LIMIT = 50
 _DEFAULT_SNAPSHOTS_LIMIT = 20
 
 
+def _load_project_env(state_root: Path) -> None:
+    """Load .env from state_root ancestors so subprocess inherits LLM config."""
+    try:
+        from dotenv import load_dotenv
+    except ImportError:
+        return
+    for parent in (state_root, *state_root.resolve().parents):
+        candidate = parent / ".env"
+        if candidate.is_file():
+            load_dotenv(candidate, override=False)
+            return
+
+
 def create_app(state_root: Path) -> FastAPI:
+    _load_project_env(state_root)
     backend = create_state_backend(state_root)
     app = FastAPI(title="DAOKit Dashboard", version="0.2.0")
     app.add_middleware(
@@ -49,9 +63,21 @@ def create_app(state_root: Path) -> FastAPI:
         except Exception as exc:  # pragma: no cover - boundary guard
             return _error_response(exc)
 
-    @app.get("/api/events", response_model=None)
-    def get_events(limit: int = _DEFAULT_EVENTS_LIMIT) -> Any:
+    @app.get("/api/sessions", response_model=None)
+    def get_sessions() -> Any:
         try:
+            return backend.list_sessions()
+        except Exception as exc:  # pragma: no cover - boundary guard
+            return _error_response(exc)
+
+    @app.get("/api/events", response_model=None)
+    def get_events(
+        limit: int = _DEFAULT_EVENTS_LIMIT,
+        task_id: str | None = None,
+    ) -> Any:
+        try:
+            if task_id:
+                return backend.list_events_by_task(task_id, limit=max(limit, 1))
             return _read_events_tail(backend.events_path, limit=max(limit, 1))
         except Exception as exc:  # pragma: no cover - boundary guard
             return _error_response(exc)
@@ -73,8 +99,9 @@ def create_app(state_root: Path) -> FastAPI:
             if not message:
                 return JSONResponse({"error": "message is required"}, status_code=400)
             state = backend.load_state()
+            explicit_task_id = body.get("task_id")
             event = backend.append_event(
-                task_id=str(state.get("task_id") or "unknown"),
+                task_id=str(explicit_task_id or state.get("task_id") or "unknown"),
                 run_id=str(state.get("run_id") or "unknown"),
                 step_id=body.get("step_id"),
                 event_type="HUMAN",

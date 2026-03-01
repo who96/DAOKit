@@ -172,6 +172,149 @@ class StateBackendAbstractionTests(unittest.TestCase):
             sqlite_result = self._exercise_backend_contract(SQLiteStateBackend, root / "sqlite")
             self.assertEqual(sqlite_result, fs_result)
 
+    def test_list_sessions_empty_filesystem(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            backend = FileSystemStateBackend(Path(tmp) / "state")
+            sessions = backend.list_sessions()
+            self.assertEqual(sessions, [])
+
+    def test_list_sessions_empty_sqlite(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            backend = SQLiteStateBackend(Path(tmp) / "state")
+            sessions = backend.list_sessions()
+            self.assertEqual(sessions, [])
+
+    def test_list_sessions_multiple_tasks_filesystem(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            backend = FileSystemStateBackend(Path(tmp) / "state")
+            backend.append_event(
+                task_id="T1",
+                run_id="R1",
+                step_id=None,
+                event_type="HUMAN",
+                severity="INFO",
+                payload={"message": "goal one", "sender": "human"},
+            )
+            backend.append_event(
+                task_id="T1",
+                run_id="R1",
+                step_id=None,
+                event_type="SYSTEM",
+                severity="INFO",
+                payload={},
+            )
+            backend.append_event(
+                task_id="T2",
+                run_id="R2",
+                step_id=None,
+                event_type="HUMAN",
+                severity="INFO",
+                payload={"message": "goal two", "sender": "human"},
+            )
+            sessions = backend.list_sessions()
+            self.assertEqual(len(sessions), 2)
+            task_ids = [session["task_id"] for session in sessions]
+            self.assertIn("T1", task_ids)
+            self.assertIn("T2", task_ids)
+
+    def test_list_sessions_multiple_tasks_sqlite(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            backend = SQLiteStateBackend(Path(tmp) / "state")
+            backend.append_event(
+                task_id="T1",
+                run_id="R1",
+                step_id=None,
+                event_type="HUMAN",
+                severity="INFO",
+                payload={"message": "goal one", "sender": "human"},
+            )
+            backend.append_event(
+                task_id="T1",
+                run_id="R1",
+                step_id=None,
+                event_type="SYSTEM",
+                severity="INFO",
+                payload={},
+            )
+            backend.append_event(
+                task_id="T2",
+                run_id="R2",
+                step_id=None,
+                event_type="HUMAN",
+                severity="INFO",
+                payload={"message": "goal two", "sender": "human"},
+            )
+            sessions = backend.list_sessions()
+            self.assertEqual(len(sessions), 2)
+            task_ids = [session["task_id"] for session in sessions]
+            self.assertIn("T1", task_ids)
+            self.assertIn("T2", task_ids)
+
+    def test_list_events_by_task_filesystem(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            backend = FileSystemStateBackend(Path(tmp) / "state")
+            backend.append_event(
+                task_id="T1",
+                run_id="R1",
+                step_id=None,
+                event_type="SYSTEM",
+                severity="INFO",
+                payload={"a": 1},
+            )
+            backend.append_event(
+                task_id="T2",
+                run_id="R2",
+                step_id=None,
+                event_type="SYSTEM",
+                severity="INFO",
+                payload={"b": 2},
+            )
+            events = backend.list_events_by_task("T1")
+            self.assertEqual(len(events), 1)
+            self.assertEqual(events[0]["task_id"], "T1")
+
+    def test_list_events_by_task_sqlite(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            backend = SQLiteStateBackend(Path(tmp) / "state")
+            backend.append_event(
+                task_id="T1",
+                run_id="R1",
+                step_id=None,
+                event_type="SYSTEM",
+                severity="INFO",
+                payload={"a": 1},
+            )
+            backend.append_event(
+                task_id="T2",
+                run_id="R2",
+                step_id=None,
+                event_type="SYSTEM",
+                severity="INFO",
+                payload={"b": 2},
+            )
+            events = backend.list_events_by_task("T1")
+            self.assertEqual(len(events), 1)
+            self.assertEqual(events[0]["task_id"], "T1")
+
+    def test_list_sessions_parity(self) -> None:
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            for backend_cls in (FileSystemStateBackend, SQLiteStateBackend):
+                backend = backend_cls(root / backend_cls.__name__ / "state")
+                backend.append_event(
+                    task_id="T1",
+                    run_id="R1",
+                    step_id=None,
+                    event_type="HUMAN",
+                    severity="INFO",
+                    payload={"message": "hi", "sender": "human"},
+                )
+                sessions = backend.list_sessions()
+                self.assertEqual(len(sessions), 1)
+                self.assertEqual(sessions[0]["task_id"], "T1")
+                self.assertEqual(sessions[0]["goal"], "hi")
+                self.assertEqual(sessions[0]["event_count"], 1)
+
 
 if __name__ == "__main__":
     unittest.main()

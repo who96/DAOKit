@@ -232,6 +232,92 @@ class FileSystemStateBackend(StateBackend):
             handle.write(json.dumps(event, separators=(",", ":")) + "\n")
         return event
 
+    def list_sessions(self) -> list[dict[str, Any]]:
+        if not self.events_path.exists():
+            return []
+
+        events_by_task: dict[str, list[dict[str, Any]]] = {}
+        for line in self.events_path.read_text(encoding="utf-8").splitlines():
+            stripped = line.strip()
+            if not stripped:
+                continue
+            try:
+                event = json.loads(stripped)
+            except json.JSONDecodeError:
+                continue
+            if not isinstance(event, dict):
+                continue
+            task_id = str(event.get("task_id", "unknown"))
+            events_by_task.setdefault(task_id, []).append(event)
+
+        sessions: list[dict[str, Any]] = []
+        for task_id, events in events_by_task.items():
+            timestamps = [
+                timestamp
+                for timestamp in (event.get("timestamp") for event in events)
+                if isinstance(timestamp, str) and timestamp
+            ]
+            timestamps.sort()
+
+            goal = ""
+            for event in events:
+                if event.get("event_type") != "HUMAN":
+                    continue
+                payload = event.get("payload")
+                if not isinstance(payload, Mapping):
+                    continue
+                message = payload.get("message", "")
+                if isinstance(message, str):
+                    goal = message
+                elif message is None:
+                    goal = ""
+                else:
+                    goal = str(message)
+                break
+
+            sessions.append(
+                {
+                    "task_id": task_id,
+                    "goal": goal,
+                    "created_at": timestamps[0] if timestamps else "",
+                    "updated_at": timestamps[-1] if timestamps else "",
+                    "event_count": len(events),
+                }
+            )
+
+        sessions.sort(key=lambda session: str(session.get("updated_at", "")), reverse=True)
+        return sessions
+
+    def list_events_by_task(
+        self,
+        task_id: str,
+        *,
+        limit: int = 100,
+    ) -> list[dict[str, Any]]:
+        if not self.events_path.exists():
+            return []
+
+        matched: list[dict[str, Any]] = []
+        for line in self.events_path.read_text(encoding="utf-8").splitlines():
+            stripped = line.strip()
+            if not stripped:
+                continue
+            try:
+                event = json.loads(stripped)
+            except json.JSONDecodeError:
+                continue
+            if not isinstance(event, dict):
+                continue
+            if str(event.get("task_id")) != task_id:
+                continue
+            matched.append(event)
+
+        matched.sort(
+            key=lambda event: str(event.get("timestamp", "")),
+            reverse=True,
+        )
+        return matched[: max(limit, 1)]
+
     def list_snapshots(self) -> list[dict[str, Any]]:
         snapshots: list[dict[str, Any]] = []
         for line in self.snapshots_path.read_text(encoding="utf-8").splitlines():
@@ -478,6 +564,7 @@ class SQLiteStateBackend(StateBackend):
             )
             """
         )
+        conn.execute("CREATE INDEX IF NOT EXISTS idx_events_task_id ON events(task_id)")
 
     def _seed_defaults(self, conn: sqlite3.Connection) -> None:
         if self._row_missing(conn, "pipeline_state"):
@@ -729,6 +816,93 @@ class SQLiteStateBackend(StateBackend):
         with self.events_path.open("a", encoding="utf-8") as handle:
             handle.write(json.dumps(event, separators=(",", ":")) + "\n")
         return event
+
+    def list_sessions(self) -> list[dict[str, Any]]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                """
+                SELECT task_id,
+                       MIN(timestamp) AS created_at,
+                       MAX(timestamp) AS updated_at,
+                       COUNT(*) AS event_count
+                FROM events
+                GROUP BY task_id
+                ORDER BY MAX(timestamp) DESC
+                """
+            ).fetchall()
+
+        sessions: list[dict[str, Any]] = []
+        for row in rows:
+            task_id = str(row["task_id"])
+            goal = ""
+            with self._connect() as conn:
+                goal_row = conn.execute(
+                    "SELECT payload_json FROM events "
+                    "WHERE task_id = ? AND event_type = 'HUMAN' "
+                    "ORDER BY timestamp ASC LIMIT 1",
+                    (task_id,),
+                ).fetchone()
+            if goal_row:
+                try:
+                    payload = json.loads(str(goal_row["payload_json"]))
+                    if isinstance(payload, dict):
+                        message = payload.get("message", "")
+                        if isinstance(message, str):
+                            goal = message
+                        elif message is None:
+                            goal = ""
+                        else:
+                            goal = str(message)
+                except (json.JSONDecodeError, TypeError, ValueError):
+                    pass
+            sessions.append(
+                {
+                    "task_id": task_id,
+                    "goal": goal,
+                    "created_at": str(row["created_at"]),
+                    "updated_at": str(row["updated_at"]),
+                    "event_count": int(row["event_count"]),
+                }
+            )
+        return sessions
+
+    def list_events_by_task(
+        self,
+        task_id: str,
+        *,
+        limit: int = 100,
+    ) -> list[dict[str, Any]]:
+        with self._connect() as conn:
+            rows = conn.execute(
+                "SELECT schema_version,event_id,task_id,run_id,step_id,event_type,severity,timestamp,payload_json,dedup_key "
+                "FROM events WHERE task_id = ? ORDER BY timestamp DESC LIMIT ?",
+                (task_id, max(limit, 1)),
+            ).fetchall()
+
+        events: list[dict[str, Any]] = []
+        for row in rows:
+            payload: Any = {}
+            try:
+                parsed_payload = json.loads(str(row["payload_json"]))
+                if isinstance(parsed_payload, dict):
+                    payload = parsed_payload
+            except json.JSONDecodeError:
+                payload = {}
+            events.append(
+                {
+                    "schema_version": row["schema_version"],
+                    "event_id": row["event_id"],
+                    "task_id": row["task_id"],
+                    "run_id": row["run_id"],
+                    "step_id": row["step_id"],
+                    "event_type": row["event_type"],
+                    "severity": row["severity"],
+                    "timestamp": row["timestamp"],
+                    "payload": payload,
+                    "dedup_key": row["dedup_key"],
+                }
+            )
+        return events
 
     def list_snapshots(self) -> list[dict[str, Any]]:
         with self._connect() as conn:

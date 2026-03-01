@@ -148,6 +148,133 @@ class DashboardServerTests(unittest.TestCase):
         self.assertEqual(len(payload), 3)
         self.assertEqual([item["event_id"] for item in payload], ["evt_5", "evt_4", "evt_3"])
 
+    def test_get_sessions_empty(self) -> None:
+        response = self.client.get("/api/sessions")
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), [])
+
+    def test_get_sessions_groups_by_task_id(self) -> None:
+        events = [
+            {
+                "schema_version": "1.0.0",
+                "event_id": "evt_a1",
+                "task_id": "TASK-A",
+                "run_id": "RUN-A",
+                "step_id": None,
+                "event_type": "HUMAN",
+                "severity": "INFO",
+                "timestamp": "2026-03-01T00:00:01+00:00",
+                "payload": {"message": "hello A", "sender": "human"},
+                "dedup_key": None,
+            },
+            {
+                "schema_version": "1.0.0",
+                "event_id": "evt_a2",
+                "task_id": "TASK-A",
+                "run_id": "RUN-A",
+                "step_id": None,
+                "event_type": "SYSTEM",
+                "severity": "INFO",
+                "timestamp": "2026-03-01T00:00:02+00:00",
+                "payload": {},
+                "dedup_key": None,
+            },
+            {
+                "schema_version": "1.0.0",
+                "event_id": "evt_b1",
+                "task_id": "TASK-B",
+                "run_id": "RUN-B",
+                "step_id": None,
+                "event_type": "HUMAN",
+                "severity": "INFO",
+                "timestamp": "2026-03-01T00:00:03+00:00",
+                "payload": {"message": "hello B", "sender": "human"},
+                "dedup_key": None,
+            },
+        ]
+        lines = [json.dumps(event, separators=(",", ":")) for event in events]
+        (self.state_root / "events.jsonl").write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+        response = self.client.get("/api/sessions")
+        self.assertEqual(response.status_code, 200)
+        sessions = response.json()
+        self.assertEqual(len(sessions), 2)
+        self.assertEqual(sessions[0]["task_id"], "TASK-B")
+        self.assertEqual(sessions[1]["task_id"], "TASK-A")
+        self.assertEqual(sessions[1]["event_count"], 2)
+        self.assertEqual(sessions[0]["goal"], "hello B")
+
+    def test_get_events_filter_by_task_id(self) -> None:
+        events = [
+            {
+                "schema_version": "1.0.0",
+                "event_id": "evt_x1",
+                "task_id": "TASK-X",
+                "run_id": "RUN-X",
+                "step_id": None,
+                "event_type": "SYSTEM",
+                "severity": "INFO",
+                "timestamp": "2026-03-01T00:00:01+00:00",
+                "payload": {},
+                "dedup_key": None,
+            },
+            {
+                "schema_version": "1.0.0",
+                "event_id": "evt_y1",
+                "task_id": "TASK-Y",
+                "run_id": "RUN-Y",
+                "step_id": None,
+                "event_type": "SYSTEM",
+                "severity": "INFO",
+                "timestamp": "2026-03-01T00:00:02+00:00",
+                "payload": {},
+                "dedup_key": None,
+            },
+        ]
+        lines = [json.dumps(event, separators=(",", ":")) for event in events]
+        (self.state_root / "events.jsonl").write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+        response = self.client.get("/api/events?task_id=TASK-X")
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(len(payload), 1)
+        self.assertEqual(payload[0]["task_id"], "TASK-X")
+
+    def test_get_events_no_task_id_returns_all(self) -> None:
+        events = [
+            {
+                "schema_version": "1.0.0",
+                "event_id": "evt_p1",
+                "task_id": "TASK-P",
+                "run_id": "RUN-P",
+                "step_id": None,
+                "event_type": "SYSTEM",
+                "severity": "INFO",
+                "timestamp": "2026-03-01T00:00:01+00:00",
+                "payload": {},
+                "dedup_key": None,
+            },
+            {
+                "schema_version": "1.0.0",
+                "event_id": "evt_q1",
+                "task_id": "TASK-Q",
+                "run_id": "RUN-Q",
+                "step_id": None,
+                "event_type": "SYSTEM",
+                "severity": "INFO",
+                "timestamp": "2026-03-01T00:00:02+00:00",
+                "payload": {},
+                "dedup_key": None,
+            },
+        ]
+        lines = [json.dumps(event, separators=(",", ":")) for event in events]
+        (self.state_root / "events.jsonl").write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+        response = self.client.get("/api/events")
+        self.assertEqual(response.status_code, 200)
+        payload = response.json()
+        self.assertEqual(len(payload), 2)
+
     def test_get_snapshots_empty(self) -> None:
         response = self.client.get("/api/snapshots")
         self.assertEqual(response.status_code, 200)
